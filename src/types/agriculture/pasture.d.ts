@@ -1,21 +1,16 @@
 import {BaseArrayResult, BaseObjectResult, BasePageResult} from '../axios'
 
 export interface AgriculturePastureResult {
-                id: string,
+                id: string | number,
                 name: string,
-                contractAddr: string,
                 address: string,
                 description: string,
                 area: string,
-                remainingArea: string,
-                bigBreedingQuantity: string,
-                breedingQuantity: string,
-                createBy: string,
-                createTime: string,
-                updateBy: string,
-                updateTime: string,
-                remark: string,
-                delFlag: string
+                delFlag: string | number,
+                createBy?: string,
+                createTime?: string,
+                updateBy?: string,
+                updateTime?: string
 }
 
 export type AgriculturePastureListPageResult = BasePageResult<AgriculturePastureResult>

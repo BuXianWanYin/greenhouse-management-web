@@ -41,14 +41,6 @@ export class AgriculturePastureService {
             url: '/agriculture/pasture/' + id,
         })
     }
-    
-    //查询大棚剩余面积 
-    static listArea(query: any){
-        return request.get<AgriculturePastureListPageResult>({
-            url: '/agriculture/pasture/area',
-            params: query
-        })
-    }
 
     // 导出大棚列表
     static exportExcel(data: any) {

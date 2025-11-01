@@ -13,9 +13,6 @@
             <form-input label="名称" prop="name"
                         v-model="queryParams.name"
                         @keyup.enter="handleQuery"/>
-            <form-input label="合约地址" prop="contractAddr"
-                        v-model="queryParams.contractAddr"
-                        @keyup.enter="handleQuery"/>
             <form-input label="大棚位置" prop="address"
                         v-model="queryParams.address"
                         @keyup.enter="handleQuery"/>
@@ -24,9 +21,6 @@
                         @keyup.enter="handleQuery"/>
             <form-input label="大棚面积" prop="area"
                         v-model="queryParams.area"
-                        @keyup.enter="handleQuery"/>
-            <form-input label="最大分区数量" prop="bigBreedingQuantity"
-                        v-model="queryParams.bigBreedingQuantity"
                         @keyup.enter="handleQuery"/>
           </el-row>
         </el-form>
@@ -54,28 +48,16 @@
         </div>
         <div class="card-body">
           <div class="info-row">
-            <span class="label"><el-icon><Link /></el-icon> 合约地址:</span>
-            <span class="value">{{ pasture.contractAddr }}</span>
-          </div>
-          <div class="info-row">
             <span class="label"><el-icon><Location /></el-icon> 位置:</span>
-            <span class="value">{{ pasture.address }}</span>
+            <span class="value">{{ pasture.address || '/' }}</span>
           </div>
           <div class="info-row">
             <span class="label"><el-icon><DataLine /></el-icon> 面积:</span>
-            <span class="value">{{ pasture.area }}亩</span>
-          </div>
-          <div class="info-row">
-            <span class="label"><el-icon><Odometer /></el-icon> 剩余面积:</span>
-            <span class="value">{{ pasture.remainingArea }}亩</span>
-          </div>
-          <div class="info-row">
-            <span class="label"><el-icon><Grid /></el-icon> 分区数量:</span>
-            <span class="value">{{ pasture.breedingQuantity }} / {{ pasture.bigBreedingQuantity }}</span>
+            <span class="value">{{ pasture.area || '/' }}亩</span>
           </div>
           <div class="info-row">
             <span class="label"><el-icon><EditPen /></el-icon> 备注:</span>
-            <span class="value">{{ pasture.remark || '/' }}</span>
+            <span class="value">{{ pasture.description || '/' }}</span>
           </div>
          
         </div>
@@ -123,11 +105,8 @@
         <el-form-item label="大棚面积" prop="area">
           <el-input v-model="form.area" placeholder="请输入大棚面积(亩)"/>
         </el-form-item>
-        <el-form-item label="最大分区数量" prop="bigBreedingQuantity" >
-          <el-input v-model="form.bigBreedingQuantity" placeholder="请输入最大分区数量"/>
-        </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" placeholder="请输入备注"/>
+        <el-form-item label="备注" prop="description">
+          <el-input v-model="form.description" placeholder="请输入备注"/>
         </el-form-item>
       </el-form>
       
@@ -148,7 +127,7 @@
   import {ElMessage, ElMessageBox} from 'element-plus'
   import {FormInstance} from 'element-plus'
   import {AgriculturePastureResult} from '@/types/agriculture/pasture'
-  import { Link, Location, DataLine, Grid, EditPen, Odometer } from '@element-plus/icons-vue' // 导入图标组件
+  import { Location, DataLine, EditPen } from '@element-plus/icons-vue' // 导入图标组件
   // 导入图片
   import pastureImage from '@/assets/img/pasture/ycgs.jpeg'
   import { AgricultureCropBatchService } from '@/api/agriculture/batchApi'
@@ -166,32 +145,23 @@
   const initialFormState = {
     id: null,
     name: '',
-    contractAddr: '',
     address: '',
     description: '',
     area: '',
-    remainingArea: '',
-    bigBreedingQuantity: '',
-    breedingQuantity: '',
+    delFlag: null,
     createBy: null,
     createTime: null,
     updateBy: null,
-    updateTime: null,
-    remark: '',
-    delFlag: null
+    updateTime: null
   }
   const form = reactive({...initialFormState})
   const queryParams = reactive({
     pageNum: 1,
     pageSize: 10,
     name: '',
-    contractAddr: '',
     address: '',
     description: '',
-    area: '',
-    remainingArea: '',
-    bigBreedingQuantity: '',
-    breedingQuantity: '',
+    area: ''
   })
   const rules = reactive({
     name: [
@@ -209,54 +179,20 @@
         required: true, message: "大棚面积不能为空"
       },
       {
-        type: 'number', message: "大棚面积必须是数字",
-        transform: (value: string) => Number(value)
-      },
-       {
-         pattern: /^\d*\.?\d+$/,
-         message: "请输入有效的大棚面积",
-       }
-    ],
-    bigBreedingQuantity: [
-      {
-        required: true, message: "最大分区数量不能为空"
-      },
-      {
-        type: 'integer', message: "最大分区数量必须是整数",
-         transform: (value: string) => Number(value)
-      },
-      {
-         pattern: /^\d+$/,
-         message: "请输入有效的最大分区数量",
+        pattern: /^\d*\.?\d+$/,
+        message: "请输入有效的大棚面积",
       }
-    ],
+    ]
   })
 
 
   /** 查询大棚列表 */
   const getList = async () => {
     loading.value = true;
-    // 并发请求主列表和剩余面积
-    const [res, areaRes] = await Promise.all([
-      AgriculturePastureService.listPasture(queryParams),
-      AgriculturePastureService.listArea(queryParams)
-    ]);
+    const res = await AgriculturePastureService.listPasture(queryParams);
     if (res.code === 200) {
-      // 默认主列表
       pastureList.value = res.rows;
       total.value = res.total;
-      // 合并剩余面积
-      if (areaRes.code === 200 && Array.isArray(areaRes.rows)) {
-        // 构建 id -> remaining_area 映射表
-        const areaMap = Object.create(null);
-        areaRes.rows.forEach((item: any) => {
-          areaMap[item.id] = item.remaining_area || item.remainingArea || '';
-        });
-        pastureList.value.forEach((item: any) => {
-          // 优先用接口返回的 remaining_area
-          item.remainingArea = areaMap[item.id] ?? item.remainingArea ?? '';
-        });
-      }
       loading.value = false;
     } else {
       pastureList.value = []; // 请求失败时清空数据
@@ -269,13 +205,9 @@
   const columns = reactive([
     {name: 'id', show: true},
     {name: '名称', show: true},
-    {name: '合约地址', show: true},
     {name: '大棚位置', show: true},
     {name: '备注', show: true},
     {name: '大棚面积', show: true},
-    {name: '最大分区数量', show: true},
-    {name: '当前分区数量', show: true},
-    {name: '备注', show: true},
   ])
 
 
@@ -389,7 +321,7 @@
     // 调用分区服务，查询该大棚下是否有分区
     const batchRes = await AgricultureCropBatchService.listBatchByPasture(pastureId);
     // 如果接口返回成功，并且分区数组长度大于0，说明有分区，不能删除
-    if (batchRes.code === 200 && Array.isArray(batchRes.data) && batchRes.data.length > 0) {
+    if (batchRes.code === 200 && Array.isArray(batchRes.rows) && batchRes.rows.length > 0) {
       ElMessage.warning("该大棚之下有分区，不能删除"); // 给出提示
       return; // 终止删除流程
     }
