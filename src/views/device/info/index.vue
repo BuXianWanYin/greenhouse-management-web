@@ -11,8 +11,7 @@
                 placeholder="请选择最后在线时间">
               </el-date-picker>
             </el-form-item>
-            <form-input label="大棚id" prop="pastureId" v-model="queryParams.pastureId" @keyup.enter="handleQuery" />
-            <form-input label="分区id" prop="batchId" v-model="queryParams.batchId" @keyup.enter="handleQuery" />
+            <form-input label="温室id" prop="pastureId" v-model="queryParams.pastureId" @keyup.enter="handleQuery" />
             <form-input label="传感器指令" prop="sensorCommand" v-model="queryParams.sensorCommand"
               @keyup.enter="handleQuery" />
           </el-row>
@@ -21,45 +20,18 @@
       <template #bottom>
         <el-button @click="handleAdd" v-auth="['server:device:add']" v-ripple>新增 </el-button>
         <el-button @click="handleExport" v-auth="['server:device:export']" v-ripple>导出</el-button>
-        <el-button @click="openBatchBindDialog = true" v-auth="['server:device:edit']" v-ripple style="margin-left: 8px;">一键绑定大棚和分区</el-button>
+        <el-button @click="openBatchBindDialog = true" v-auth="['server:device:edit']" v-ripple style="margin-left: 8px;">一键绑定温室</el-button>
       </template>
     </table-bar>
 
     <div class="device-cards-container" v-loading="loading">
-      <div v-for="device in deviceList" :key="device.id" class="device-card" :class="{
-        'device-online': device.controlStatus === '1',
-        'device-offline': device.controlStatus === '0',
-        'device-fault': device.controlStatus === '2'
-      }">
+      <div v-for="device in deviceList" :key="device.id" class="device-card">
         <div class="card-header">
           <div class="device-name">
-            <span class="status-indicator" :class="{
-              online: device.controlStatus === '1',
-              offline: device.controlStatus === '0',
-              fault: device.controlStatus === '2'
-            }" style="margin-right: 6px;"></span>
             <span>{{ device.deviceName }}</span>
           </div>
           <div class="device-status">
-            <el-tag :type="device.controlStatus === '1' ? 'success' : device.controlStatus === '0' ? 'info' : 'danger'"
-              :class="device.controlStatus === '0' ? 'tag-offline' : ''">
-              <template v-if="String(device.isControllable) === '1'">
-                <span v-if="device.controlStatus === '1'" style="color: #52c41a; font-weight: bold;">运行中</span>
-                <span v-else>未运行</span>
-              </template>
-              <template v-else>
-                <span v-if="device.controlStatus === '1'" style="color: #52c41a; font-weight: bold;">在线</span>
-                <span v-else>{{ formatStatus(device.controlStatus, 'status') }}</span>
-              </template>
-            </el-tag>
-            <el-tag
-              v-if="device.deviceTypeName?.includes('传感器') && (device.controlStatus === '1' || (device.controlStatus === '0' && device.alarmStatus !== '0'))"
-              :type="device.alarmStatus === '0'
-                ? 'success'
-                : device.alarmStatus === '1'
-                  ? 'warning'
-                  : 'danger'
-                ">
+            <el-tag v-if="device.alarmStatus !== '0' && device.alarmStatus !== null" :type="device.alarmStatus === '1' ? 'warning' : 'danger'">
               {{ formatStatus(device.alarmStatus, 'alarmStatus') }}
             </el-tag>
           </div>
@@ -70,81 +42,27 @@
             <div class="info-row">
               <span class="label"><el-icon>
                   <HomeFilled />
-                </el-icon> 大棚：</span>
-              <span class="value">{{ formatPastureName(device) }}</span>
+                </el-icon> 温室：</span>
+              <span class="value">{{ device.pastureId || '未绑定' }}</span>
+            </div>
+            <div class="info-row sensor-command">
+              <span class="label"><el-icon>
+                  <Operation />
+                </el-icon> 传感器指令：</span>
+              <span class="value">{{ device.sensorCommand || '无' }}</span>
             </div>
             <div class="info-row">
               <span class="label"><el-icon>
-                  <Grid />
-                </el-icon> 分区：</span>
-              <span class="value">{{ formatBatchName(device) }}</span>
+                  <Cpu />
+                  </el-icon> 设备类型ID：</span>
+              <span class="value">{{ device.deviceTypeId }}</span>
             </div>
             <div class="info-row">
               <span class="label"><el-icon>
-                  <Link />
-                </el-icon> 区块地址：</span>
-              <span class="value">{{ device.blockAddress }}</span>
-            </div>
-
-            <!-- 摄像头卡片：不显示传感器指令，显示添加时间 -->
-            <template v-if="device.deviceTypeId === CAMERA_TYPE_ID">
-              <div class="info-row">
-                <span class="label"><el-icon>
-                    <Cpu />
-                  </el-icon> 设备类型：</span>
-                <span class="value">{{ device.deviceTypeName }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label"><el-icon>
-                    <Clock />
-                  </el-icon> 添加时间：</span>
-                <span class="value">{{ formatDate(device.updateTime) }}</span>
-              </div>
-            </template>
-
-            <!-- isControllable = 1 显示开启/关闭指令，设备类型放最后（非摄像头） -->
-            <template v-else-if="device.isControllable === '1' || device.isControllable === '1'">
-              <div class="info-row">
-                <span class="label"><el-icon>
-                    <Operation />
-                  </el-icon> 开启指令：</span>
-                <span class="value">{{ device.commandOn }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label"><el-icon>
-                    <Clock />
-                  </el-icon> 关闭指令：</span>
-                <span class="value">{{ device.commandOff }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label"><el-icon>
-                    <Cpu />
-                  </el-icon> 设备类型：</span>
-                <span class="value">{{ device.deviceTypeName }}</span>
-              </div>
-            </template>
-
-            <!-- 其他卡片保持原样（非摄像头、非可控） -->
-            <template v-else>
-              <div class="info-row sensor-command">
-                <span class="label"><el-icon>
-                    <Operation />
-                  </el-icon> 传感器指令：</span>
-                <span class="value">{{ device.sensorCommand }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label"><el-icon>
-                    <Cpu />
-                  </el-icon> 设备类型：</span>
-                <span class="value">{{ device.deviceTypeName }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label"><el-icon>
                     <Clock />
                   </el-icon> 最后在线：</span>
-                <span class="value">{{ formatDate(device.lastOnlineTime) }}</span>
-              </div>
-            </template>
+              <span class="value">{{ formatDate(device.lastOnlineTime) }}</span>
+            </div>
           </div>
           
           <!-- 占位区域，确保卡片高度一致 -->
@@ -153,34 +71,13 @@
 
         <div class="card-footer">
           <el-button-group>
-            <!-- isControllable=1 显示开启/关闭按钮，否则显示运行状态 -->
-            <template v-if="String(device.isControllable) === '1'">
-              <el-button :class="['card-action-btn', 'open', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" @click="handleOpen(device)"
-                :loading="deviceOperationStatus.get(device.id)?.isOperating && deviceOperationStatus.get(device.id)?.lastOperation === 'open'">
-                <el-icon>
-                  <CaretRight />
-                </el-icon>
-                {{ device.controlStatus === '1' ? '已开启' : '开启' }}
-              </el-button>
-              <el-button :class="['card-action-btn', 'close', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" @click="handleClose(device)"
-                :loading="deviceOperationStatus.get(device.id)?.isOperating && deviceOperationStatus.get(device.id)?.lastOperation === 'close'">
-                <el-icon>
-                  <CircleClose />
-                </el-icon>
-                {{ device.controlStatus === '0' ? '已关闭' : '关闭' }}
-              </el-button>
-            </template>
-            <template v-else>
-              <el-button :class="['card-action-btn', 'status', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-auth="['server:device:status']"
-                @click="handleStatus(device)">
-                <el-icon>
-                  <Operation />
-                </el-icon>运行状态
-              </el-button>
-            </template>
-            <!-- 其他按钮始终显示 -->
-            <el-button v-if="device.deviceTypeName.includes('传感器') || device.deviceTypeId === CAMERA_TYPE_ID"
-              :class="['card-action-btn', 'threshold', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-auth="['server:device:threshold']"
+            <el-button :class="['card-action-btn', 'status', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-auth="['server:device:status']"
+              @click="handleStatus(device)">
+              <el-icon>
+                <Operation />
+              </el-icon>运行状态
+            </el-button>
+            <el-button :class="['card-action-btn', 'threshold', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-auth="['server:device:threshold']"
               @click="handleThreshold(device)">
               <el-icon>
                 <Setting />
@@ -213,9 +110,16 @@
     <!-- 添加或修改设备信息对话框 -->
     <el-dialog :title="title" v-model="open" width="600px" append-to-body>
       <el-form v-if="step === 1" ref="deviceRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="大棚分区" prop="pastureBatch">
-          <el-cascader v-model="form.pastureBatch" :props="cascaderProps" placeholder="请选择大棚和分区" clearable
-            style="width: 100%" :loading="cascaderLoading" :options="cascaderOptions" />
+        <el-form-item label="温室" prop="pastureId">
+          <el-select v-model="form.pastureId" placeholder="请选择温室" clearable
+            style="width: 100%" :loading="cascaderLoading">
+            <el-option
+              v-for="item in pastureOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value || ''"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="设备名称" prop="deviceName">
           <el-input v-model="form.deviceName" placeholder="请输入设备名称" />
@@ -235,21 +139,12 @@
           </div>
         </el-form-item>
         <el-form-item label="设备类型" prop="deviceTypeId">
-          <el-select v-model="form.deviceTypeId" placeholder="请选择设备类型" style="width: 100%" @change="onDeviceTypeChange">
+          <el-select v-model="form.deviceTypeId" placeholder="请选择设备类型" style="width: 100%">
             <el-option v-for="item in deviceTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="开启指令" v-if="isControllableType">
-          <el-input v-model="form.commandOn" placeholder="请输入开启指令，多个指令用 / 分隔" />
-          <div style="color: #999; font-size: 12px; margin-top: 2px;">
-            多个指令请用 <b>|</b> 分隔，如 FE 05 00 01 FF 00 C7 F5 | FE 05 00 01 FF 00 C9 FF
-          </div>
-        </el-form-item>
-        <el-form-item label="关闭指令" v-if="isControllableType">
-          <el-input v-model="form.commandOff" placeholder="请输入关闭指令，多个指令用 / 分隔" />
-          <div style="color: #999; font-size: 12px; margin-top: 2px;">
-            多个指令请用 <b>|</b> 分隔，如 FE 05 00 01 FF 00 C7 F5 | FE 05 00 01 FF 00 C9 FF
-          </div>
+        <el-form-item label="传感器指令" prop="sensorCommand">
+          <el-input v-model="form.sensorCommand" placeholder="请输入传感器采集指令" />
         </el-form-item>
       </el-form>
       <el-form v-else ref="cameraRef" :model="cameraForm" :rules="cameraRules" label-width="80px">
@@ -302,8 +197,8 @@
     <ThresholdConfig v-model="showThresholdDialog" :device="thresholdDevice" @save="onThresholdSave"
       @save-row="onThresholdRowSave" />
 
-    <!-- 一键绑定大棚和分区对话框 -->
-    <el-dialog title="一键绑定大棚和分区" v-model="openBatchBindDialog" width="500px" append-to-body>
+    <!-- 一键绑定温室对话框 -->
+    <el-dialog title="一键绑定温室" v-model="openBatchBindDialog" width="500px" append-to-body>
       <div style="display: flex; gap: 24px; align-items: flex-start;">
         <!-- 设备多选下拉 -->
         <el-select
@@ -332,16 +227,21 @@
             :value="item.value"
           />
         </el-select>
-        <!-- 级联选择器 -->
-        <el-cascader
-          v-model="batchBindPastureBatch"
-          :props="cascaderProps"
-          placeholder="请选择大棚和分区"
+        <!-- 温室选择器 -->
+        <el-select
+          v-model="batchBindPastureId"
+          placeholder="请选择温室"
           clearable
           style="width: 220px"
           :loading="cascaderLoading"
-          :options="cascaderOptions"
-        />
+        >
+          <el-option
+            v-for="item in batchBindPastureOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
       </div>
       <template #footer>
         <el-button type="primary" @click="handleBatchBindSubmit">确定</el-button>
@@ -354,38 +254,27 @@
 <script setup lang="ts">
 import { AgricultureDeviceService } from '@/api/device/deviceApi'
 import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
-import { AgricultureCropBatchService } from '@/api/agriculture/batchApi'
 import { AgricultureDeviceTypeService } from '@/api/device/devicetypeApi'
-import { ref, reactive, nextTick, onMounted, computed, provide, onUnmounted } from 'vue'
+import { ref, reactive, nextTick, onMounted, computed, provide, onUnmounted, watch } from 'vue'
 import { resetForm, downloadExcel } from '@/utils/utils'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { FormInstance } from 'element-plus'
 import { AgricultureDeviceResult } from '@/types/device/device'
-import WeatherStationStatus from './WeatherStationStatus.vue'
 import ThresholdConfig from './ThresholdConfig.vue'
+import WeatherStationStatus from './WeatherStationStatus.vue'
 import {
-  Monitor,
   Edit,
   Delete,
   Cpu,
-  Histogram,
   HomeFilled,
-  Grid,
-  Link,
   Operation,
   Clock,
-  Calendar,
-  Setting,
-  Plus
+  Plus,
+  Setting
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
-import { CascaderOption } from 'element-plus'
-import { getMqttClient } from '@/api/device/mqttClient'
-import { AgricultureDeviceMqttConfigService } from '@/api/device/deviceConfigApi'
 import { useMqttStore } from '@/store/modules/mqttStore'
-import { DeviceOperationService } from '@/api/device/deviceoperationApi'
 import { AgricultureCameraService } from '@/api/device/cameraApi'
-import { watch } from 'vue'
 import type { CheckboxValueType } from 'element-plus'
 
 const deviceList = ref<AgricultureDeviceResult[]>([])
@@ -435,63 +324,33 @@ const initialFormState = {
   id: null,
   deviceName: null,
   deviceTypeId: '',
-  status: null,
   alarmStatus: null,
   lastOnlineTime: '',
-  thresholdMin: null,
-  thresholdMax: null,
-  pastureId: null,
-  batchId: null,
-  blockAddress: null,
+  pastureId: undefined,
   sensorCommand: null,
-  deviceImage: null,
-  remark: null,
-  updateTime: null,
-  createTime: null,
-  isControllable: null
+  deviceImage: null
 }
 // 修改表单类型
 const form = reactive<{
   id: string | null;
   deviceName: string | null;
   deviceTypeId: string;
-  status: string | null;
   alarmStatus: string | null;
   lastOnlineTime: string;
-  thresholdMin: string | null;
-  thresholdMax: string | null;
-  pastureId: string | null;
-  batchId: string | null;
-  blockAddress: string | null;
+  pastureId: string | undefined;
   sensorCommand: string | null;
   deviceImage: string | null;
-  remark: string | null;
-  updateTime: string | null;
-  createTime: string | null;
-  pastureBatch: string[];
-  commandOn: string | null;
-  commandOff: string | null;
-  isControllable: boolean | null;
 }>({
-  ...initialFormState,
-  pastureBatch: [],
-  commandOn: null,
-  commandOff: null,
-  isControllable: null
+  ...initialFormState
 })
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 8,
   deviceName: '',
   deviceTypeId: '',
-  status: '',
   alarmStatus: '',
   lastOnlineTime: '',
-  thresholdMin: '',
-  thresholdMax: '',
   pastureId: '',
-  batchId: '',
-  blockAddress: '',
   sensorCommand: ''
 })
 const rules = reactive({
@@ -509,23 +368,18 @@ const rules = reactive({
       trigger: ['change', 'blur']
     }
   ],
-  pastureBatch: [
+  pastureId: [
     {
       required: true,
-      message: '请选择大棚和分区',
+      message: '请选择温室',
       trigger: ['change', 'blur']
     }
   ]
 })
 
 const cascaderLoading = ref(false)
-const cascaderOptions = ref<CascaderOption[]>([])
-const deviceTypeOptions = ref<{ value: string, label: string, isControllable: boolean }[]>([])
-
-const isControllableType = computed(() => {
-  const type = deviceTypeOptions.value.find(t => t.value === form.deviceTypeId)
-  return type && type.isControllable
-})
+const deviceTypeOptions = ref<{ value: string, label: string }[]>([])
+const pastureOptions = ref<{ value: string, label: string }[]>([])
 
 /** 查询设备所有类型 */
 const fetchDeviceTypeOptions = async () => {
@@ -536,8 +390,7 @@ const fetchDeviceTypeOptions = async () => {
   if (res.code === 200 && Array.isArray(res.rows)) {
     deviceTypeOptions.value = res.rows.map((item: any) => ({
       value: String(item.id),
-      label: item.typeName,
-      isControllable: item.isControllable === "1"
+      label: item.typeName
     }))
   }
 }
@@ -557,15 +410,11 @@ const getList = async () => {
 const columns = reactive([
   { name: '主键ID', show: true },
   { name: '设备名称', show: true },
-  { name: '设备类型', show: true },
-  { name: '设备状态', show: true },
+  { name: '设备类型ID', show: true },
   { name: '告警状态', show: true },
   { name: '最后在线时间', show: true },
-  { name: '大棚id', show: true },
-  { name: '分区id', show: true },
-  { name: '区块地址', show: true },
-  { name: '传感器指令', show: true },
-  { name: '创建时间', show: true }
+  { name: '温室id', show: true },
+  { name: '传感器指令', show: true }
 ])
 
 
@@ -587,13 +436,8 @@ function cancel() {
 // 表单重置
 const reset = () => {
   Object.assign(form, {
-    ...initialFormState,
-    pastureBatch: [],
-    command_on: null,
-    command_off: null,
-    isControllable: null
+    ...initialFormState
   })
-  cascaderOptions.value = []
   nextTick(() => {
     console.log('reset deviceRef', deviceRef.value)
     console.log('reset cameraRef', cameraRef.value)
@@ -627,8 +471,6 @@ const handleSelectionChange = (selection: any) => {
 /** 新增按钮操作 */
 const handleAdd = () => {
   reset()
-  const type = deviceTypeOptions.value.find(t => t.value === form.deviceTypeId)
-  form.isControllable = type ? type.isControllable : null;
   open.value = true
   title.value = '添加设备信息'
   step.value = 1
@@ -650,14 +492,8 @@ const handleUpdate = async (row: any) => {
     const data = res.data;
     Object.assign(form, {
       ...data,
-      pastureBatch: data.pastureId && data.batchId ? [String(data.pastureId), String(data.batchId)] : [],
-      isControllable: deviceTypeOptions.value.find(t => t.value === String(data.deviceTypeId))?.isControllable ?? null
+      pastureId: data.pastureId ? String(data.pastureId) : undefined
     });
-    initialTypeAndCommand.value = {
-      deviceTypeId: data.deviceTypeId,
-      commandOn: data.commandOn || '',
-      commandOff: data.commandOff || ''
-    };
     open.value = true;
     title.value = '修改设备信息';
     step.value = 1;
@@ -676,26 +512,18 @@ const submitForm = async () => {
   if (!deviceRef.value) return
   await deviceRef.value.validate(async (valid) => {
     if (valid) {
-      // 从级联选择器的值中提取大棚ID和分区ID
-      const [pastureId, batchId] = form.pastureBatch
       const submitData = {
-        ...form,
-        pastureId,
-        batchId,
-        isControllable: form.isControllable ? 1 : 0
+        ...form
       }
-      // 使用类型断言来解决delete操作符的问题
-      const data = submitData as any
-      delete data.pastureBatch
       if (form.id != null) {
-        const res = await AgricultureDeviceService.updateDevice(data)
+        const res = await AgricultureDeviceService.updateDevice(submitData)
         if (res.code === 200) {
           ElMessage.success(res.msg)
           open.value = false
           getList()
         }
       } else {
-        const res = await AgricultureDeviceService.addDevice(data)
+        const res = await AgricultureDeviceService.addDevice(submitData)
         if (res.code === 200) {
           ElMessage.success(res.msg)
           open.value = false
@@ -728,6 +556,7 @@ const handleExport = () => {
 onMounted(() => {
   getList()
   fetchDeviceTypeOptions()
+  fetchPastureOptions()
   // 初始化屏幕尺寸
   screenWidth.value = window.innerWidth
 })
@@ -768,19 +597,19 @@ const handleStatus = (row: any) => {
   showStatusDialog.value = true
 }
 
-/** 设备配置按钮操作 */
-const handleThreshold = (row: any) => {
-  thresholdDevice.value = {
-    ...row,
-    deviceType: row.deviceType || row.deviceTypeId || row.deviceTypeName
-  }
-  showThresholdDialog.value = true
-}
-
 const onStatusSave = (data: any) => {
   // 处理保存后的逻辑
   console.log('Status saved:', data)
   showStatusDialog.value = false
+}
+
+/** 设备配置按钮操作 */
+const handleThreshold = (row: any) => {
+  thresholdDevice.value = {
+    ...row,
+    deviceType: row.deviceTypeId
+  }
+  showThresholdDialog.value = true
 }
 
 const onThresholdSave = (data: any) => {
@@ -822,216 +651,12 @@ const beforeImageUpload = (file: File) => {
   return true
 }
 
-// 加载已选择的大棚和分区数据
-const loadSelectedData = async (pastureId: string | number, batchId: string | number) => {
-  try {
-    cascaderLoading.value = true
-    // 加载大棚数据
-    const pastureRes = await AgriculturePastureService.listPasture({
-      pageNum: 1,
-      pageSize: 100
-    })
-
-    if (pastureRes.code === 200) {
-      const pastureList: CascaderOption[] = pastureRes.rows.map((item: any) => ({
-        value: String(item.id),
-        label: item.name,
-        leaf: false,
-        children: []
-      }))
-
-      // 找到选中的大棚
-      const selectedPasture = pastureList.find((item) => item.value === String(pastureId))
-      if (selectedPasture) {
-        // 加载该大棚下的分区数据
-        const batchRes = await AgricultureCropBatchService.listBatchByPasture(pastureId)
-        if (batchRes.code === 200) {
-          const batchList: CascaderOption[] = (batchRes.rows || []).map((item: any) => ({
-            value: String(item.batchId),
-            label: item.batchName,
-            leaf: true
-          }))
-          selectedPasture.children = batchList
-        }
-      }
-
-      cascaderOptions.value = pastureList
-
-      // 使用 nextTick 确保在 DOM 更新后设置值
-      await nextTick()
-      const selectedValue = [String(pastureId), String(batchId)]
-      form.pastureBatch = selectedValue
-    }
-  } catch (error) {
-    ElMessage.error('加载已选择数据失败')
-  } finally {
-    cascaderLoading.value = false
-  }
-}
-
-// 修改级联选择器配置
-const cascaderProps = {
-  lazy: true,
-  value: 'value',
-  label: 'label',
-  async lazyLoad(node: any, resolve: (dataList: CascaderOption[]) => void) {
-    const { level, value } = node
-
-    try {
-      cascaderLoading.value = true
-      if (level === 0) {
-        // 第一级：加载大棚列表
-        const res = await AgriculturePastureService.listPasture({
-          pageNum: 1,
-          pageSize: 100
-        })
-
-        if (res.code === 200) {
-          const pastureList: CascaderOption[] = res.rows.map((item: any) => ({
-            value: String(item.id),
-            label: item.name,
-            leaf: false
-          }))
-          resolve(pastureList)
-        } else {
-          ElMessage.error('加载大棚列表失败')
-          resolve([])
-        }
-      } else if (level === 1) {
-        // 第二级：加载分区列表
-        const res = await AgricultureCropBatchService.listBatchByPasture(value)
-
-        if (res.code === 200) {
-          const batchList: CascaderOption[] = ((res as { data?: any[] }).data || []).map((item: any) => ({
-            value: String(item.batchId),
-            label: item.batchName,
-            leaf: true
-          }))
-          resolve(batchList)
-        } else {
-          ElMessage.error(res.msg || '加载分区列表失败')
-          resolve([])
-        }
-      }
-    } catch (error) {
-      console.error('加载数据失败，请重试')
-      resolve([])
-    } finally {
-      cascaderLoading.value = false
-    }
-  }
-}
-
-// 修改设备列表中的显示
-const formatPastureName = (device: any) => {
-  return device.pastureName || device.pastureId || '未绑定'
-}
-
-const formatBatchName = (device: any) => {
-  return device.batchName || device.batchId || '未绑定'
-}
 
 
-const handleOpen = async (device: any) => {
-  const deviceId = device.id;
-  const deviceStatus = deviceOperationStatus.value.get(deviceId);
 
-  // 检查设备是否正在操作中
-  if (deviceStatus?.isOperating) {
-    ElMessage.warning('设备正在操作中，请稍候...');
-    return;
-  }
-
-  // 检查设备是否已经开启，只提示不阻止操作
-  if (device.controlStatus === '1') {
-    ElMessage.warning('设备已开启，无需重复操作');
-    return;
-  }
-
-  // 设置操作状态
-  deviceOperationStatus.value.set(deviceId, { isOperating: true, lastOperation: 'open' });
-
-  // 解析开启/关闭指令，判断是否多组
-  const commandOn = device.commandOn || '';
-  const commandOff = device.commandOff || '';
-  const onArr = commandOn.split('|').map((s: string) => s.trim()).filter((s: string) => s);
-  const isMulti = onArr.length > 1;
-  const index = isMulti ? 1 : 0;
-
-  try {
-    const res = await DeviceOperationService.controlDevice({
-      deviceId: device.id,
-      action: 'on',
-      index
-    });
-    if (res.code === 200) {
-      ElMessage.success('设备已开启');
-      await getList(); //更新
-    } else {
-      ElMessage.error(res.msg || '设备开启失败');
-    }
-  } catch (e) {
-    ElMessage.error('设备开启异常');
-  } finally {
-    // 重置操作状态
-    deviceOperationStatus.value.set(deviceId, { isOperating: false, lastOperation: 'open' });
-  }
-};
-
-const handleClose = async (device: any) => {
-  const deviceId = device.id;
-  const deviceStatus = deviceOperationStatus.value.get(deviceId);
-
-  // 检查设备是否正在操作中
-  if (deviceStatus?.isOperating) {
-    ElMessage.warning('设备正在操作中，请稍候...');
-    return;
-  }
-
-  // 检查设备是否已经关闭，只提示不阻止操作
-  if (device.controlStatus === '0') {
-    ElMessage.warning('设备已关闭，无需重复操作');
-    return;
-  }
-
-  // 设置操作状态
-  deviceOperationStatus.value.set(deviceId, { isOperating: true, lastOperation: 'close' });
-
-  // 解析开启/关闭指令，判断是否多组
-  const commandOn = device.commandOn || '';
-  const commandOff = device.commandOff || '';
-  const offArr = commandOff.split('|').map((s: string) => s.trim()).filter((s: string) => s);
-  const isMulti = offArr.length > 1;
-  const index = isMulti ? 1 : 0;
-
-  try {
-    const res = await DeviceOperationService.controlDevice({
-      deviceId: device.id,
-      action: 'off',
-      index
-    });
-    if (res.code === 200) {
-      ElMessage.success('设备已关闭');
-      await getList();//更新
-    } else {
-      ElMessage.error(res.msg || '设备关闭失败');
-    }
-  } catch (e) {
-    ElMessage.error('设备关闭异常');
-  } finally {
-    // 重置操作状态
-    deviceOperationStatus.value.set(deviceId, { isOperating: false, lastOperation: 'close' });
-  }
-};
 
 // 提供 deviceDataMap 给子组件
 provide('deviceDataMap', computed(() => mqttStore.deviceDataMap))
-
-const initialTypeAndCommand = ref({
-  deviceTypeId: '',
-  commandOn: '',
-  commandOff: ''
-});
 
 const step = ref(1)
 const CAMERA_TYPE_ID = '5' // 摄像头类型ID
@@ -1045,43 +670,21 @@ const cameraForm = reactive({
 })
 const nextStepLoading = ref(false)
 
-const onDeviceTypeChange = () => {
-  const type = deviceTypeOptions.value.find(t => t.value === form.deviceTypeId)
-  form.isControllable = type ? type.isControllable : null;
-  if (form.deviceTypeId === initialTypeAndCommand.value.deviceTypeId) {
-    form.commandOn = initialTypeAndCommand.value.commandOn;
-    form.commandOff = initialTypeAndCommand.value.commandOff;
-  } else {
-    form.commandOn = '';
-    form.commandOff = '';
-  }
-  // 新增摄像头时，切换类型重置 step
-  if (!form.id && form.deviceTypeId === CAMERA_TYPE_ID) {
-    step.value = 1
-  }
-};
-
 function goToCameraStep() {
   if (!deviceRef.value) return
   nextStepLoading.value = true
   deviceRef.value.validate(async (valid: boolean) => {
     if (valid) {
       // 保存设备
-      const [pastureId, batchId] = form.pastureBatch
       const submitData = {
-        ...form,
-        pastureId,
-        batchId,
-        isControllable: form.isControllable ? 1 : 0
+        ...form
       }
-      const data = submitData as any
-      delete data.pastureBatch
       let res
       if (form.id != null) {
-        res = await AgricultureDeviceService.updateDevice(data)
+        res = await AgricultureDeviceService.updateDevice(submitData)
         currentDeviceId.value = form.id
       } else {
-        res = await AgricultureDeviceService.addDevice(data)
+        res = await AgricultureDeviceService.addDevice(submitData)
         currentDeviceId.value = (res as any).data?.id || (res as any).data || null
       }
       if (res.code === 200 && currentDeviceId.value) {
@@ -1143,13 +746,14 @@ const cameraRules = reactive({
   subtype: [{ required: true, message: '请选择码流类型', trigger: 'change' }]
 })
 
-// 一键绑定大棚和分区相关
+// 一键绑定温室相关
 const openBatchBindDialog = ref(false)
 const batchBindSelectedDeviceIds = ref<CheckboxValueType[]>([])
 const batchBindCheckAll = ref(false)
 const batchBindIndeterminate = ref(false)
-const batchBindPastureBatch = ref<string[]>([])
+const batchBindPastureId = ref<string>('')
 const batchBindDeviceOptions = computed(() => deviceList.value.map(d => ({ value: d.id, label: d.deviceName })))
+const batchBindPastureOptions = ref<{ value: string, label: string }[]>([])
 
 watch(batchBindSelectedDeviceIds, (val) => {
   if (val.length === 0) {
@@ -1177,14 +781,13 @@ const handleBatchBindSubmit = async () => {
     ElMessage.warning('请选择要绑定的设备')
     return
   }
-  if (!batchBindPastureBatch.value.length || batchBindPastureBatch.value.length < 2) {
-    ElMessage.warning('请选择大棚和分区')
+  if (!batchBindPastureId.value) {
+    ElMessage.warning('请选择温室')
     return
   }
-  const [pastureId, batchId] = batchBindPastureBatch.value
   // 批量更新设备
   const promises = batchBindSelectedDeviceIds.value.map(async (id) => {
-    return AgricultureDeviceService.updateDevice({ id, pastureId, batchId })
+    return AgricultureDeviceService.updateDevice({ id, pastureId: batchBindPastureId.value })
   })
   const results = await Promise.all(promises)
   const successCount = results.filter(r => r.code === 200).length
@@ -1193,9 +796,24 @@ const handleBatchBindSubmit = async () => {
     getList()
     openBatchBindDialog.value = false
     batchBindSelectedDeviceIds.value = []
-    batchBindPastureBatch.value = []
+    batchBindPastureId.value = ''
   } else {
     ElMessage.error('绑定失败')
+  }
+}
+
+/** 查询温室列表 */
+const fetchPastureOptions = async () => {
+  const res = await AgriculturePastureService.listPasture({
+    pageNum: 1,
+    pageSize: 100
+  })
+  if (res.code === 200 && Array.isArray(res.rows)) {
+    pastureOptions.value = res.rows.map((item: any) => ({
+      value: String(item.id),
+      label: item.name
+    }))
+    batchBindPastureOptions.value = pastureOptions.value
   }
 }
 </script>
