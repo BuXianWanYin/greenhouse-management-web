@@ -43,7 +43,7 @@
               <span class="label"><el-icon>
                   <HomeFilled />
                 </el-icon> 温室：</span>
-              <span class="value">{{ device.pastureId || '未绑定' }}</span>
+              <span class="value">{{ device.pastureName || device.pastureId || '未绑定' }}</span>
             </div>
             <div class="info-row sensor-command">
               <span class="label"><el-icon>
@@ -54,8 +54,8 @@
             <div class="info-row">
               <span class="label"><el-icon>
                   <Cpu />
-                  </el-icon> 设备类型ID：</span>
-              <span class="value">{{ device.deviceTypeId }}</span>
+                  </el-icon> 设备类型：</span>
+              <span class="value">{{ device.deviceTypeName || device.deviceTypeId || '未知' }}</span>
             </div>
             <div class="info-row">
               <span class="label"><el-icon>

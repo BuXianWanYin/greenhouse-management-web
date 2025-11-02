@@ -5,9 +5,11 @@ export interface AgricultureDeviceResult {
                 deviceName: string,
                 deviceImage: string,
                 deviceTypeId: string,
+                deviceTypeName?: string,
                 alarmStatus: string,
                 lastOnlineTime: string,
                 pastureId: string,
+                pastureName?: string,
                 sensorCommand: string
 }
 
