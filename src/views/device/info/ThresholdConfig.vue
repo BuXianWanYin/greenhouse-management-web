@@ -133,7 +133,7 @@
               <el-form ref="addFormRef" :model="newThreshold" :rules="rules" label-width="100px">
                 <el-form-item label="参数类型" prop="paramType">
                   <el-select v-model="newThreshold.paramType" placeholder="请选择参数类型"
-                    @change="onParamTypeDropdownVisible">
+                    @change="onParamTypeChange">
                     <el-option v-for="item in paramTypeOptions" :key="item.value" :label="item.label"
                       :value="item.value" />
                     <template #footer>
@@ -144,7 +144,7 @@
                   </el-select>
                 </el-form-item>
                 <el-form-item label="单位" prop="unit">
-                  <el-input v-model="newThreshold.unit" placeholder="请输入单位" />
+                  <el-input v-model="newThreshold.unit" placeholder="单位将自动填充" disabled />
                 </el-form-item>
                 <el-form-item label="阈值范围">
                   <el-col :span="11">
@@ -253,6 +253,9 @@
         <el-form-item label="英文名称" prop="paramTypeEn">
           <el-input v-model="addParamTypeForm.paramTypeEn" placeholder="请输入英文名称" />
         </el-form-item>
+        <el-form-item label="单位" prop="unit">
+          <el-input v-model="addParamTypeForm.unit" placeholder="请输入参数单位，如：℃、%、lux等" />
+        </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="addParamTypeForm.remark" placeholder="请输入备注" />
         </el-form-item>
@@ -356,6 +359,8 @@ const hasSelected = ref(false)
 
 // 参数类型下拉选项
 const paramTypeOptions = ref<any[]>([])
+// 参数类型完整数据（包含unit等信息）
+const paramTypeDictData = ref<any[]>([])
 
 const alarmLevelMap = {
   danger: '严重',
@@ -372,6 +377,9 @@ async function fetchParamTypeOptions() {
   try {
     const res = await ParamTypeDictService.listDict({ pageNum: 1, pageSize: 100 })
     if (res && res.code === 200 && res.rows) {
+      // 保存完整数据，用于后续查找unit
+      paramTypeDictData.value = res.rows
+      // 构建下拉选项
       paramTypeOptions.value = res.rows.map((item: any) => ({
         label: item.paramTypeCn, // 中文名
         value: item.paramTypeEn  // 英文名，作为实际值
@@ -379,6 +387,22 @@ async function fetchParamTypeOptions() {
     }
   } catch (e) {
     paramTypeOptions.value = []
+    paramTypeDictData.value = []
+  }
+}
+
+// 参数类型选择变化时，自动填充单位
+function onParamTypeChange(value: string) {
+  if (value) {
+    // 从保存的完整数据中查找对应的参数类型
+    const paramType = paramTypeDictData.value.find(item => item.paramTypeEn === value)
+    if (paramType && paramType.unit) {
+      newThreshold.unit = paramType.unit
+    } else {
+      newThreshold.unit = ''
+    }
+  } else {
+    newThreshold.unit = ''
   }
 }
 
@@ -778,7 +802,8 @@ const addParamTypeFormRef = ref<FormInstance>()
 const addParamTypeForm = reactive({
   paramTypeCn: '', // 中文名称
   paramTypeEn: '', // 英文名称
-  remark: ''      // 备注
+  unit: '',        // 单位
+  remark: ''       // 备注
 })
 // 新增参数类型表单校验规则
 const addParamTypeRules = reactive<FormRules>({
@@ -802,6 +827,7 @@ async function submitAddParamType() {
         const data = {
           paramTypeCn: addParamTypeForm.paramTypeCn, // 中文名
           paramTypeEn: addParamTypeForm.paramTypeEn, // 英文名
+          unit: addParamTypeForm.unit,               // 单位
           remark: addParamTypeForm.remark            // 备注
         }
         await ParamTypeDictService.addDict(data) // 调用API新增
@@ -810,9 +836,12 @@ async function submitAddParamType() {
         // 刷新下拉选项并选中新添加的类型
         await fetchParamTypeOptions()
         newThreshold.paramType = addParamTypeForm.paramTypeEn
+        // 手动触发单位填充（因为新增的类型会自动选中）
+        onParamTypeChange(addParamTypeForm.paramTypeEn)
         // 清空表单
         addParamTypeForm.paramTypeCn = ''
         addParamTypeForm.paramTypeEn = ''
+        addParamTypeForm.unit = ''
         addParamTypeForm.remark = ''
       } catch (e) {
         ElMessage.error('新增失败')

@@ -4,6 +4,7 @@ export interface ParamTypeDictResult {
                 id: string,
                 paramTypeEn: string,
                 paramTypeCn: string,
+                unit: string,
                 remark: string
 }
 
