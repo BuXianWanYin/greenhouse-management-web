@@ -194,22 +194,22 @@
           <div class="tab-content-center">
             <el-form :model="mqttForm" :rules="mqttRules" ref="mqttFormRef" label-width="140px" class="mqtt-form">
               <el-form-item label="MQTT Broker地址" prop="mqttBroker">
-                <el-input v-model="mqttForm.mqttBroker" placeholder="如 ws://localhost:15675/ws" />
+                <el-input v-model="mqttForm.mqttBroker" placeholder="如 tcp://ip:port" />
               </el-form-item>
-              <el-form-item label="订阅主题" prop="mqttTopic">
-                <el-input v-model="mqttForm.mqttTopic" placeholder="如 /fish-dish/water" />
+              <el-form-item label="发布主题" prop="mqttTopic">
+                <el-input v-model="mqttForm.mqttTopic" placeholder="如 greenhouse-management/air-data 或 greenhouse-management/soil-data" />
               </el-form-item>
               <el-form-item label="QOS等级" prop="mqttQos">
                 <el-select v-model="mqttForm.mqttQos" placeholder="请选择QOS">
-                  <el-option :label="'0（最多一次）'" :value="0" />
-                  <el-option :label="'1（至少一次）'" :value="1" />
-                  <el-option :label="'2（只有一次）'" :value="2" />
+                  <el-option :label="'QoS 0（最多一次）- 不保证送达，性能最高，可能丢失消息'" :value="0" />
+                  <el-option :label="'QoS 1（至少一次）- 保证送达，可能重复消息，适合一般业务'" :value="1" />
+                  <el-option :label="'QoS 2（只有一次）- 保证送达且不重复，可靠性最高，开销较大'" :value="2" />
                 </el-select>
               </el-form-item>
-              <el-form-item label="MQTT用户名" prop="mqtt_username">
+              <el-form-item label="MQTT用户名" prop="mqttUsername">
                 <el-input v-model="mqttForm.mqttUsername" autocomplete="off" name="mqtt-username-random" />
               </el-form-item>
-              <el-form-item label="MQTT密码" prop="mqtt_password">
+              <el-form-item label="MQTT密码" prop="mqttPassword">
                 <el-input v-model="mqttForm.mqttPassword" type="password" show-password autocomplete="new-password"
                   name="mqtt-password-random" />
               </el-form-item>
@@ -217,8 +217,8 @@
                 <el-input v-model="mqttForm.remark" type="textarea" />
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" @click="onSaveMqtt">保存</el-button>
-                <el-button @click="onResetMqtt">重置</el-button>
+                <el-button type="primary" @click.prevent="onSaveMqtt">保存</el-button>
+                <el-button @click.prevent="onResetMqtt">重置</el-button>
               </el-form-item>
             </el-form>
           </div>
@@ -706,7 +706,9 @@ const mqttFormRef = ref<FormInstance>()
 const mqttRules = {
   mqttBroker: [{ required: true, message: '请输入MQTT Broker地址', trigger: 'blur' }],
   mqttTopic: [{ required: true, message: '请输入订阅主题', trigger: 'blur' }],
-  mqttQos: [{ required: true, message: '请选择QOS等级', trigger: 'change' }]
+  mqttQos: [{ required: true, message: '请选择QOS等级', trigger: 'change' }],
+  mqttUsername: [{ required: true, message: '请输入MQTT用户名', trigger: 'blur' }],
+  mqttPassword: [{ required: true, message: '请输入MQTT密码', trigger: 'blur' }]
 } as FormRules
 
 watch(() => props.mqttConfig, (val) => {
@@ -729,8 +731,15 @@ async function fetchMqttConfig() {
 }
 
 async function onSaveMqtt() {
-  mqttFormRef.value?.validate(async (valid) => {
-    if (!valid) return
+  if (!mqttFormRef.value) {
+    ElMessage.warning('表单未初始化')
+    return
+  }
+  mqttFormRef.value.validate(async (valid) => {
+    if (!valid) {
+      ElMessage.warning('请检查表单填写是否正确')
+      return
+    }
     try {
       if (mqttForm.value.id) {
         await AgricultureDeviceMqttConfigService.updateConfig({
@@ -746,7 +755,7 @@ async function onSaveMqtt() {
       ElMessage.success('保存成功')
       await fetchMqttConfig()
     } catch (e) {
-      ElMessage.error('保存失败')
+      ElMessage.error('保存失败：' + (e as Error).message || '未知错误')
     }
   })
 }
