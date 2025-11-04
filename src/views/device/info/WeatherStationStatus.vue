@@ -53,6 +53,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, inject, type Ref } from 'vue'
 import { AgricultureDeviceService } from '@/api/device/deviceApi'
+import { AgricultureDeviceHeartbeatService } from '@/api/device/deviceheartbeatApi'
 import { ElMessage } from 'element-plus'
 import {
   Sunny, ColdDrink, IceDrink,
@@ -91,14 +92,14 @@ const airDataList = [
 ]
 
 const soilDataList = [
-  { label: '土壤温度', key: 'soil_temperature', unit: '℃', icon: ColdDrink, colorClass: 'data-color-orange', bgClass: 'data-bg-orange', borderClass: 'data-border-orange' },
-  { label: '土壤湿度', key: 'soil_humidity', unit: 'm³/m³', icon: IceDrink, colorClass: 'data-color-yellow', bgClass: 'data-bg-yellow', borderClass: 'data-border-yellow' },
-  { label: '土壤电导率', key: 'soil_conductivity', unit: 'µS/cm', icon: Connection, colorClass: 'data-color-blue', bgClass: 'data-bg-blue', borderClass: 'data-border-blue' },
-  { label: '土壤盐分', key: 'soil_salinity', unit: 'mg/L', icon: Sugar, colorClass: 'data-color-yellow', bgClass: 'data-bg-yellow', borderClass: 'data-border-yellow' },
-  { label: '土壤氮含量', key: 'soil_nitrogen', unit: 'mg/kg', icon: DataAnalysis, colorClass: 'data-color-green', bgClass: 'data-bg-green', borderClass: 'data-border-green' },
-  { label: '土壤磷含量', key: 'soil_phosphorus', unit: 'mg/kg', icon: Odometer, colorClass: 'data-color-orange', bgClass: 'data-bg-orange', borderClass: 'data-border-orange' },
-  { label: '土壤钾含量', key: 'soil_potassium', unit: 'mg/kg', icon: Coin, colorClass: 'data-color-purple', bgClass: 'data-bg-purple', borderClass: 'data-border-purple' },
-  { label: '土壤pH值', key: 'soil_ph', unit: '', icon: Watermelon, colorClass: 'data-color-blue', bgClass: 'data-bg-blue', borderClass: 'data-border-blue' }
+  { label: '土壤温度', key: 'soilTemperature', unit: '℃', icon: ColdDrink, colorClass: 'data-color-orange', bgClass: 'data-bg-orange', borderClass: 'data-border-orange' },
+  { label: '土壤湿度', key: 'soilHumidity', unit: 'm³/m³', icon: IceDrink, colorClass: 'data-color-yellow', bgClass: 'data-bg-yellow', borderClass: 'data-border-yellow' },
+  { label: '土壤电导率', key: 'conductivity', unit: 'µS/cm', icon: Connection, colorClass: 'data-color-blue', bgClass: 'data-bg-blue', borderClass: 'data-border-blue' },
+  { label: '土壤盐分', key: 'salinity', unit: 'mg/L', icon: Sugar, colorClass: 'data-color-yellow', bgClass: 'data-bg-yellow', borderClass: 'data-border-yellow' },
+  { label: '土壤氮含量', key: 'nitrogen', unit: 'mg/kg', icon: DataAnalysis, colorClass: 'data-color-green', bgClass: 'data-bg-green', borderClass: 'data-border-green' },
+  { label: '土壤磷含量', key: 'phosphorus', unit: 'mg/kg', icon: Odometer, colorClass: 'data-color-orange', bgClass: 'data-bg-orange', borderClass: 'data-border-orange' },
+  { label: '土壤钾含量', key: 'potassium', unit: 'mg/kg', icon: Coin, colorClass: 'data-color-purple', bgClass: 'data-bg-purple', borderClass: 'data-border-purple' },
+  { label: '土壤pH值', key: 'phValue', unit: '', icon: Watermelon, colorClass: 'data-color-blue', bgClass: 'data-bg-blue', borderClass: 'data-border-blue' }
 ]
 
 // 1. inject 全局 deviceDataMap
@@ -118,8 +119,8 @@ const deviceData = computed(() => {
 // 监听设备数据变化，更新开关状态
 watch(() => props.device, (newDevice) => {
   if (newDevice) {
-    // 根据设备控制状态设置开关状态
-    deviceOn.value = newDevice.controlStatus === '1'
+    // 根据用户开关控制状态设置开关状态
+    deviceOn.value = newDevice.userControlSwitch === '1'
   }
 }, { immediate: true })
 
@@ -127,10 +128,56 @@ watch(() => props.device, (newDevice) => {
 watch(deviceOn, async (newValue, oldValue) => {
   // 只有在用户主动操作时才执行更新
   if (isUserAction.value && props.device?.id) {
+    // 如果是要开启设备，先检查设备的在线状态
+    if (newValue) {
+      try {
+        // 调用心跳API查询设备的在线状态
+        const heartbeatRes: any = await AgricultureDeviceHeartbeatService.listHeartbeat({
+          deviceId: props.device.id,
+          pageNum: 1,
+          pageSize: 1
+        })
+        
+        if (heartbeatRes && heartbeatRes.code === 200 && heartbeatRes.rows && heartbeatRes.rows.length > 0) {
+          const heartbeatData = heartbeatRes.rows[0]
+          // 验证返回的数据的deviceId是否匹配当前设备
+          if (heartbeatData.deviceId === props.device.id || String(heartbeatData.deviceId) === String(props.device.id)) {
+            // 检查在线状态
+            if (heartbeatData.onlineStatus !== 1 && heartbeatData.onlineStatus !== '1') {
+              // 设备不在线，不允许开启
+              deviceOn.value = false
+              ElMessage.warning('设备异常，请联系负责人')
+              isUserAction.value = false
+              return
+            }
+          } else {
+            // deviceId不匹配，不允许开启
+            deviceOn.value = false
+            ElMessage.warning('设备异常，请联系负责人')
+            isUserAction.value = false
+            return
+          }
+        } else {
+          // 没有找到心跳数据，不允许开启
+          deviceOn.value = false
+          ElMessage.warning('设备异常，请联系负责人')
+          isUserAction.value = false
+          return
+        }
+      } catch (error) {
+        // 查询心跳失败，不允许开启
+        deviceOn.value = false
+        ElMessage.warning('设备异常，请联系负责人')
+        isUserAction.value = false
+        return
+      }
+    }
+    
+    // 更新设备用户开关控制状态
     try {
       const res = await AgricultureDeviceService.updateDevice({
         ...props.device,
-        controlStatus: newValue ? '1' : '0'
+        userControlSwitch: newValue ? '1' : '0'
       })
       if (res.code === 200) {
         ElMessage.success(newValue ? '设备已开启' : '设备已关闭')

@@ -31,6 +31,15 @@
             <span>{{ device.deviceName }}</span>
           </div>
           <div class="device-status">
+            <el-tag 
+              :type="getDeviceOnlineStatus(device) === 'online' ? 'success' : 'info'"
+              :class="{ 'tag-offline': getDeviceOnlineStatus(device) === 'offline' }"
+              style="margin-right: 8px; display: flex; align-items: center; gap: 6px;">
+              <span 
+                :class="['online-indicator', { 'breathing': getDeviceOnlineStatus(device) === 'online' }]"
+              ></span>
+              {{ getDeviceOnlineStatus(device) === 'online' ? '在线' : '离线' }}
+            </el-tag>
             <el-tag v-if="device.alarmStatus !== '0' && device.alarmStatus !== null" :type="device.alarmStatus === '1' ? 'warning' : 'danger'">
               {{ formatStatus(device.alarmStatus, 'alarmStatus') }}
             </el-tag>
@@ -57,7 +66,7 @@
                   </el-icon> 设备类型：</span>
               <span class="value">{{ device.deviceTypeName || device.deviceTypeId || '未知' }}</span>
             </div>
-            <div class="info-row">
+            <div class="info-row" v-if="device.lastOnlineTime !== null && device.lastOnlineTime !== undefined">
               <span class="label"><el-icon>
                     <Clock />
                   </el-icon> 最后在线：</span>
@@ -255,6 +264,7 @@
 import { AgricultureDeviceService } from '@/api/device/deviceApi'
 import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
 import { AgricultureDeviceTypeService } from '@/api/device/devicetypeApi'
+import { AgricultureDeviceHeartbeatService } from '@/api/device/deviceheartbeatApi'
 import { ref, reactive, nextTick, onMounted, computed, provide, onUnmounted, watch } from 'vue'
 import { resetForm, downloadExcel } from '@/utils/utils'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -402,9 +412,45 @@ const getList = async () => {
   if (res.code === 200) {
     deviceList.value = res.rows
     total.value = res.total
+    
+    // 批量查询所有设备的心跳数据，获取在线状态和 lastOnlineTime
+    const heartbeatPromises = deviceList.value.map(async (device) => {
+      try {
+        const heartbeatRes: any = await AgricultureDeviceHeartbeatService.listHeartbeat({
+          deviceId: device.id,
+          pageNum: 1,
+          pageSize: 1
+        })
+        if (heartbeatRes && heartbeatRes.code === 200 && heartbeatRes.rows && heartbeatRes.rows.length > 0) {
+          const heartbeatData = heartbeatRes.rows[0]
+          // 验证返回的数据的deviceId是否匹配当前设备
+          if (heartbeatData.deviceId === device.id || String(heartbeatData.deviceId) === String(device.id)) {
+            // 保存在线状态
+            device.onlineStatus = heartbeatData.onlineStatus
+            // 如果设备表中没有 lastOnlineTime，则使用心跳表的
+            if ((!device.lastOnlineTime || device.lastOnlineTime === null) && heartbeatData.lastOnlineTime) {
+              device.lastOnlineTime = heartbeatData.lastOnlineTime
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`查询设备 ${device.id} 的心跳数据失败:`, error)
+      }
+    })
+    await Promise.all(heartbeatPromises)
+    
     loading.value = false
     await mqttStore.subscribeAllDeviceTopics(deviceList.value)
   }
+}
+
+// 获取设备在线状态
+const getDeviceOnlineStatus = (device: any): 'online' | 'offline' => {
+  // 从设备表的用户控制开关判断（1=在线，0=离线）
+  if (device.userControlSwitch === '1' || device.userControlSwitch === 1) {
+    return 'online'
+  }
+  return 'offline'
 }
 
 const columns = reactive([
@@ -1156,6 +1202,67 @@ const fetchPastureOptions = async () => {
   border-color: #e4e7ed !important;
 }
 
+.online-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c0c4cc;
+  display: inline-block;
+  flex-shrink: 0;
+  position: relative;
+  vertical-align: middle;
+  align-self: center;
+  margin-bottom: 2px;
+  margin-right: 2px;
+}
+
+.online-indicator.breathing {
+  background: #67c23a;
+}
+
+.online-indicator.breathing::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #67c23a;
+  opacity: 0.8;
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.online-indicator.breathing::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #67c23a;
+  opacity: 0.6;
+  animation: breathe 2s ease-in-out 0.5s infinite;
+}
+
+@keyframes breathe {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.8);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
 .info-row .label {
   display: flex;
   align-items: center;
@@ -1256,14 +1363,18 @@ const fetchPastureOptions = async () => {
 }
 
 .status-indicator {
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
   background: #c0c4cc;
   /* 默认灰色 */
-  vertical-align: middle;
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0;
 }
 
 .status-indicator.online {
@@ -1317,6 +1428,23 @@ const fetchPastureOptions = async () => {
 
   100% {
     transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+
+  70% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(2);
     opacity: 0;
   }
 }

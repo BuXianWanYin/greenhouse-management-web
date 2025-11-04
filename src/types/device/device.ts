@@ -10,7 +10,9 @@ export interface AgricultureDeviceResult {
                 lastOnlineTime: string,
                 pastureId: string,
                 pastureName?: string,
-                sensorCommand: string
+                sensorCommand: string,
+                userControlSwitch?: string,
+                onlineStatus?: number | string
 }
 
 export type AgricultureDeviceListPageResult = BasePageResult<AgricultureDeviceResult>
