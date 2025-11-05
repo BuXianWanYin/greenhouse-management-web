@@ -16,6 +16,9 @@
         <el-menu-item index="soil">
           <el-icon class="menu-icon"><Monitor /></el-icon><span>土壤数据</span>
         </el-menu-item>
+        <el-menu-item index="history">
+          <el-icon class="menu-icon"><Clock /></el-icon><span>历史数据</span>
+        </el-menu-item>
         <div style="display: flex; align-items: center; margin-left: 24px;">
           <el-select
             v-model="queryPastureId"
@@ -49,18 +52,25 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { Select, Sunny, Monitor } from '@element-plus/icons-vue'
+import { ref, computed, onMounted } from 'vue'
+import { Select, Sunny, Monitor, Clock } from '@element-plus/icons-vue'
 import { AgricultureDeviceService } from '@/api/device/deviceApi'
 // 动态导入页面组件
 import SoilIndex from '../soil/index.vue'
 import WeatherIndex from '../weather/index.vue'
+import HistoryIndex from '../history/index.vue'
 import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
 
 const activeMenu = ref('weather')
 
 const currentComponent = computed(() => {
-  return activeMenu.value === 'soil' ? SoilIndex : WeatherIndex
+  if (activeMenu.value === 'soil') {
+    return SoilIndex
+  } else if (activeMenu.value === 'history') {
+    return HistoryIndex
+  } else {
+    return WeatherIndex
+  }
 })
 
 function handleMenuSelect(key) {
