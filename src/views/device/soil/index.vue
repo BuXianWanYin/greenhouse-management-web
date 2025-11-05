@@ -37,7 +37,7 @@
           <div class="card-header">
             <span>土壤参数历史趋势</span>
             <div class="header-right">
-              <el-select v-model="selectedParams" multiple size="small" style="width: 320px" placeholder="选择参数">
+              <el-select v-model="selectedParams" multiple size="small" style="width: 700px" placeholder="选择参数">
                 <el-option
                   v-for="item in monitorParams"
                   :key="item.name"
@@ -104,45 +104,6 @@
               </template>
             </el-table-column>
           </el-table>
-          <!-- <el-table :data="alarmRules" style="width: 100%">
-            <el-table-column prop="parameter" label="监测参数" width="120">
-              <template #default="scope">
-                {{ paramTypeDict[scope.row.parameter] || scope.row.parameter }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="threshold" label="阈值范围" width="200" />
-            <el-table-column prop="level" label="报警级别" width="100">
-              <template #default="scope">
-                <el-tag :type="scope.row.level === '严重' ? 'danger' : 'warning'">
-                  {{ scope.row.level }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="notify" label="通知方式">
-              <template #default="scope">
-                <el-tag
-                  :type="getNotifyTagType(scope.row.notify)"
-                  size="small"
-                >
-                  {{ scope.row.notify }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" label="状态" width="100">
-              <template #default="scope">
-                <el-switch
-                  v-model="scope.row.status"
-                  @change="onAlarmRuleStatusChange(scope.row)"
-                />
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="200">
-              <template #default="scope">
-                <el-button link size="small" @click="onEditAlarmRule(scope.row)">编辑</el-button>
-                <el-button link size="small" @click="onDeleteAlarmRule(scope.row)">删除</el-button>
-              </template>
-            </el-table-column>
-          </el-table> -->
         </el-card>
 
        <!-- 土壤异常报警列表 -->
@@ -203,15 +164,6 @@
               {{ scope.row.remark || '/' }}
             </template>
           </el-table-column>
-          <!-- <el-table-column prop="alertType" label="偏低/偏高">
-            <template #default="scope">
-              <el-tag :type="scope.row.alertType === 'LOW' ? 'info' : 'danger'">
-                {{ scope.row.alertType === 'LOW' ? '偏低' : '偏高' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="deviceName" label="设备" />
-          <el-table-column prop="alertMessage" label="说明" /> -->
           <el-table-column label="操作">
             <template #default="scope">
               <el-button link size="small" @click="onHandleWarning(scope.row)">处理</el-button>
@@ -246,7 +198,7 @@
         <el-form-item label="通知方式">
           <el-select v-model="editForm.notify" placeholder="请选择">
             <el-option label="系统通知" value="系统通知" />
-            <el-option label="强提醒" value="强提醒" />
+            <el-option label="邮箱提醒" value="邮箱提醒" />
             <el-option label="短信" value="短信" />
           </el-select>
         </el-form-item>
@@ -305,6 +257,7 @@ import { storeToRefs } from 'pinia' // Pinia store 工具
 import { AgricultureThresholdConfigService } from '@/api/device/thresholdConfig' // 阈值配置 API
 import { ParamTypeDictService } from '@/api/device/typedictApi' // 参数字典 API
 import { AgricultureDeviceSensorAlertService } from '@/api/sensor/alertApi'// 报警信息API
+import { AgricultureDeviceMqttConfigService } from '@/api/device/deviceConfigApi' // 设备MQTT配置 API
 import { useUserStore } from '@/store/modules/user'//获取用户API
 
 // 2. 父组件传递的参数 props
@@ -322,6 +275,7 @@ const { deviceDataMap } = storeToRefs(mqttStore) // 解构出设备数据映射
 const thresholdMap = ref({}) // 各设备阈值配置映射
 const cachedTrendData = ref(null) // 土壤趋势数据缓存
 const paramTypeDict = ref({}) // 参数类型中英文对照字典
+const deviceTopicMap = ref({}) // 设备ID到MQTT topic的映射 { deviceId: topic }
 // --- 预警相关 ---
 const userStore = useUserStore()
 const currentUser = computed(() => userStore.getUserInfo)
@@ -391,7 +345,7 @@ const fetchWarningList = async () => {
 
 // --- 图表相关 ---
 const chartTimeRange = ref('day') // 趋势图时间范围
-const selectedParams = ref(['soilTemperature', 'soilHumidity', 'conductivity', 'phValue']) // 选中的土壤参数
+const selectedParams = ref(['soilTemperature', 'soilHumidity', 'conductivity', 'phValue', 'salinity', 'nitrogen', 'phosphorus', 'potassium']) // 选中的土壤参数（默认选中8个）
 const trendChart = ref(null) // 趋势图 DOM 引用
 let chartInstance = null // ECharts 实例
 const chartOption = ref({}) // 图表 option 配置
@@ -416,13 +370,41 @@ const dateRange = ref([]) // 检测记录日期范围
  * 根据 deviceList 设备类型，自动生成土壤参数卡片，包含土壤温度、湿度、电导率、盐分等
  */
  const monitorParams = computed(() => {
-  // 过滤出土壤类设备
-  const deviceListArr = (props.deviceList || []).filter(d => d && d.deviceTypeId == 3)
-  // 获取土壤设备ID
-  const soilId = getDeviceIdByType(deviceListArr, '土壤') || (deviceListArr[0] && deviceListArr[0].id) || null
+  // 过滤出土壤类设备（deviceTypeId == 2）
+  const deviceListArr = (props.deviceList || []).filter(d => d && (d.deviceTypeId == 2 || d.deviceTypeId == '2'))
+  // 获取土壤设备ID（通过设备名称匹配，或取第一个）
+  const soilId = getDeviceIdByType(deviceListArr, '土壤') || 
+                 (deviceListArr.length > 0 && deviceListArr[0] && deviceListArr[0].id ? String(deviceListArr[0].id) : null)
 
-  // 获取设备数据
-  const soilData = soilId ? deviceDataMap.value[soilId] : null
+  // 如果找到了设备ID，从 deviceDataMap 中获取数据
+  let soilData = null
+  if (soilId) {
+    soilData = deviceDataMap.value[soilId]
+    // 验证数据是否匹配：检查topic和pastureId
+    if (soilData) {
+      const expectedTopic = deviceTopicMap.value[soilId]
+      if (expectedTopic && soilData.topic && soilData.topic !== expectedTopic) {
+        // topic不匹配，清空数据
+        soilData = null
+      } else if (props.pastureId && soilData.pastureId && String(soilData.pastureId) !== String(props.pastureId)) {
+        // pastureId不匹配，清空数据
+        soilData = null
+      }
+    }
+  }
+  
+  // 如果通过deviceId找不到，尝试根据topic匹配（兜底逻辑）
+  if (!soilData && deviceTopicMap.value) {
+    for (const [deviceId, topic] of Object.entries(deviceTopicMap.value)) {
+      if (topic && topic.includes('soil-data')) {
+        const data = deviceDataMap.value[deviceId]
+        if (data && data.topic === topic && props.pastureId && data.pastureId && String(data.pastureId) === String(props.pastureId)) {
+          soilData = data
+          break
+        }
+      }
+    }
+  }
 
   return [
     {
@@ -604,6 +586,49 @@ const dateRange = ref([]) // 检测记录日期范围
   thresholdMap.value = map
 }
 
+/**
+ * 加载设备MQTT topic配置
+ * @param {Array} deviceIds 设备ID数组
+ */
+const loadDeviceTopics = async (deviceIds) => {
+  const map = {}
+  for (const deviceId of deviceIds) {
+    try {
+      const res = await AgricultureDeviceMqttConfigService.getConfigByDeviceId(deviceId)
+      if (res && res.code === 200 && res.data && res.data.mqttTopic) {
+        map[String(deviceId)] = res.data.mqttTopic
+      }
+    } catch (e) {
+      console.error(`加载设备 ${deviceId} 的MQTT topic失败:`, e)
+    }
+  }
+  deviceTopicMap.value = map
+  console.log('设备MQTT topic映射:', map)
+}
+
+/**
+ * 读取设备数据缓存到 store
+ */
+const readDeviceDataMapCache = () => {
+  if (!props.pastureId) return
+  const cacheKey = `deviceDataMap_${props.pastureId}`
+  const cache = localStorage.getItem(cacheKey)
+  if (cache) {
+    try {
+      const cacheObj = JSON.parse(cache)
+      // 2小时内有效
+      if (cacheObj.ts && (Date.now() - cacheObj.ts < 7200000)) {
+        // 直接写入 store
+        mqttStore.deviceDataMap = cacheObj.data
+      } else {
+        localStorage.removeItem(cacheKey)
+      }
+    } catch (e) {
+      // 解析缓存失败
+    }
+  }
+}
+
 // 侦听器 watch
 
 // 注意：土壤数据暂时不使用趋势数据缓存，后续如有需要可以添加
@@ -621,12 +646,13 @@ const dateRange = ref([]) // 检测记录日期范围
     [newPastureId, newDeviceList],
     [oldPastureId, oldDeviceList] = []
   ) => {
-    // 1. 设备列表变化时加载阈值和订阅
+    // 1. 设备列表变化时加载阈值、MQTT topic配置和订阅
     if (newDeviceList !== oldDeviceList) {
-      const soilDevices = (newDeviceList || []).filter(d => d && d.deviceTypeId == 3)
+      const soilDevices = (newDeviceList || []).filter(d => d && (d.deviceTypeId == 2 || d.deviceTypeId == '2'))
       const deviceIds = soilDevices.map(d => d && d.id).filter(id => id != null)
       if (deviceIds.length > 0) {
         await loadThresholds(deviceIds)
+        await loadDeviceTopics(deviceIds) // 加载设备MQTT topic配置
       }
       if (newDeviceList && newDeviceList.length > 0) {
         console.log('watch订阅设备列表:', newDeviceList)
@@ -704,9 +730,17 @@ watch([warningLevel, warningStatus], () => {
  * 2. 初始化 ECharts 实例
  * 3. 加载报警规则、参数字典
  */
- onMounted(() => {
+ onMounted(async () => {
   // 先读取缓存，保证 deviceDataMap 有数据
   readDeviceDataMapCache()
+  // 加载设备MQTT topic配置
+  if (props.deviceList && props.deviceList.length > 0) {
+    const soilDevices = (props.deviceList || []).filter(d => d && (d.deviceTypeId == 2 || d.deviceTypeId == '2'))
+    const deviceIds = soilDevices.map(d => d && d.id).filter(id => id != null)
+    if (deviceIds.length > 0) {
+      await loadDeviceTopics(deviceIds)
+    }
+  }
   // 初始化 ECharts 实例
   nextTick(() => {
     if (trendChart.value) {
@@ -747,7 +781,10 @@ onBeforeUnmount(() => {
  * @param {String} pastureId 温室ID
  */
 const loadAlarmRules = async (pastureId) => {
-  const deviceType = 3 // 设备类型
+  // 从设备列表中动态获取土壤设备类型ID
+  const soilDevices = (props.deviceList || []).filter(d => d && (d.deviceTypeId == 2 || d.deviceTypeId == '2'))
+  const deviceType = soilDevices.length > 0 ? (soilDevices[0].deviceTypeId == '2' ? 2 : Number(soilDevices[0].deviceTypeId)) : 2
+  
   if (!pastureId) {
     alarmRules.value = []
     return
@@ -806,7 +843,7 @@ const onEditAlarmRule = (row) => {
 const onEditAlarmRuleSave = async () => {
   try {
     const alarmLevelMap = { '严重': 'danger', '警告': 'warning' }
-    const notifyTypeMapReverse = { '系统通知': 'system', '强提醒': 'ring', '短信': 'sms' }
+    const notifyTypeMapReverse = { '系统通知': 'system', '邮箱提醒': 'email', '短信': 'sms' }
     await AgricultureThresholdConfigService.updateConfig({
       id: editForm.value.id,
       paramType: editForm.value.parameter,
@@ -1011,6 +1048,10 @@ const fetchSoilTrendData = async () => {
       // if (res && res.code === 200 && res.data) {
       //   updateTrendChart(res.data)
       // }
+      
+      // 临时使用假数据，等后端接口实现后删除
+      const mockData = generateMockSoilData()
+      updateTrendChart(mockData)
     }
   } catch (error) {
     console.error('请求土壤趋势数据失败:', error)
@@ -1036,12 +1077,16 @@ function updateTrendChart(data) {
     return fixed
   }
 
-  // 参数映射
+  // 参数映射（包含8个土壤参数）
   const paramMap = {
     soilTemperature: { name: '土壤温度', data: fixSeriesData(data.soilTemperature, len), unit: '℃' },
     soilHumidity: { name: '土壤湿度', data: fixSeriesData(data.soilHumidity, len), unit: 'm³/m³' },
     conductivity: { name: '土壤电导率', data: fixSeriesData(data.conductivity, len), unit: 'µS/cm' },
-    phValue: { name: '土壤pH值', data: fixSeriesData(data.phValue, len), unit: '' }
+    phValue: { name: '土壤pH值', data: fixSeriesData(data.phValue, len), unit: '' },
+    salinity: { name: '土壤盐分', data: fixSeriesData(data.salinity, len), unit: 'mg/kg' },
+    nitrogen: { name: '土壤氮含量', data: fixSeriesData(data.nitrogen, len), unit: 'mg/kg' },
+    phosphorus: { name: '土壤磷含量', data: fixSeriesData(data.phosphorus, len), unit: 'mg/kg' },
+    potassium: { name: '土壤钾含量', data: fixSeriesData(data.potassium, len), unit: 'mg/kg' }
   }
 
   // 只保留选中的参数
@@ -1140,7 +1185,7 @@ const getNotifyTagType = (notify) => {
   switch (notify) {
     case '系统通知':
       return 'success'
-    case '强提醒':
+    case '邮箱提醒':
       return 'warning'
     case '短信':
       return 'success'
@@ -1179,7 +1224,7 @@ const getNotifyTagType = (notify) => {
  */
 const notifyTypeMap = {
   system: '系统通知',
-  ring: '强提醒',
+  email: '邮箱提醒',
   sms: '短信'
 }
 
@@ -1270,32 +1315,10 @@ const getThresholdRange = (deviceId, paramType) => {
  */
 const getDeviceIdByType = (devices, keyword) => {
   if (!devices || !Array.isArray(devices)) return null
-  const dev = devices.find(d => d && d.deviceTypeId == 3 && d.deviceName && d.deviceName.includes(keyword))
+  const dev = devices.find(d => d && (d.deviceTypeId == 2 || d.deviceTypeId == '2') && d.deviceName && d.deviceName.includes(keyword))
   return dev && dev.id ? dev.id : null
 }
 
-/**
- * 读取设备数据缓存到 store
- */
-const readDeviceDataMapCache = () => {
-  if (!props.pastureId) return
-  const cacheKey = `deviceDataMap_${props.pastureId}`
-  const cache = localStorage.getItem(cacheKey)
-  if (cache) {
-    try {
-      const cacheObj = JSON.parse(cache)
-      // 2小时内有效
-      if (cacheObj.ts && (Date.now() - cacheObj.ts < 7200000)) {
-        // 直接写入 store
-        mqttStore.deviceDataMap = cacheObj.data
-      } else {
-        localStorage.removeItem(cacheKey)
-      }
-    } catch (e) {
-      // 解析缓存失败
-    }
-  }
-}
 //日期格式化
 function formatDateTime(date) {
   const pad = n => n < 10 ? '0' + n : n
@@ -1331,6 +1354,45 @@ const loadParamTypeDict = async () => {
     }
   } catch (e) {
     paramTypeDict.value = {}
+  }
+}
+
+/**
+ * 生成假数据（临时使用，等后端接口实现后删除）
+ */
+const generateMockSoilData = () => {
+  const now = new Date()
+  const xAxisData = []
+  const dataPoints = chartTimeRange.value === 'week' ? 7 : chartTimeRange.value === 'month' ? 30 : 24
+  
+  // 生成时间轴数据
+  for (let i = dataPoints - 1; i >= 0; i--) {
+    const time = new Date(now.getTime() - i * (chartTimeRange.value === 'week' ? 86400000 : chartTimeRange.value === 'month' ? 86400000 : 3600000))
+    const timeStr = chartTimeRange.value === 'week' || chartTimeRange.value === 'month' 
+      ? `${time.getMonth() + 1}/${time.getDate()}`
+      : `${time.getHours()}:00`
+    xAxisData.push(timeStr)
+  }
+  
+  // 生成随机数据（带一些波动）
+  const generateSeriesData = (base, range, trend = 0) => {
+    return Array(dataPoints).fill(0).map((_, i) => {
+      const baseValue = base + trend * (i / dataPoints)
+      const random = (Math.random() - 0.5) * range
+      return Math.round((baseValue + random) * 10) / 10
+    })
+  }
+  
+  return {
+    xAxis: xAxisData,
+    soilTemperature: generateSeriesData(22, 5, 2), // 土壤温度 17-27℃
+    soilHumidity: generateSeriesData(0.35, 0.1, 0.05), // 土壤湿度 0.25-0.45 m³/m³
+    conductivity: generateSeriesData(800, 200, -50), // 电导率 600-1000 µS/cm
+    phValue: generateSeriesData(6.5, 0.8, 0.2), // pH值 5.7-7.3
+    salinity: generateSeriesData(500, 150, 30), // 盐分 350-650 mg/kg
+    nitrogen: generateSeriesData(120, 40, 10), // 氮含量 80-160 mg/kg
+    phosphorus: generateSeriesData(80, 30, 5), // 磷含量 50-110 mg/kg
+    potassium: generateSeriesData(150, 50, 15) // 钾含量 100-200 mg/kg
   }
 }
 

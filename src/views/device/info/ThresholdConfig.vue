@@ -86,22 +86,11 @@
                   </template>
                 </template>
               </el-table-column>
-              <el-table-column prop="alarmLevel" label="报警级别" width="120">
-                <template #default="{ row }">
-                  <el-select v-model="row.alarmLevel" placeholder="请选择" style="width: 100px" class="alarm-select">
-                    <el-option label="严重" value="danger" />
-                    <el-option label="警告" value="warning" />
-                    <el-option label="一般" value="info" />
-                  </el-select>
-                </template>
-              </el-table-column>
-
-
               <el-table-column prop="notifyType" label="通知方式" width="140">
                 <template #default="{ row }">
                   <el-select v-model="row.notifyType" placeholder="请选择" style="width: 120px" class="notify-select">
                     <el-option label="系统通知" value="system" />
-                    <el-option label="强提醒" value="ring" />
+                    <el-option label="邮箱提醒" value="email" />
                     <el-option label="短信" value="sms" />
                   </el-select>
                 </template>
@@ -161,17 +150,10 @@
                     </el-form-item>
                   </el-col>
                 </el-form-item>
-                <el-form-item label="报警级别" prop="alarmLevel">
-                  <el-select v-model="newThreshold.alarmLevel" placeholder="请选择报警级别">
-                    <el-option label="严重" value="danger" />
-                    <el-option label="警告" value="warning" />
-                    <el-option label="一般" value="info" />
-                  </el-select>
-                </el-form-item>
                 <el-form-item label="通知方式" prop="notifyType">
                   <el-select v-model="newThreshold.notifyType" placeholder="请选择通知方式">
                     <el-option label="系统通知" value="system" />
-                    <el-option label="强提醒" value="ring" />
+                    <el-option label="邮箱提醒" value="email" />
                     <el-option label="短信" value="sms" />
                   </el-select>
                 </el-form-item>
@@ -287,6 +269,7 @@ import { cloneDeep, isEqual } from 'lodash-es'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { ParamTypeDictService } from '@/api/device/typedictApi'
 import { AgricultureCameraService } from '@/api/device/cameraApi'
+import { AgricultureDeviceTypeService } from '@/api/device/devicetypeApi'
 
 const props = defineProps<{
   modelValue: boolean,
@@ -352,6 +335,8 @@ watch(visible, v => {
     } else {
       activeTab.value = 'threshold'
     }
+    // 根据设备类型获取参数类型选项（会过滤）
+    fetchParamTypeOptions()
     fetchMqttConfig()
     fetchSensorCommand()
     fetchHeartbeatConfig()
@@ -373,16 +358,51 @@ const paramTypeOptions = ref<any[]>([])
 // 参数类型完整数据（包含unit等信息）
 const paramTypeDictData = ref<any[]>([])
 
-const alarmLevelMap = {
-  danger: '严重',
-  warning: '警告',
-  info: '一般'
-}
 const notifyTypeMap: Record<string, string> = {
   system: '系统通知',
-  ring: '强提醒',
+  email: '邮箱提醒',
   sms: '短信'
 }
+// 判断是否为气象传感器
+function isWeatherSensor(deviceTypeName?: string): boolean {
+  if (!deviceTypeName) return false
+  const typeName = deviceTypeName.toLowerCase()
+  return typeName.includes('气象') || 
+         typeName.includes('天气') || 
+         typeName.includes('weather') ||
+         typeName.includes('air')
+}
+
+// 判断是否为土壤传感器
+function isSoilSensor(deviceTypeName?: string): boolean {
+  if (!deviceTypeName) return false
+  const typeName = deviceTypeName.toLowerCase()
+  return typeName.includes('土壤') || 
+         typeName.includes('soil')
+}
+
+// 获取设备类型名称
+async function getDeviceTypeName(): Promise<string | undefined> {
+  // 优先使用设备对象中的设备类型名称
+  if (props.device?.deviceTypeName) {
+    return props.device.deviceTypeName
+  }
+  
+  // 如果没有设备类型名称，通过设备类型ID查询
+  if (props.device?.deviceTypeId) {
+    try {
+      const res = await AgricultureDeviceTypeService.getType(props.device.deviceTypeId)
+      if (res && res.code === 200 && res.data) {
+        return res.data.typeName
+      }
+    } catch (e) {
+      console.error('获取设备类型信息失败:', e)
+    }
+  }
+  
+  return undefined
+}
+
 // 获取参数类型数据（下拉选项）
 async function fetchParamTypeOptions() {
   try {
@@ -390,8 +410,41 @@ async function fetchParamTypeOptions() {
     if (res && res.code === 200 && res.rows) {
       // 保存完整数据，用于后续查找unit
       paramTypeDictData.value = res.rows
+      
+      // 获取设备类型名称
+      const deviceTypeName = await getDeviceTypeName()
+      let filteredRows = res.rows
+      
+      if (isWeatherSensor(deviceTypeName)) {
+        // 气象传感器：只显示气象相关参数（排除soil开头的参数）
+        filteredRows = res.rows.filter((item: any) => {
+          const paramTypeEn = (item.paramTypeEn || '').toLowerCase()
+          // 排除土壤相关参数
+          return !paramTypeEn.startsWith('soil') && 
+                 !paramTypeEn.includes('conductivity') && 
+                 !paramTypeEn.includes('phvalue') && 
+                 !paramTypeEn.includes('salinity') && 
+                 !paramTypeEn.includes('nitrogen') && 
+                 !paramTypeEn.includes('phosphorus') && 
+                 !paramTypeEn.includes('potassium')
+        })
+      } else if (isSoilSensor(deviceTypeName)) {
+        // 土壤传感器：只显示土壤相关参数
+        filteredRows = res.rows.filter((item: any) => {
+          const paramTypeEn = (item.paramTypeEn || '').toLowerCase()
+          // 包含土壤相关参数
+          return paramTypeEn.startsWith('soil') || 
+                 paramTypeEn.includes('conductivity') || 
+                 paramTypeEn.includes('phvalue') || 
+                 paramTypeEn.includes('salinity') || 
+                 paramTypeEn.includes('nitrogen') || 
+                 paramTypeEn.includes('phosphorus') || 
+                 paramTypeEn.includes('potassium')
+        })
+      }
+      
       // 构建下拉选项
-      paramTypeOptions.value = res.rows.map((item: any) => ({
+      paramTypeOptions.value = filteredRows.map((item: any) => ({
         label: item.paramTypeCn, // 中文名
         value: item.paramTypeEn  // 英文名，作为实际值
       }))
@@ -457,7 +510,6 @@ function addNewThreshold() {
     unit: '',
     enabled: true,
     editing: true,
-    alarmLevel: '',
     notifyType: []
   }
   thresholds.value.push(newThreshold)
@@ -496,7 +548,6 @@ async function saveSelected() {
         thresholdMin: row.min,
         thresholdMax: row.max,
         isEnabled: row.enabled ? 1 : 0,
-        alarmLevel: row.alarmLevel,
         unit: row.unit,
         notifyType: Array.isArray(row.notifyType) ? row.notifyType.join(',') : row.notifyType,
         remark: row.remark
@@ -525,7 +576,6 @@ async function saveAll() {
         thresholdMin: row.min,
         thresholdMax: row.max,
         isEnabled: row.enabled ? 1 : 0,
-        alarmLevel: row.alarmLevel,
         unit: row.unit,
         notifyType: Array.isArray(row.notifyType) ? row.notifyType.join(',') : row.notifyType,
         remark: row.remark
@@ -551,7 +601,6 @@ const newThreshold = reactive({
   unit: '',
   thresholdMin: undefined as number | undefined,
   thresholdMax: undefined as number | undefined,
-  alarmLevel: '',
   notifyType: [],
   isEnabled: true,
   remark: ''
@@ -562,7 +611,6 @@ const rules = reactive<FormRules>({
   unit: [{ required: true, message: '请输入单位', trigger: 'blur' }],
   thresholdMin: [{ required: true, message: '请输入最小值', trigger: 'blur' }],
   thresholdMax: [{ required: true, message: '请输入最大值', trigger: 'blur' }],
-  alarmLevel: [{ required: true, message: '请选择报警级别', trigger: 'change' }],
   notifyType: [{ required: true, message: '请选择通知方式', trigger: 'change' }]
 })
 
@@ -577,7 +625,6 @@ function showAddDialog() {
     thresholdMax: undefined,
     isEnabled: true,
     remark: '',
-    alarmLevel: '',
     notifyType: []
   })
   fetchParamTypeOptions()
@@ -595,7 +642,6 @@ async function submitNewThreshold() {
           unit: newThreshold.unit,
           thresholdMin: newThreshold.thresholdMin,
           thresholdMax: newThreshold.thresholdMax,
-          alarmLevel: newThreshold.alarmLevel,
           notifyType: Array.isArray(newThreshold.notifyType) ? newThreshold.notifyType.join(',') : newThreshold.notifyType,
           isEnabled: newThreshold.isEnabled ? 1 : 0,
           remark: newThreshold.remark
@@ -667,7 +713,6 @@ async function fetchThresholds() {
       min: t.thresholdMin,
       max: t.thresholdMax,
       enabled: t.isEnabled === 1,
-      alarmLevel: t.alarmLevel,
       notifyType: t.notifyType || '',
       remark: t.remark,
       unit: t.unit
@@ -694,6 +739,30 @@ watch(
     }
   },
   { immediate: true }
+)
+
+// 监听设备类型ID变化，重新获取参数类型选项
+watch(
+  () => props.device?.deviceTypeId,
+  (deviceTypeId, oldDeviceTypeId) => {
+    // 设备类型变化时，重新获取参数类型选项（会根据设备类型过滤）
+    if (deviceTypeId && deviceTypeId !== oldDeviceTypeId) {
+      fetchParamTypeOptions()
+    }
+  },
+  { immediate: false }
+)
+
+// 监听设备类型名称变化，重新获取参数类型选项
+watch(
+  () => props.device?.deviceTypeName,
+  (deviceTypeName, oldDeviceTypeName) => {
+    // 设备类型名称变化时，重新获取参数类型选项（会根据设备类型过滤）
+    if (deviceTypeName && deviceTypeName !== oldDeviceTypeName) {
+      fetchParamTypeOptions()
+    }
+  },
+  { immediate: false }
 )
 
 const hasSelectedChanged = computed(() =>
@@ -1075,25 +1144,6 @@ watch(
 }
 
 .notify-select :deep(.el-select__caret.is-reverse) {
-  transform: rotateZ(180deg);
-}
-
-/* 报警级别下拉框样式 */
-.alarm-select {
-  margin-right: 8px;
-}
-
-.alarm-select :deep(.el-select__wrapper) {
-  border-radius: 4px;
-}
-
-.alarm-select :deep(.el-select__caret) {
-  color: #c0c4cc;
-  font-size: 12px;
-  transition: transform 0.3s;
-}
-
-.alarm-select :deep(.el-select__caret.is-reverse) {
   transform: rotateZ(180deg);
 }
 

@@ -35,7 +35,7 @@
           <div class="card-header">
             <span>气象参数历史趋势</span>
             <div class="header-right">
-              <el-select v-model="selectedParams" multiple size="small" style="width: 320px" placeholder="选择参数">
+              <el-select v-model="selectedParams" multiple size="small" style="width: 260px" placeholder="选择参数">
                 <el-option
                   v-for="item in monitorParams"
                   :key="item.name"
@@ -244,7 +244,7 @@
         <el-form-item label="通知方式">
           <el-select v-model="editForm.notify" placeholder="请选择">
             <el-option label="系统通知" value="系统通知" />
-            <el-option label="强提醒" value="强提醒" />
+            <el-option label="邮箱提醒" value="邮箱提醒" />
             <el-option label="短信" value="短信" />
           </el-select>
         </el-form-item>
@@ -303,6 +303,7 @@ import { storeToRefs } from 'pinia' // Pinia store 工具
 import { AgricultureThresholdConfigService } from '@/api/device/thresholdConfig' // 阈值配置 API
 import { ParamTypeDictService } from '@/api/device/typedictApi' // 参数字典 API
 import { AgricultureDeviceSensorAlertService } from '@/api/sensor/alertApi'// 报警信息API
+import { AgricultureDeviceMqttConfigService } from '@/api/device/deviceConfigApi' // 设备MQTT配置 API
 import { useUserStore } from '@/store/modules/user'//获取用户API
 
 // 2. 父组件传递的参数 props
@@ -322,6 +323,7 @@ const weatherTrendData = ref(null) // 本地气象趋势数据
 const thresholdMap = ref({}) // 各设备阈值配置映射
 const cachedTrendData = ref(null) // 气象趋势数据缓存
 const paramTypeDict = ref({}) // 参数类型中英文对照字典
+const deviceTopicMap = ref({}) // 设备ID到MQTT topic的映射 { deviceId: topic }
 // --- 预警相关 ---
 const userStore = useUserStore()
 const currentUser = computed(() => userStore.getUserInfo)
@@ -424,25 +426,35 @@ const dateRange = ref([]) // 检测记录日期范围
   // 获取气象设备ID（通过设备名称匹配）
   const weatherId = getDeviceIdByType(deviceListArr, '气象') || 
                      getDeviceIdByType(deviceListArr, '百叶箱') ||
-                     (deviceListArr.length > 0 && deviceListArr[0] && deviceListArr[0].id ? deviceListArr[0].id : null)
+                     (deviceListArr.length > 0 && deviceListArr[0] && deviceListArr[0].id ? String(deviceListArr[0].id) : null)
 
-  // 获取气象设备数据（从 deviceDataMap 中查找，topic 包含 air-data 的数据）
+  // 如果找到了设备ID，从 deviceDataMap 中获取数据
   let weatherData = null
   if (weatherId) {
-    weatherData = deviceDataMap.value[String(weatherId)]
+    weatherData = deviceDataMap.value[weatherId]
+    // 验证数据是否匹配：检查topic和pastureId
+    if (weatherData) {
+      const expectedTopic = deviceTopicMap.value[weatherId]
+      if (expectedTopic && weatherData.topic && weatherData.topic !== expectedTopic) {
+        // topic不匹配，清空数据
+        weatherData = null
+      } else {
+        const pastureId = currentPastureIdRef.value
+        if (pastureId && weatherData.pastureId && String(weatherData.pastureId) !== pastureId) {
+          // pastureId不匹配，清空数据
+          weatherData = null
+        }
+      }
+    }
   }
   
-  // 如果通过 deviceId 找不到，尝试从 deviceDataMap 中查找所有气象数据
-  if (!weatherData) {
-    for (const deviceId in deviceDataMap.value) {
-      const data = deviceDataMap.value[deviceId]
-      if (data && data.topic && (
-        data.topic.includes('air-data') || 
-        data.topic.includes('weather')
-      )) {
-        // 检查是否是当前温室的数据
-        const pastureId = currentPastureIdRef.value
-        if (pastureId && data.pastureId && String(data.pastureId) === pastureId) {
+  // 如果通过deviceId找不到，尝试根据topic匹配（兜底逻辑）
+  if (!weatherData && deviceTopicMap.value) {
+    const pastureId = currentPastureIdRef.value
+    for (const [deviceId, topic] of Object.entries(deviceTopicMap.value)) {
+      if (topic && (topic.includes('air-data') || topic.includes('weather'))) {
+        const data = deviceDataMap.value[deviceId]
+        if (data && data.topic === topic && pastureId && data.pastureId && String(data.pastureId) === pastureId) {
           weatherData = data
           break
         }
@@ -528,6 +540,26 @@ const dateRange = ref([]) // 检测记录日期范围
     }
   }
   thresholdMap.value = map
+}
+
+/**
+ * 加载设备MQTT topic配置
+ * @param {Array} deviceIds 设备ID数组
+ */
+const loadDeviceTopics = async (deviceIds) => {
+  const map = {}
+  for (const deviceId of deviceIds) {
+    try {
+      const res = await AgricultureDeviceMqttConfigService.getConfigByDeviceId(deviceId)
+      if (res && res.code === 200 && res.data && res.data.mqttTopic) {
+        map[String(deviceId)] = res.data.mqttTopic
+      }
+    } catch (e) {
+      console.error(`加载设备 ${deviceId} 的MQTT topic失败:`, e)
+    }
+  }
+  deviceTopicMap.value = map
+  console.log('设备MQTT topic映射:', map)
 }
 
 // 侦听器 watch
@@ -651,12 +683,13 @@ watch(
     [oldPastureId, oldDeviceList] = []
   ) => {
     try {
-      // 1. 设备列表变化时加载阈值和订阅
+      // 1. 设备列表变化时加载阈值、MQTT topic配置和订阅
       if (newDeviceList !== oldDeviceList && newDeviceList) {
         const weatherDevices = (newDeviceList || []).filter(d => d && d.deviceTypeId == 1)
         const deviceIds = weatherDevices.map(d => d && d.id).filter(id => id != null)
         if (deviceIds.length > 0) {
           await loadThresholds(deviceIds)
+          await loadDeviceTopics(deviceIds) // 加载设备MQTT topic配置
         }
         if (newDeviceList && newDeviceList.length > 0) {
           console.log('watch订阅设备列表:', newDeviceList)
@@ -744,9 +777,17 @@ watch([warningLevel, warningStatus], () => {
  * 2. 初始化 ECharts 实例
  * 3. 加载报警规则、参数字典
  */
- onMounted(() => {
+ onMounted(async () => {
   // 先读取缓存，保证 deviceDataMap 有数据
   readDeviceDataMapCache()
+  // 加载设备MQTT topic配置
+  if (props.deviceList && props.deviceList.length > 0) {
+    const weatherDevices = (props.deviceList || []).filter(d => d && d.deviceTypeId == 1)
+    const deviceIds = weatherDevices.map(d => d && d.id).filter(id => id != null)
+    if (deviceIds.length > 0) {
+      await loadDeviceTopics(deviceIds)
+    }
+  }
   // 初始化 ECharts 实例
   nextTick(() => {
     if (trendChart.value) {
@@ -790,7 +831,10 @@ onBeforeUnmount(() => {
  * @param {String} pastureId 温室ID
  */
 const loadAlarmRules = async (pastureId) => {
-  const deviceType = 1 // 设备类型
+  // 从设备列表中动态获取气象设备类型ID
+  const weatherDevices = (props.deviceList || []).filter(d => d && (d.deviceTypeId == 1 || d.deviceTypeId == '1'))
+  const deviceType = weatherDevices.length > 0 ? (weatherDevices[0].deviceTypeId == '1' ? 1 : Number(weatherDevices[0].deviceTypeId)) : 1
+  
   if (!pastureId) {
     alarmRules.value = []
     return
@@ -849,7 +893,7 @@ const onEditAlarmRule = (row) => {
 const onEditAlarmRuleSave = async () => {
   try {
     const alarmLevelMap = { '严重': 'danger', '警告': 'warning' }
-    const notifyTypeMapReverse = { '系统通知': 'system', '强提醒': 'ring', '短信': 'sms' }
+    const notifyTypeMapReverse = { '系统通知': 'system', '邮箱提醒': 'email', '短信': 'sms' }
     await AgricultureThresholdConfigService.updateConfig({
       id: editForm.value.id,
       paramType: editForm.value.parameter,
@@ -1058,6 +1102,10 @@ const fetchWeatherTrendData = async () => {
       // if (res && res.code === 200 && res.data) {
       //   updateTrendChart(res.data)
       // }
+      
+      // 临时使用假数据，等后端接口实现后删除
+      const mockData = generateMockWeatherData()
+      updateTrendChart(mockData)
     }
   } catch (error) {
     console.error('请求气象趋势数据失败:', error)
@@ -1187,7 +1235,7 @@ const getNotifyTagType = (notify) => {
   switch (notify) {
     case '系统通知':
       return 'success'
-    case '强提醒':
+    case '邮箱提醒':
       return 'warning'
     case '短信':
       return 'success'
@@ -1226,7 +1274,7 @@ const getNotifyTagType = (notify) => {
  */
 const notifyTypeMap = {
   system: '系统通知',
-  ring: '强提醒',
+  email: '邮箱提醒',
   sms: '短信'
 }
 
@@ -1414,6 +1462,41 @@ const loadParamTypeDict = async () => {
     }
   } catch (e) {
     paramTypeDict.value = {}
+  }
+}
+
+/**
+ * 生成假数据（临时使用，等后端接口实现后删除）
+ */
+const generateMockWeatherData = () => {
+  const now = new Date()
+  const xAxisData = []
+  const dataPoints = chartTimeRange.value === 'week' ? 7 : chartTimeRange.value === 'month' ? 30 : 24
+  
+  // 生成时间轴数据
+  for (let i = dataPoints - 1; i >= 0; i--) {
+    const time = new Date(now.getTime() - i * (chartTimeRange.value === 'week' ? 86400000 : chartTimeRange.value === 'month' ? 86400000 : 3600000))
+    const timeStr = chartTimeRange.value === 'week' || chartTimeRange.value === 'month' 
+      ? `${time.getMonth() + 1}/${time.getDate()}`
+      : `${time.getHours()}:00`
+    xAxisData.push(timeStr)
+  }
+  
+  // 生成随机数据（带一些波动）
+  const generateSeriesData = (base, range, trend = 0) => {
+    return Array(dataPoints).fill(0).map((_, i) => {
+      const baseValue = base + trend * (i / dataPoints)
+      const random = (Math.random() - 0.5) * range
+      return Math.round((baseValue + random) * 10) / 10
+    })
+  }
+  
+  return {
+    xAxis: xAxisData,
+    temperature: generateSeriesData(25, 8, -3), // 温度 17-33℃
+    humidity: generateSeriesData(65, 20, 5), // 湿度 45-85%
+    windSpeed: generateSeriesData(3, 2, 0.5), // 风速 1-5 m/s
+    lightIntensity: generateSeriesData(8000, 4000, -2000) // 光照强度 4000-12000 Lux
   }
 }
 
