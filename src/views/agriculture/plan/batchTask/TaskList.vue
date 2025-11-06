@@ -35,10 +35,10 @@
         <div class="table">
             <div class="task-list" v-loading="loading">
                 <el-card v-for="task in taskList" :key="String(task.taskId)" class="task-card"
-                    :class="{ 'task-completed': task.status === '1' }" shadow="always">
+                    :class="{ 'task-completed': task.status === '2' }" shadow="always">
                     <div class="task-content">
                         <div class="task-main">
-                            <div class="task-name" :class="{ 'task-name-completed': task.status === '1' }">
+                            <div class="task-name" :class="{ 'task-name-completed': task.status === '2' }">
                                 {{ task.taskName }}
                             </div>
                             <div class="task-info">
@@ -58,30 +58,32 @@
                         </div>
 
                         <div class="task-actions">
-                            <dict-tag :options="dict.agriculture_batch_task_status" :value="task.status"
-                                class="status-tag" />
+                            <el-tag v-if="task.status === '0'" type="info">未分配</el-tag>
+                            <el-tag v-else-if="task.status === '1'" type="warning">已分配</el-tag>
+                            <el-tag v-else-if="task.status === '2'" type="warning">进行中</el-tag>
+                            <el-tag v-else-if="task.status === '3'" type="success">已完成</el-tag>
+                            <el-tag v-else>{{ task.status }}</el-tag>
                             <div class="action-buttons">
-                                
-                                    <el-button 
+                                <el-button 
                                     size="small" 
                                     type="primary" 
                                     plain 
                                     @click="handleTask(Number(task.taskId))" 
                                     v-if="!tableBorder"
-                                    v-hasPermi="['agriculture:batchTask:query']">
+                                    v-auth="['agriculture:batchtask:query']">
                                     <el-icon>
                                         <Edit />
                                     </el-icon>任务处理
                                 </el-button>
 
                                 <el-button size="small" type="primary" plain @click="handleUpdate(task)"
-                                    v-if="tableBorder" v-hasPermi="['agriculture:batchTask:edit']">
+                                    v-if="tableBorder" v-auth="['agriculture:batchtask:edit']">
                                     <el-icon>
                                         <Edit />
                                     </el-icon>修改
                                 </el-button>
                                 <el-button size="small" type="danger" plain @click="handleDelete(task)"
-                                    v-if="tableBorder" v-hasPermi="['agriculture:batchTask:remove']">
+                                    v-if="tableBorder" v-auth="['agriculture:batchtask:remove']">
                                     <el-icon>
                                         <Delete />
                                     </el-icon>删除
@@ -95,6 +97,27 @@
                     v-model:limit="queryParams.pageSize" @pagination="getList" />
             </div>
         </div>
+
+        <!-- 任务详情对话框 -->
+        <el-dialog
+            v-model="showTaskDetailDialog"
+            title="编辑任务"
+            width="65%"
+            top="5vh"
+            append-to-body
+            :close-on-click-modal="true"   
+        >
+            <TaskDetail
+                v-if="showTaskDetailDialog && taskId"
+                :taskId="taskId"
+                :oprType="oprType || 'update'"
+                :batchId="props.batchId"
+                :fishDish="currentTaskFishDish"  
+                :key="taskId"
+                @close="showTaskDetailDialog = false"
+                @updated="onTaskUpdated"
+            />
+        </el-dialog>
 
         <!-- 添加或修改批次任务对话框 -->
         <el-dialog :title="title" :model-value="open" width="500px" append-to-body @close="cancel">
@@ -123,25 +146,6 @@
                 </div>
             </template>
         </el-dialog>
-
-        <el-dialog
-            v-model="showTaskDetailDialog"
-            title="编辑任务"
-            width="65%"
-            top="5vh"
-            append-to-body
-            :close-on-click-modal="true"   
-        >
-            <TaskDetail
-                v-if="showTaskDetailDialog"
-                :taskId="taskId"
-                :oprType="oprType"
-                :fishDish="currentTaskFishDish"  
-                :key="taskId"
-                @close="showTaskDetailDialog = false"
-                @updated="onTaskUpdated"
-            />
-        </el-dialog>
     </div>
 </template>
 
@@ -150,9 +154,8 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete, Calendar, Timer } from '@element-plus/icons-vue'
 import { AgricultureCropBatchTaskService } from "@/api/agriculture/batchTaskApi"
-import type { AgricultureCropBatchTaskResult } from '@/types/agriculture/batchTask'
-import { useDict } from '@/utils/dict'
-import TaskDetail from "../TaskDetail/index.vue"
+import type { AgricultureCropBatchTaskResult } from '@/types/agriculture/batchTask.d'
+import TaskDetail from "../../TaskDetail/index.vue"
 
 const emit = defineEmits(['updated'])
 
@@ -197,10 +200,6 @@ const props = defineProps({
     tableBorder: {
         type: Boolean,
         default: false
-    },
-    hasHarvestRecord: { // 新增
-        type: Boolean,
-        default: false
     }
 })
 
@@ -215,9 +214,8 @@ const formRef = ref()
 const queryFormRef = ref()
 const taskId = ref<number | null>(null)
 const oprType = ref<'add' | 'update' | null>(null)
-const dict = ref<Record<string, any[]>>({})
 const showTaskDetailDialog = ref(false)
-const currentTaskFishDish = ref(0); // 新增
+const currentTaskFishDish = ref(0)
 
 // 查询参数
 const queryParams = reactive<QueryParams>({
@@ -277,12 +275,6 @@ const formatDate = (date: string | null) => {
     return date.split('T')[0]
 }
 
-// 初始化字典数据
-const initDict = async () => {
-    const result = await useDict("agriculture_batch_task_status")
-    dict.value = result
-}
-
 // 获取任务列表
 const getList = async () => {
     loading.value = true
@@ -313,8 +305,6 @@ const getList = async () => {
     } finally {
         loading.value = false
     }
-
-    console.log('请求参数', queryParams)
 }
 
 // 搜索按钮操作
@@ -363,10 +353,6 @@ const cancel = () => {
 
 // 新增按钮操作
 const handleAdd = () => {
-    if(props.hasHarvestRecord){
-        ElMessage.warning('当前分区以采摘,不可新增任务')
-        return
-    }
     reset()
     open.value = true
     title.value = "添加批次任务"
@@ -375,10 +361,6 @@ const handleAdd = () => {
 
 // 修改按钮操作
 const handleUpdate = async (row: AgricultureCropBatchTaskResult) => {
-    if (props.hasHarvestRecord) {
-        ElMessage.warning('当前分区已采摘,不可修改任务')
-        return
-    }
     reset()
     const taskId = Number(row.taskId)
     try {
@@ -403,12 +385,9 @@ const submitForm = async () => {
         if (valid) {
             try {
                 if (form.taskId != null) {
-                    console.log('执行更新任务 API 调用: updateBatchTask')
                     await AgricultureCropBatchTaskService.updateBatchTask(form)
-                    // await addTaskLog('完善项目信息')
                     ElMessage.success("修改成功")
                     emit('updated')
-                    console.log('任务更新成功')
                     open.value = false
                     getList()
                 } else {
@@ -436,7 +415,7 @@ const handleDelete = async (row: AgricultureCropBatchTaskResult) => {
         const res = await AgricultureCropBatchTaskService.delBatchTask(String(taskId))
         if (res.code === 200) {
             getList()
-            ElMessage.success(res.msg)
+            ElMessage.success(res.msg || '删除成功')
         }
     } catch (error) {
         console.error('删除失败:', error)
@@ -454,7 +433,8 @@ const shouldShowActualTime = (task: AgricultureCropBatchTaskResult) => {
 // 处理任务按钮
 const handleTask = (id: number) => {
     const task = taskList.value.find(t => t.taskId === id);
-    currentTaskFishDish.value = task?.fishDish ?? 0; // 0为鱼，1为菜
+    // dishFish 字段可能是字符串，需要转换为数字
+    currentTaskFishDish.value = task?.dishFish ? (typeof task.dishFish === 'string' ? Number(task.dishFish) : task.dishFish) : 0; // 0为鱼，1为菜
     taskId.value = id;
     oprType.value = 'update';
     showTaskDetailDialog.value = true;
@@ -468,7 +448,6 @@ watch(() => props.batchId, (newVal) => {
 
 // 初始化
 onMounted(async () => {
-    await initDict()
     getList()
 })
 
@@ -577,84 +556,34 @@ const onTaskUpdated = () => {
     }
 }
 
-.pagination-container {
-    height: 50px;
-}
-
 .search :deep(.el-form-item__label) {
-    color: #222 !important; // 更黑
-    font-size: 14px;       // 更大
+    color: #222 !important;
+    font-size: 14px;
 }
 
 .search :deep(.el-form-item) {
     margin-bottom: 0;
-    min-height: 30px;      // 提高表单项高度
-    align-items: center;   // 垂直居中
+    min-height: 30px;
+    align-items: center;
 }
 
 .search :deep(.el-input__wrapper),
 .search :deep(.el-date-editor) {
-    min-height: 35px;      // 输入框高度加大
-    font-size: 15px;       // 字体变大
+    min-height: 35px;
+    font-size: 15px;
 }
 
 .search :deep(.el-input__inner),
 .search :deep(.el-range-input) {
-  font-size: 13px; // 输入框和日期选择器内文字大小一致
+  font-size: 13px;
 }
 
-:deep(.el-tag.el-tag--success) {
-    background-color: #f0f9eb;
-    border-color: #e1f3d8;
-    color: #67c23a;
-}
-
-:deep(.el-card) {
-    &.is-always-shadow {
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
-    }
-}
-
-@media screen and (max-width: 1400px) {
-    .el-col {
-        width: 33.33% !important;
-    }
-}
-
-@media screen and (max-width: 1200px) {
-    .el-col {
-        width: 50% !important;
-    }
-}
-
-@media screen and (max-width: 768px) {
-    .el-col {
-        width: 100% !important;
-    }
-
-    .task-content {
-        flex-direction: column;
-        align-items: flex-start !important;
-
-        .task-info {
-            flex-direction: column;
-            gap: 8px !important;
-        }
-
-        .task-actions {
-            width: 100%;
-            margin-top: 12px;
-            justify-content: flex-end;
-        }
-    }
-}
-
-// 搜索区按钮高度加大
 .search :deep(.el-button) {
-  height: 30px;      // 按钮高度加大
-  line-height: 30px; // 垂直居中
-  font-size: 13px;   // 字体适当变大
-  padding: 0 20px;   // 两侧留白
+  height: 30px;
+  line-height: 30px;
+  font-size: 13px;
+  padding: 0 20px;
   box-sizing: border-box;
 }
 </style>
+

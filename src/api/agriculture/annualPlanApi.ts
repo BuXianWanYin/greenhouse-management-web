@@ -1,5 +1,5 @@
 import request from '@/utils/http'
-import { AgricultureAnnualPlanInfoResult,AgricultureAnnualPlanListPageResult } from '@/types/agriculture/annualPlan'
+import { AgricultureAnnualPlanInfoResult,AgricultureAnnualPlanListPageResult } from '@/types/agriculture/annualplan'    
 import { CodeMsgResult } from '@/types/axios'
 
 // 年度种植规划

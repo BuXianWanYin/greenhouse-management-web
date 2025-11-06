@@ -3,7 +3,7 @@
     <el-row class="box">
       <el-col :span="4" class="left">
         <search-menu 
-          title="分区任务" 
+          title="批次任务" 
           :fun="fetchBatchList"    
           search-parma="batchName" 
           search-placeholder="请输入批次名称" 
@@ -19,7 +19,7 @@
       </el-col>
       <el-col :span="20" class="right">
         <template v-if="currentBatchId">
-          <task :batch-id="currentBatchId"></task>
+          <task-list :batch-id="currentBatchId"></task-list>
         </template>
         <el-empty v-else description="暂无批次任务"></el-empty>
       </el-col>
@@ -27,15 +27,15 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import Task from '../batch/Task.vue'
-import SearchMenu from '../SearchMenu/index.vue'
+import TaskList from './TaskList.vue'
+import SearchMenu from '../../SearchMenu/index.vue'
 import { AgricultureCropBatchService } from '@/api/agriculture/batchApi'
 
 // 响应式状态
-const currentBatchId = ref(null)
+const currentBatchId = ref<number | null>(null)
 
 // 获取批次列表
 const fetchBatchList = async () => {
@@ -65,8 +65,7 @@ const initDefaultSelection = async () => {
 }
 
 // 处理批次选择
-const handleBatchSelect = (selectedBatch) => {
-  // 格式化输出选中的批次数据
+const handleBatchSelect = (selectedBatch: any) => {
   console.log('选中的批次数据:', {
     批次ID: selectedBatch.batchId,
     批次名称: selectedBatch.batchName,
@@ -114,3 +113,4 @@ onMounted(() => {
   }
 }
 </style>
+
