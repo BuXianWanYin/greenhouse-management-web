@@ -11,7 +11,7 @@ import { upgradeLogList } from '@/mock/upgradeLog'
  * 2. 后端动态配置 - 后端返回菜单数据，前端解析生成路由
  *
  * 菜单标题（title）:
- * 可以是 i18n 的 key，也可以是字符串，比如：'用户列表'
+ * 可以是字符串，比如：'用户列表'
  */
 export const asyncRoutes: MenuListType[] = [
   {
@@ -86,17 +86,4 @@ export const asyncRoutes: MenuListType[] = [
       }
     ]
   },
-  // {
-  //   id: uuid(),
-  //   name: 'ChangeLog',
-  //   path: '/log/changeLog',
-  //   component: RoutesAlias.ChangeLog,
-  //   meta: {
-  //     title: 'menus.plan.log',
-  //     showTextBadge: `${upgradeLogList.value[0].version}`,
-  //     icon: '&#xe712;',
-  //     keepAlive: false,
-  //     isInMainContainer: true
-  //   }
-  // }
 ]

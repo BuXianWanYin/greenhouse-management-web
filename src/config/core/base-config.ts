@@ -6,7 +6,7 @@ import { SystemConfig } from '../types'
 export const createBaseConfig = (): SystemConfig => ({
   // 系统信息
   systemInfo: {
-    name: '智链兴农',
+    name: '温室种植计划管理与人员分工系统',
     login: {
       username: '',
       password: '',

@@ -30,7 +30,7 @@
         <div class="header-left-section">
           <div class="title-section">
             <h1 class="main-title">
-              <span class="title-text">智链兴农鱼菜共生溯源</span>
+              <span class="title-text">温室种植计划管理与人员分工系统</span>
               <div class="title-underline"></div>
             </h1>
             <p class="subtitle">生态循环 绿色健康 全程可追溯</p>

@@ -100,7 +100,7 @@
                 {{ scope.row.soilTemperature || '-' }}
               </template>
             </el-table-column>
-            <el-table-column prop="soilHumidity" label="土壤湿度(%)" width="200" align="center">
+            <el-table-column prop="soilHumidity" label="土壤湿度(m³/m³)" width="200" align="center">
               <template #default="scope">
                 {{ scope.row.soilHumidity || '-' }}
               </template>

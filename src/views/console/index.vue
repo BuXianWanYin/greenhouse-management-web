@@ -7,7 +7,7 @@
     </div>
     <div class="bottom-wrap art-custom-card" style="margin-bottom: 60px;">
       <div>
-        <h2 class="box-title">关于智链兴农</h2>
+        <h2 class="box-title">关于温室种植计划管理与人员分工系统</h2>
         <p>{{ systemName }} 是一款基于区块链和人工智能的鱼菜共生智慧物链平台</p>
         <p>集成了智能水质监测、鱼菜共生管理、区块链溯源、AI决策分析等核心功能，打造绿色循环农业生态</p>
 

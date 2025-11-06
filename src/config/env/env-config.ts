@@ -10,8 +10,7 @@ export const envConfig = {
     process.env.NODE_ENV === 'development'
       ? {
           ...createBaseConfig().systemInfo,
-          name: '智链兴农'
+          name: '温室种植计划管理与人员分工系统'
         }
       : createBaseConfig().systemInfo
-  // 可以在这里添加其他动态配置
 }
