@@ -50,28 +50,6 @@
           </template>
           <batch-task-list :batch-id="Number(batchId)" :table-border="true" />
         </el-tab-pane>
-
-        <!-- 生长阶段Tab -->
-        <el-tab-pane name="growthStage" label="生长阶段">
-          <template #label>
-            <span class="custom-tabs-label">
-              <el-icon><Calendar /></el-icon>
-              <span>生长阶段</span>
-            </span>
-          </template>
-          <growth-stage-list :batch-id="batchId" />
-        </el-tab-pane>
-
-        <!-- 生长关键节点Tab -->
-        <el-tab-pane name="growthNode" label="生长关键节点">
-          <template #label>
-            <span class="custom-tabs-label">
-              <el-icon><Flag /></el-icon>
-              <span>生长关键节点</span>
-            </span>
-          </template>
-          <growth-node-list :batch-id="batchId" />
-        </el-tab-pane>
       </el-tabs>
     </el-card>
 
@@ -150,15 +128,13 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { FormInstance } from 'element-plus'
-import { Document, EditPen, List, Calendar, Flag, Collection } from '@element-plus/icons-vue'
+import { Document, EditPen, List } from '@element-plus/icons-vue'
 import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
 import { AgricultureClassService } from '@/api/agriculture/classApi'
 import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
 import { UserService } from '@/api/system/userApi'
 import { AgricultureCropBatchResult } from '@/types/agriculture/batch'
 import BatchTaskList from '../batchTask/TaskList.vue'
-import GrowthStageList from './components/GrowthStageList.vue'
-import GrowthNodeList from './components/GrowthNodeList.vue'
 
 const route = useRoute()
 const router = useRouter()

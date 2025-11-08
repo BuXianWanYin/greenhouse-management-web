@@ -9,8 +9,6 @@ export interface AgricultureCropBatchResult {
     rotationPlanId?: number | string,
     plantingDensity?: number,
     expectedHarvestTime?: string,
-    currentGrowthStage?: string,
-    growthStageStartTime?: string,
     totalGrowthDays?: number,
     actualHarvestTime?: string,
     pastureId: number | string,
