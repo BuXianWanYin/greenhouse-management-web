@@ -120,7 +120,7 @@
           />
         </el-form-item>
         <el-form-item label="计划类型" prop="planType">
-          <el-select v-model="form.planType" placeholder="请选择计划类型" style="width: 100%">
+          <el-select v-model="form.planType" placeholder="请选择计划类型" style="width: 100%" @change="handlePlanTypeChange">
             <el-option label="年度计划" value="annual" />
             <el-option label="季度计划" value="seasonal" />
             <el-option label="轮作计划" value="rotation" />
@@ -186,8 +186,8 @@
     </el-dialog>
 
     <!-- 轮作计划详情对话框 -->
-    <el-dialog title="轮作计划详情" v-model="detailOpen" width="1200px" append-to-body>
-      <div class="detail-content">
+    <el-dialog :title="detailTitle" v-model="detailOpen" width="1200px" append-to-body>
+      <div class="detail-content" v-if="detailInfo.planType === 'rotation'">
         <!-- 轮作明细 -->
         <table-bar
           :showTop="false"
@@ -225,25 +225,23 @@
         >
           <template #default>
             <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="明细ID" prop="detailId" width="100" v-if="columnsDetail[0].show" />
-            <el-table-column label="种质名称" prop="classId" width="150" v-if="columnsDetail[1].show">
+            <el-table-column label="种质名称" prop="classId" width="150" v-if="columnsDetail[0].show">
               <template #default="scope">
                 {{ getClassName(scope.row.classId) }}
               </template>
             </el-table-column>
-            <el-table-column label="轮作顺序" prop="rotationOrder" width="100" align="center" v-if="columnsDetail[2].show" />
-            <el-table-column label="季节类型" prop="seasonType" width="120" align="center" v-if="columnsDetail[3].show">
+            <el-table-column label="季节类型" prop="seasonType" width="120" align="center" v-if="columnsDetail[1].show">
               <template #default="scope">
                 {{ getSeasonTypeName(scope.row.seasonType) }}
               </template>
             </el-table-column>
-            <el-table-column label="种植面积(亩)" prop="plantingArea" width="120" align="center" v-if="columnsDetail[4].show" />
-            <el-table-column label="种植密度" prop="plantingDensity" width="120" align="center" v-if="columnsDetail[5].show" />
-            <el-table-column label="预期开始" prop="expectedStartDate" width="120" align="center" v-if="columnsDetail[6].show" />
-            <el-table-column label="预期结束" prop="expectedEndDate" width="120" align="center" v-if="columnsDetail[7].show" />
-            <el-table-column label="关联批次" prop="batchName" width="150" align="center" v-if="columnsDetail[8].show">
+            <el-table-column label="种植面积(亩)" prop="plantingArea" width="120" align="center" v-if="columnsDetail[2].show" />
+            <el-table-column label="种植密度" prop="plantingDensity" width="120" align="center" v-if="columnsDetail[3].show" />
+            <el-table-column label="预期开始" prop="expectedStartDate" width="120" align="center" v-if="columnsDetail[4].show" />
+            <el-table-column label="预期结束" prop="expectedEndDate" width="120" align="center" v-if="columnsDetail[5].show" />
+            <el-table-column label="关联批次" prop="batchNames" width="200" align="center" v-if="columnsDetail[6].show" show-overflow-tooltip>
               <template #default="scope">
-                {{ scope.row.batchName || '--' }}
+                {{ scope.row.batchNames && scope.row.batchNames.length > 0 ? scope.row.batchNames.join('、') : '--' }}
               </template>
             </el-table-column>
             <el-table-column label="操作" width="200" align="center" fixed="right">
@@ -258,6 +256,35 @@
             </el-table-column>
           </template>
         </art-table>
+      </div>
+      <!-- 年度/季度计划详情 -->
+      <div class="detail-content" v-else>
+        <el-descriptions :column="2" border v-loading="detailLoading">
+          <el-descriptions-item label="计划ID">{{ detailInfo.planId || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="计划名称">{{ detailInfo.planName || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="计划年份">{{ detailInfo.planYear || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="计划类型">
+            <el-tag v-if="detailInfo.planType === 'annual'" type="primary">年度计划</el-tag>
+            <el-tag v-else-if="detailInfo.planType === 'seasonal'" type="success">季度计划</el-tag>
+            <el-tag v-else>{{ detailInfo.planType || '--' }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="所属温室">
+            {{ getPastureName(detailInfo.pastureId) || '--' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="计划状态">
+            <el-tag v-if="detailInfo.planStatus === '0'" type="info">未开始</el-tag>
+            <el-tag v-else-if="detailInfo.planStatus === '1'" type="success">执行中</el-tag>
+            <el-tag v-else-if="detailInfo.planStatus === '2'" type="primary">已完成</el-tag>
+            <el-tag v-else-if="detailInfo.planStatus === '3'" type="danger">已取消</el-tag>
+            <el-tag v-else>{{ detailInfo.planStatus || '--' }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="开始日期">{{ detailInfo.startDate || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="结束日期">{{ detailInfo.endDate || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="总面积(亩)">{{ detailInfo.totalArea || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="创建时间">{{ detailInfo.createTime || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="计划描述" :span="2">{{ detailInfo.planDescription || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="备注" :span="2">{{ detailInfo.remark || '--' }}</el-descriptions-item>
+        </el-descriptions>
       </div>
       <template #footer>
         <div class="dialog-footer">
@@ -450,9 +477,7 @@ const detailRef = ref<FormInstance>()
 
 // 明细列表列配置（用于详情对话框）
 const columnsDetail = reactive([
-  { name: '明细ID', show: true },
   { name: '种质名称', show: true },
-  { name: '轮作顺序', show: true },
   { name: '季节类型', show: true },
   { name: '种植面积(亩)', show: true },
   { name: '种植密度', show: true },
@@ -531,11 +556,46 @@ const handleCurrentChange = (page: number) => {
   getList()
 }
 
+/** 计划类型变化处理 */
+const handlePlanTypeChange = (value: string) => {
+  // 根据计划类型更新标题
+  if (form.planId) {
+    // 修改模式
+    if (value === 'rotation') {
+      title.value = '修改轮作计划'
+    } else if (value === 'annual') {
+      title.value = '修改年度计划'
+    } else if (value === 'seasonal') {
+      title.value = '修改季度计划'
+    } else {
+      title.value = '修改种植计划'
+    }
+  } else {
+    // 新增模式
+    if (value === 'rotation') {
+      title.value = '添加轮作计划'
+    } else if (value === 'annual') {
+      title.value = '添加年度计划'
+    } else if (value === 'seasonal') {
+      title.value = '添加季度计划'
+    } else {
+      title.value = '添加种植计划'
+    }
+  }
+  
+  // 如果不是轮作计划，清空轮作周期
+  if (value !== 'rotation') {
+    form.rotationCycle = undefined
+  }
+}
+
 /** 新增按钮操作 */
 const handleAdd = () => {
   reset()
   open.value = true
   title.value = '添加种植计划'
+  // 默认不显示轮作周期字段
+  form.planType = undefined
 }
 
 // 详情相关
@@ -545,6 +605,7 @@ const detailInfo = ref<AgricultureRotationPlanResult>({} as AgricultureRotationP
 const detailRotationId = ref<string>('')
 const detailListData = ref<AgricultureRotationDetailResult[]>([])
 const detailTotal = ref(0)
+const detailTitle = ref('计划详情')
 const detailQueryParams = reactive({
   pageNum: 1,
   pageSize: 10,
@@ -560,17 +621,31 @@ const handleDetail = async (row: AgricultureRotationPlanResult) => {
   const planId = row.planId || row.rotationId // 兼容旧字段
   detailRotationId.value = String(planId)
   detailInfo.value = row
-  // 重置查询参数
-  detailQueryParams.pageNum = 1
-  detailQueryParams.pageSize = 10
-  detailQueryParams.planId = String(planId)
-  detailQueryParams.rotationId = String(planId) // 兼容旧字段
-  detailQueryParams.seasonType = ''
-  // 先清空数据，避免显示旧数据
-  detailListData.value = []
-  detailTotal.value = 0
-  // 加载轮作明细
-  await loadDetailList()
+  
+  // 根据计划类型设置标题
+  if (row.planType === 'rotation') {
+    detailTitle.value = '轮作计划详情'
+    // 重置查询参数
+    detailQueryParams.pageNum = 1
+    detailQueryParams.pageSize = 10
+    detailQueryParams.planId = String(planId)
+    detailQueryParams.rotationId = String(planId) // 兼容旧字段
+    detailQueryParams.seasonType = ''
+    // 先清空数据，避免显示旧数据
+    detailListData.value = []
+    detailTotal.value = 0
+    // 加载轮作明细
+    await loadDetailList()
+  } else if (row.planType === 'annual') {
+    detailTitle.value = '年度计划详情'
+    detailLoading.value = false
+  } else if (row.planType === 'seasonal') {
+    detailTitle.value = '季度计划详情'
+    detailLoading.value = false
+  } else {
+    detailTitle.value = '计划详情'
+    detailLoading.value = false
+  }
 }
 
 /** 加载轮作明细列表（用于详情对话框） */
@@ -680,15 +755,14 @@ const loadBatchNamesForDetails = async () => {
   if (!detailListData.value || detailListData.value.length === 0) return
   
   try {
-    // 查询所有相关的批次（根据轮作计划ID）
+    // 查询所有批次（因为批次数据中planId可能为null，需要通过其他字段匹配）
     const batchRes = await AgricultureCropBatchService.listBatch({
-      rotationPlanId: detailRotationId.value,
       pageNum: 1,
       pageSize: 1000
     })
     
     if (batchRes.code === 200 && batchRes.rows) {
-      // 为每个明细匹配批次名称
+      // 为每个明细匹配批次名称（支持多个批次）
       detailListData.value.forEach((detail: any) => {
         const seasonMap: { [key: string]: string } = {
           '1': 'spring',
@@ -698,16 +772,36 @@ const loadBatchNamesForDetails = async () => {
         }
         const seasonType = seasonMap[String(detail.seasonType)] || detail.seasonType
         
-        // 查找匹配的批次（轮作计划ID和季节类型都匹配）
-        const matchedBatch = batchRes.rows.find((batch: any) => 
-          String(batch.rotationPlanId) === String(detailRotationId.value) &&
-          String(batch.seasonType) === String(seasonType)
-        )
+        // 查找所有匹配的批次
+        const matchedBatches = batchRes.rows.filter((batch: any) => {
+          // 匹配季节类型
+          const batchSeasonType = String(batch.seasonType)
+          const matchesSeason = batchSeasonType === seasonType ||
+                               batchSeasonType === String(detail.seasonType) ||
+                               (seasonMap[batchSeasonType] && seasonMap[batchSeasonType] === seasonType)
+          
+          if (!matchesSeason) return false
+          
+          // 匹配轮作计划
+          // 方式1: 通过planId匹配（如果planId不为null）
+          if (batch.planId && String(batch.planId) === String(detailRotationId.value)) {
+            return true
+          }
+          
+          // 方式2: planId为null时，通过planYear和pastureId匹配
+          if (!batch.planId && detailInfo.value.planYear && detailInfo.value.pastureId) {
+            return String(batch.planYear) === String(detailInfo.value.planYear) &&
+                   batch.pastureId == detailInfo.value.pastureId
+          }
+          
+          return false
+        })
         
-        if (matchedBatch) {
-          detail.batchName = matchedBatch.batchName
+        // 收集所有匹配批次的名称
+        if (matchedBatches && matchedBatches.length > 0) {
+          detail.batchNames = matchedBatches.map((batch: any) => batch.batchName).filter((name: string) => name)
         } else {
-          detail.batchName = '--'
+          detail.batchNames = []
         }
       })
     }
@@ -720,7 +814,6 @@ const loadBatchNamesForDetails = async () => {
 const handleUpdate = async (row: AgricultureRotationPlanResult) => {
   reset()
   open.value = true
-  title.value = '修改种植计划'
   const planId = row.planId || row.rotationId // 兼容旧字段
   const res = await AgricultureRotationPlanService.getPlan(planId)
   if (res.code === 200) {
@@ -738,7 +831,48 @@ const handleUpdate = async (row: AgricultureRotationPlanResult) => {
     if (data.rotationDescription && !data.planDescription) {
       data.planDescription = data.rotationDescription
     }
-    Object.assign(form, data)
+    
+    // 处理日期和年份字段的格式
+    const formatDate = (dateValue: any): string | undefined => {
+      if (!dateValue) return undefined
+      const dateStr = String(dateValue)
+      // 如果是日期时间格式，只取日期部分
+      if (dateStr.includes(' ')) {
+        return dateStr.split(' ')[0]
+      }
+      // 如果已经是日期格式，直接返回
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return dateStr
+      }
+      // 如果是时间戳，转换为日期格式
+      if (dateStr.match(/^\d+$/)) {
+        const date = new Date(Number(dateStr))
+        return date.toISOString().split('T')[0]
+      }
+      return dateStr
+    }
+    
+    const formData = {
+      ...data,
+      // 确保 planYear 是字符串格式（YYYY）
+      planYear: data.planYear ? String(data.planYear).substring(0, 4) : undefined,
+      // 确保 startDate 和 endDate 是字符串格式（YYYY-MM-DD）
+      startDate: formatDate(data.startDate),
+      endDate: formatDate(data.endDate)
+    }
+    
+    Object.assign(form, formData)
+    
+    // 根据计划类型设置标题
+    if (data.planType === 'rotation') {
+      title.value = '修改轮作计划'
+    } else if (data.planType === 'annual') {
+      title.value = '修改年度计划'
+    } else if (data.planType === 'seasonal') {
+      title.value = '修改季度计划'
+    } else {
+      title.value = '修改种植计划'
+    }
   }
 }
 
@@ -885,6 +1019,13 @@ const getRotationName = (rotationId: string | number | undefined | null): string
 const getClassName = (classId: string | number | undefined | null): string => {
   if (!classId) return '--'
   return classMap.value.get(classId) || String(classId)
+}
+
+/** 获取温室名称 */
+const getPastureName = (pastureId: string | number | undefined | null): string => {
+  if (!pastureId) return '--'
+  const pasture = pastureOptions.value.find(item => item.id === pastureId)
+  return pasture?.name || '--'
 }
 
 /** 加载种植计划映射 */

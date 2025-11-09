@@ -29,11 +29,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import TaskList from './TaskList.vue'
 import SearchMenu from '../../SearchMenu/index.vue'
 import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
 
+const route = useRoute()
 // 响应式状态
 const currentBatchId = ref<number | null>(null)
 
@@ -57,6 +59,18 @@ const initDefaultSelection = async () => {
   try {
     const res = await fetchBatchList()
     if (res.rows?.length > 0) {
+      // 如果路由参数中有 batchId，优先使用路由参数
+      const routeBatchId = route.query.batchId
+      if (routeBatchId) {
+        const batchId = Number(routeBatchId)
+        // 检查该批次是否在列表中
+        const batchExists = res.rows.some((batch: any) => Number(batch.batchId) === batchId)
+        if (batchExists) {
+          currentBatchId.value = batchId
+          return
+        }
+      }
+      // 否则选择第一个批次
       currentBatchId.value = Number(res.rows[0].batchId)
     }
   } catch (error) {

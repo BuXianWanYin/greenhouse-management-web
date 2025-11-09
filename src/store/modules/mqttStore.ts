@@ -4,7 +4,7 @@ import { getMqttClient } from '@/api/mqtt/mqttClient'
 import { AgricultureDeviceMqttConfigService } from '@/api/device/deviceConfigApi'
 
 export const useMqttStore = defineStore('mqtt', () => {
-  // 设备数据Map，所有页面都能用
+  // 设备数据Map
   const deviceDataMap = ref<{ [deviceId: string]: any }>({})
   // 预警数据
   const alertData = ref<any>(null)
