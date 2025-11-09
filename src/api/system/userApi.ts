@@ -69,7 +69,7 @@ export class UserService {
   // 导出用户信息列表
   static exportExcel(data: any) {
     return request.post({
-      url: 'system/user/export',
+      url: '/system/user/export',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },

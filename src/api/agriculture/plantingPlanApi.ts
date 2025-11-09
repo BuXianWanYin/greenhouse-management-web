@@ -1,51 +1,51 @@
 import request from '@/utils/http'
-import { AgricultureRotationPlanInfoResult,AgricultureRotationPlanListPageResult } from '@/types/agriculture/rotationPlan'
+import { AgricultureRotationPlanInfoResult,AgricultureRotationPlanListPageResult } from '@/types/agriculture/plantingPlan'
 import { CodeMsgResult } from '@/types/axios'
 
-// 轮作计划
+// 种植计划
 export class AgricultureRotationPlanService {
-    // 查询轮作计划列表
+    // 查询种植计划列表
     static listPlan(query: any) {
         return request.get<AgricultureRotationPlanListPageResult>({
-            url: '/agriculture/rotationplan/list',
+            url: '/agriculture/plantingplan/list',
             params: query
         })
     }
 
-    // 查询轮作计划详细
-    static getPlan(rotationId: any) {
+    // 查询种植计划详细
+    static getPlan(planId: any) {
         return request.get<AgricultureRotationPlanInfoResult>({
-            url: '/agriculture/rotationplan/' + rotationId,
+            url: '/agriculture/plantingplan/' + planId,
         })
     }
 
-    // 新增轮作计划
+    // 新增种植计划
     static addPlan(data: any) {
         return request.post<CodeMsgResult>({
-            url: '/agriculture/rotationplan',
+            url: '/agriculture/plantingplan',
             data: data
         })
     }
 
-    // 修改轮作计划
+    // 修改种植计划
     static updatePlan(data: any) {
         return request.put<CodeMsgResult>({
-            url: '/agriculture/rotationplan',
+            url: '/agriculture/plantingplan',
             data: data
         })
     }
 
-    // 删除轮作计划
-    static deletePlan(rotationId: any) {
+    // 删除种植计划
+    static deletePlan(planId: any) {
         return request.del<CodeMsgResult>({
-            url: '/agriculture/rotationplan/' + rotationId,
+            url: '/agriculture/plantingplan/' + planId,
         })
     }
 
-    // 导出轮作计划列表
+    // 导出种植计划列表
     static exportExcel(data: any) {
         return request.post({
-            url: 'agriculture/rotationplan/export',
+            url: '/agriculture/plantingplan/export',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
@@ -54,3 +54,4 @@ export class AgricultureRotationPlanService {
         })
     }
 }
+

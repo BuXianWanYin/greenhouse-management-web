@@ -3,6 +3,7 @@ import {BaseArrayResult, BaseObjectResult, BasePageResult} from '../axios'
 export interface AgricultureRotationDetailResult {
                 detailId: string,
                 rotationId: string,
+                planId?: string, // 种植计划ID（兼容旧字段rotationId）
                 classId: string,
                 rotationOrder: string,
                 seasonType: string,

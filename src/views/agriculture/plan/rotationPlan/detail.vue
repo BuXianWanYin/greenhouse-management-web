@@ -115,8 +115,8 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { FormInstance } from 'element-plus'
 import { Document, EditPen, List, Collection } from '@element-plus/icons-vue'
-import { AgricultureRotationPlanService } from '@/api/agriculture/rotationPlanApi'
-import { AgricultureRotationPlanResult } from '@/types/agriculture/rotationPlan'
+import { AgricultureRotationPlanService } from '@/api/agriculture/plantingPlanApi'
+import { AgricultureRotationPlanResult } from '@/types/agriculture/plantingPlan'
 import RotationDetailList from './components/RotationDetailList.vue'
 
 const route = useRoute()

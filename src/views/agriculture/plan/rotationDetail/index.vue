@@ -128,12 +128,12 @@
 
 <script setup lang="ts">
 import { Search, Refresh, Plus, Download, EditPen, Delete } from '@element-plus/icons-vue'
-import { AgricultureRotationDetailService } from '@/api/agriculture/rotationDetailApi'
+import { AgricultureRotationDetailService } from '@/api/agriculture/planDetailApi'
 import { ref, reactive, onMounted } from 'vue'
 import { resetForm } from '@/utils/utils'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { FormInstance } from 'element-plus'
-import { AgricultureRotationDetailResult } from '@/types/agriculture/rotationDetail'
+import { AgricultureRotationDetailResult } from '@/types/agriculture/planDetail'
 import { downloadExcel } from '@/utils/utils'
 
 const detailList = ref<AgricultureRotationDetailResult[]>([])

@@ -101,8 +101,8 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { FormInstance } from 'element-plus'
 import { Plus, EditPen, Delete } from '@element-plus/icons-vue'
-import { AgricultureRotationDetailService } from '@/api/agriculture/rotationDetailApi'
-import { AgricultureRotationDetailResult } from '@/types/agriculture/rotationDetail'
+import { AgricultureRotationDetailService } from '@/api/agriculture/planDetailApi'
+import { AgricultureRotationDetailResult } from '@/types/agriculture/planDetail'
 
 const props = defineProps({
   rotationId: {

@@ -12,10 +12,10 @@
             <el-form :model="queryParams" ref="searchFormRef" label-width="82px">
               <el-row :gutter="20">
                 <form-input
-                  label="轮作名称"
-                  prop="rotationName"
+                  label="计划名称"
+                  prop="planName"
                   @keyup.enter="search"
-                  v-model="queryParams.rotationName"
+                  v-model="queryParams.planName"
                 />
                 <el-col :xs="24" :sm="12" :lg="6">
                   <el-form-item label="计划年份" prop="planYear">
@@ -30,9 +30,15 @@
                   </el-form-item>
                 </el-col>
                 <form-select
-                  label="轮作状态"
-                  prop="rotationStatus"
-                  v-model="queryParams.rotationStatus"
+                  label="计划类型"
+                  prop="planType"
+                  v-model="queryParams.planType"
+                  :options="planTypeOptions"
+                />
+                <form-select
+                  label="计划状态"
+                  prop="planStatus"
+                  v-model="queryParams.planStatus"
                   :options="statusOptions"
                 />
               </el-row>
@@ -56,20 +62,31 @@
         >
           <template #default>
             <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="轮作ID" prop="rotationId" width="100" v-if="columns[0].show" />
-            <el-table-column label="轮作名称" prop="rotationName" min-width="150" show-overflow-tooltip v-if="columns[1].show" />
+            <el-table-column label="计划ID" prop="planId" width="100" v-if="columns[0].show" />
+            <el-table-column label="计划名称" prop="planName" min-width="150" show-overflow-tooltip v-if="columns[1].show" />
             <el-table-column label="计划年份" prop="planYear" width="100" align="center" v-if="columns[2].show" />
-            <el-table-column label="轮作周期" prop="rotationCycle" width="120" align="center" v-if="columns[3].show" />
-            <el-table-column label="轮作状态" prop="rotationStatus" width="100" align="center" v-if="columns[4].show">
+            <el-table-column label="计划类型" prop="planType" width="120" align="center" v-if="columns[3].show">
               <template #default="scope">
-                <el-tag v-if="scope.row.rotationStatus === '0'" type="success">进行中</el-tag>
-                <el-tag v-else-if="scope.row.rotationStatus === '1'" type="info">已完成</el-tag>
-                <el-tag v-else-if="scope.row.rotationStatus === '2'" type="danger">已取消</el-tag>
-                <el-tag v-else>{{ scope.row.rotationStatus }}</el-tag>
+                <el-tag v-if="scope.row.planType === 'annual'" type="primary">年度计划</el-tag>
+                <el-tag v-else-if="scope.row.planType === 'seasonal'" type="success">季度计划</el-tag>
+                <el-tag v-else-if="scope.row.planType === 'rotation'" type="info">轮作计划</el-tag>
+                <el-tag v-else>{{ scope.row.planType || '--' }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="轮作描述" prop="rotationDescription" min-width="200" show-overflow-tooltip v-if="columns[5].show" />
-            <el-table-column label="创建时间" prop="createTime" width="180" align="center" v-if="columns[6].show" />
+            <el-table-column label="轮作周期" prop="rotationCycle" width="120" align="center" v-if="columns[4].show" />
+            <el-table-column label="计划状态" prop="planStatus" width="100" align="center" v-if="columns[5].show">
+              <template #default="scope">
+                <el-tag v-if="scope.row.planStatus === '0'" type="info">未开始</el-tag>
+                <el-tag v-else-if="scope.row.planStatus === '1'" type="success">执行中</el-tag>
+                <el-tag v-else-if="scope.row.planStatus === '2'" type="primary">已完成</el-tag>
+                <el-tag v-else-if="scope.row.planStatus === '3'" type="danger">已取消</el-tag>
+                <el-tag v-else>{{ scope.row.planStatus || '--' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="开始日期" prop="startDate" width="120" align="center" v-if="columns[6].show" />
+            <el-table-column label="结束日期" prop="endDate" width="120" align="center" v-if="columns[7].show" />
+            <el-table-column label="总面积(亩)" prop="totalArea" width="120" align="center" v-if="columns[8].show" />
+            <el-table-column label="创建时间" prop="createTime" width="180" align="center" v-if="columns[9].show" />
             <el-table-column label="操作" width="250" align="center" fixed="right">
               <template #default="scope">
                 <el-button link type="primary" @click="handleDetail(scope.row)" v-auth="['agriculture:rotationplan:query']">
@@ -86,11 +103,11 @@
           </template>
         </art-table>
 
-    <!-- 添加或修改轮作计划对话框 -->
-    <el-dialog :title="title" v-model="open" width="600px" append-to-body>
-      <el-form ref="planRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="轮作名称" prop="rotationName">
-          <el-input v-model="form.rotationName" placeholder="请输入轮作名称" />
+    <!-- 添加或修改种植计划对话框 -->
+    <el-dialog :title="title" v-model="open" width="700px" append-to-body>
+      <el-form ref="planRef" :model="form" :rules="rules" label-width="120px">
+        <el-form-item label="计划名称" prop="planName">
+          <el-input v-model="form.planName" placeholder="请输入计划名称" />
         </el-form-item>
         <el-form-item label="计划年份" prop="planYear">
           <el-date-picker
@@ -102,18 +119,59 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="轮作周期" prop="rotationCycle">
-          <el-input v-model="form.rotationCycle" placeholder="请输入轮作周期（如：3年一轮）" />
-        </el-form-item>
-        <el-form-item label="轮作状态" prop="rotationStatus">
-          <el-select v-model="form.rotationStatus" placeholder="请选择状态" style="width: 100%">
-            <el-option label="进行中" value="0" />
-            <el-option label="已完成" value="1" />
-            <el-option label="已取消" value="2" />
+        <el-form-item label="计划类型" prop="planType">
+          <el-select v-model="form.planType" placeholder="请选择计划类型" style="width: 100%">
+            <el-option label="年度计划" value="annual" />
+            <el-option label="季度计划" value="seasonal" />
+            <el-option label="轮作计划" value="rotation" />
           </el-select>
         </el-form-item>
-        <el-form-item label="轮作描述" prop="rotationDescription">
-          <el-input v-model="form.rotationDescription" type="textarea" :rows="4" placeholder="请输入轮作描述" />
+        <el-form-item label="所属温室" prop="pastureId">
+          <el-select v-model="form.pastureId" placeholder="请选择所属温室" clearable filterable style="width: 100%">
+            <el-option
+              v-for="item in pastureOptions"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="轮作周期(年)" prop="rotationCycle" v-if="form.planType === 'rotation'">
+          <el-input-number v-model="form.rotationCycle" :min="1" placeholder="请输入轮作周期" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="计划状态" prop="planStatus">
+          <el-select v-model="form.planStatus" placeholder="请选择状态" style="width: 100%">
+            <el-option label="未开始" value="0" />
+            <el-option label="执行中" value="1" />
+            <el-option label="已完成" value="2" />
+            <el-option label="已取消" value="3" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="开始日期" prop="startDate">
+          <el-date-picker
+            v-model="form.startDate"
+            type="date"
+            placeholder="选择开始日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="结束日期" prop="endDate">
+          <el-date-picker
+            v-model="form.endDate"
+            type="date"
+            placeholder="选择结束日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="总面积(亩)" prop="totalArea">
+          <el-input-number v-model="form.totalArea" :min="0" :precision="2" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="计划描述" prop="planDescription">
+          <el-input v-model="form.planDescription" type="textarea" :rows="4" placeholder="请输入计划描述" />
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="请输入备注" />
@@ -183,6 +241,11 @@
             <el-table-column label="种植密度" prop="plantingDensity" width="120" align="center" v-if="columnsDetail[5].show" />
             <el-table-column label="预期开始" prop="expectedStartDate" width="120" align="center" v-if="columnsDetail[6].show" />
             <el-table-column label="预期结束" prop="expectedEndDate" width="120" align="center" v-if="columnsDetail[7].show" />
+            <el-table-column label="关联批次" prop="batchName" width="150" align="center" v-if="columnsDetail[8].show">
+              <template #default="scope">
+                {{ scope.row.batchName || '--' }}
+              </template>
+            </el-table-column>
             <el-table-column label="操作" width="200" align="center" fixed="right">
               <template #default="scope">
                 <el-button link type="primary" @click="handleUpdateDetailInDialog(scope.row)" v-auth="['agriculture:rotationdetail:edit']">
@@ -206,11 +269,11 @@
     <!-- 添加或修改轮作明细对话框 -->
     <el-dialog :title="titleDetail" v-model="openDetail" width="600px" append-to-body>
       <el-form ref="detailRef" :model="formDetail" :rules="rulesDetail" label-width="120px">
-        <el-form-item label="轮作ID" prop="rotationId" v-if="!detailOpen">
-          <el-input v-model="formDetail.rotationId" placeholder="请输入轮作ID" />
+        <el-form-item label="计划ID" prop="planId" v-if="!detailOpen">
+          <el-input v-model="formDetail.planId" placeholder="请输入计划ID" />
         </el-form-item>
-        <el-form-item label="轮作名称" v-if="detailOpen">
-          <el-input :value="detailInfo.rotationName" disabled />
+        <el-form-item label="计划名称" v-if="detailOpen">
+          <el-input :value="detailInfo.planName || detailInfo.rotationName" disabled />
         </el-form-item>
         <el-form-item label="种质" prop="classId">
           <el-select v-model="formDetail.classId" placeholder="请选择种质" filterable style="width: 100%">
@@ -275,15 +338,17 @@
 
 <script setup lang="ts">
 import { Search, Refresh, Plus, Download, EditPen, Delete, View, List } from '@element-plus/icons-vue'
-import { AgricultureRotationPlanService } from '@/api/agriculture/rotationPlanApi'
-import { AgricultureRotationDetailService } from '@/api/agriculture/rotationDetailApi'
+import { AgricultureRotationPlanService } from '@/api/agriculture/plantingPlanApi'
+import { AgricultureRotationDetailService } from '@/api/agriculture/planDetailApi'
 import { AgricultureClassService } from '@/api/agriculture/classApi'
+import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
+import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
 import { ref, reactive, onMounted } from 'vue'
 import { resetForm } from '@/utils/utils'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { FormInstance } from 'element-plus'
-import { AgricultureRotationPlanResult } from '@/types/agriculture/rotationPlan'
-import { AgricultureRotationDetailResult } from '@/types/agriculture/rotationDetail'
+import { AgricultureRotationPlanResult } from '@/types/agriculture/plantingPlan'
+import { AgricultureRotationDetailResult } from '@/types/agriculture/planDetail'
 import { downloadExcel } from '@/utils/utils'
 import { useRouter, useRoute } from 'vue-router'
 
@@ -301,19 +366,29 @@ const searchFormRef = ref<FormInstance>()
 const planRef = ref<FormInstance>()
 
 const columns = reactive([
-  { name: '轮作ID', show: true },
-  { name: '轮作名称', show: true },
+  { name: '计划ID', show: true },
+  { name: '计划名称', show: true },
   { name: '计划年份', show: true },
+  { name: '计划类型', show: true },
   { name: '轮作周期', show: true },
-  { name: '轮作状态', show: true },
-  { name: '轮作描述', show: true },
+  { name: '计划状态', show: true },
+  { name: '开始日期', show: true },
+  { name: '结束日期', show: true },
+  { name: '总面积(亩)', show: true },
   { name: '创建时间', show: true }
 ])
 
 const statusOptions = ref([
-  { label: '进行中', value: '0' },
-  { label: '已完成', value: '1' },
-  { label: '已取消', value: '2' }
+  { label: '未开始', value: '0' },
+  { label: '执行中', value: '1' },
+  { label: '已完成', value: '2' },
+  { label: '已取消', value: '3' }
+])
+
+const planTypeOptions = ref([
+  { label: '年度计划', value: 'annual' },
+  { label: '季度计划', value: 'seasonal' },
+  { label: '轮作计划', value: 'rotation' }
 ])
 
 const changeColumn = (list: any) => {
@@ -325,19 +400,23 @@ const changeColumn = (list: any) => {
 }
 
 const initialFormState = {
-  rotationId: null,
-  rotationName: '',
-  planYear: '',
-  pastureId: '',
-  rotationCycle: '',
-  rotationDescription: '',
-  rotationStatus: '',
+  planId: null,
+  planName: '',
+  planYear: undefined as string | undefined,
+  planType: undefined as string | undefined,
+  pastureId: undefined as number | string | undefined,
+  rotationCycle: undefined as number | string | undefined,
+  planDescription: '',
+  planStatus: '0',
+  startDate: undefined as string | undefined,
+  endDate: undefined as string | undefined,
+  totalArea: undefined as number | string | undefined,
   createBy: '',
   createTime: '',
   updateBy: '',
   updateTime: '',
   remark: '',
-  delFlag: ''
+  delFlag: '0'
 }
 
 const form = reactive({ ...initialFormState })
@@ -345,21 +424,24 @@ const form = reactive({ ...initialFormState })
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
-  rotationName: '',
+  planName: '',
   planYear: '',
-  rotationStatus: ''
+  planType: '',
+  planStatus: ''
 })
 
 const rules = reactive({
-  rotationName: [{ required: true, message: '轮作名称不能为空', trigger: 'blur' }],
+  planName: [{ required: true, message: '计划名称不能为空', trigger: 'blur' }],
   planYear: [{ required: true, message: '计划年份不能为空', trigger: 'change' }],
-  rotationStatus: [{ required: true, message: '轮作状态不能为空', trigger: 'change' }]
+  planType: [{ required: true, message: '计划类型不能为空', trigger: 'change' }],
+  planStatus: [{ required: true, message: '计划状态不能为空', trigger: 'change' }]
 })
 
 // 轮作计划和种质映射数据
 const rotationPlanMap = ref<Map<string | number, string>>(new Map())
 const classMap = ref<Map<string | number, string>>(new Map())
 const classOptions = ref<any[]>([])
+const pastureOptions = ref<any[]>([])
 
 // 明细表单相关（用于详情对话框）
 const openDetail = ref(false)
@@ -375,7 +457,8 @@ const columnsDetail = reactive([
   { name: '种植面积(亩)', show: true },
   { name: '种植密度', show: true },
   { name: '预期开始', show: true },
-  { name: '预期结束', show: true }
+  { name: '预期结束', show: true },
+  { name: '关联批次', show: true }
 ])
 
 const changeColumnDetail = (list: any) => {
@@ -388,7 +471,8 @@ const changeColumnDetail = (list: any) => {
 
 const initialFormStateDetail = {
   detailId: null,
-  rotationId: '',
+  planId: undefined as number | string | undefined,
+  rotationId: undefined as number | string | undefined, // 兼容旧字段
   classId: '',
   rotationOrder: 1,
   seasonType: '',
@@ -402,7 +486,7 @@ const initialFormStateDetail = {
 const formDetail = reactive({ ...initialFormStateDetail })
 
 const rulesDetail = reactive({
-  rotationId: [{ required: true, message: '轮作ID不能为空', trigger: 'blur' }],
+  planId: [{ required: true, message: '计划ID不能为空', trigger: 'blur' }],
   classId: [{ required: true, message: '种质ID不能为空', trigger: 'blur' }],
   rotationOrder: [{ required: true, message: '轮作顺序不能为空', trigger: 'blur' }],
   seasonType: [{ required: true, message: '季节类型不能为空', trigger: 'blur' }]
@@ -451,7 +535,7 @@ const handleCurrentChange = (page: number) => {
 const handleAdd = () => {
   reset()
   open.value = true
-  title.value = '添加轮作计划'
+  title.value = '添加种植计划'
 }
 
 // 详情相关
@@ -464,7 +548,8 @@ const detailTotal = ref(0)
 const detailQueryParams = reactive({
   pageNum: 1,
   pageSize: 10,
-  rotationId: '',
+  planId: '',
+  rotationId: '', // 兼容旧字段
   seasonType: ''
 })
 const detailSearchFormRef = ref<FormInstance>()
@@ -472,12 +557,14 @@ const detailSearchFormRef = ref<FormInstance>()
 /** 详情按钮操作 */
 const handleDetail = async (row: AgricultureRotationPlanResult) => {
   detailOpen.value = true
-  detailRotationId.value = String(row.rotationId)
+  const planId = row.planId || row.rotationId // 兼容旧字段
+  detailRotationId.value = String(planId)
   detailInfo.value = row
   // 重置查询参数
   detailQueryParams.pageNum = 1
   detailQueryParams.pageSize = 10
-  detailQueryParams.rotationId = String(row.rotationId)
+  detailQueryParams.planId = String(planId)
+  detailQueryParams.rotationId = String(planId) // 兼容旧字段
   detailQueryParams.seasonType = ''
   // 先清空数据，避免显示旧数据
   detailListData.value = []
@@ -498,13 +585,17 @@ const loadDetailList = async () => {
     const queryParams = {
       pageNum: detailQueryParams.pageNum,
       pageSize: detailQueryParams.pageSize,
-      rotationId: detailRotationId.value,
+      planId: detailRotationId.value,
+      rotationId: detailRotationId.value, // 兼容旧字段
       seasonType: detailQueryParams.seasonType
     }
     const res = await AgricultureRotationDetailService.listDetail(queryParams)
     if (res.code === 200) {
       detailListData.value = res.rows || []
       detailTotal.value = res.total || 0
+      
+      // 查询每个明细关联的批次
+      await loadBatchNamesForDetails()
     } else {
       detailListData.value = []
       detailTotal.value = 0
@@ -550,7 +641,8 @@ const handleDetailCurrentChange = (page: number) => {
 /** 详情对话框中新增明细 */
 const handleAddDetailInDialog = () => {
   resetDetail()
-  formDetail.rotationId = detailRotationId.value
+  formDetail.planId = detailRotationId.value
+  formDetail.rotationId = detailRotationId.value // 兼容旧字段
   openDetail.value = true
   titleDetail.value = '添加轮作明细'
 }
@@ -583,14 +675,70 @@ const handleDeleteDetailInDialog = async (row: AgricultureRotationDetailResult) 
     .catch(() => {})
 }
 
+/** 为轮作明细加载批次名称 */
+const loadBatchNamesForDetails = async () => {
+  if (!detailListData.value || detailListData.value.length === 0) return
+  
+  try {
+    // 查询所有相关的批次（根据轮作计划ID）
+    const batchRes = await AgricultureCropBatchService.listBatch({
+      rotationPlanId: detailRotationId.value,
+      pageNum: 1,
+      pageSize: 1000
+    })
+    
+    if (batchRes.code === 200 && batchRes.rows) {
+      // 为每个明细匹配批次名称
+      detailListData.value.forEach((detail: any) => {
+        const seasonMap: { [key: string]: string } = {
+          '1': 'spring',
+          '2': 'summer',
+          '3': 'autumn',
+          '4': 'winter'
+        }
+        const seasonType = seasonMap[String(detail.seasonType)] || detail.seasonType
+        
+        // 查找匹配的批次（轮作计划ID和季节类型都匹配）
+        const matchedBatch = batchRes.rows.find((batch: any) => 
+          String(batch.rotationPlanId) === String(detailRotationId.value) &&
+          String(batch.seasonType) === String(seasonType)
+        )
+        
+        if (matchedBatch) {
+          detail.batchName = matchedBatch.batchName
+        } else {
+          detail.batchName = '--'
+        }
+      })
+    }
+  } catch (error) {
+    console.error('加载批次名称失败:', error)
+  }
+}
+
 /** 修改按钮操作 */
 const handleUpdate = async (row: AgricultureRotationPlanResult) => {
   reset()
   open.value = true
-  title.value = '修改轮作计划'
-  const res = await AgricultureRotationPlanService.getPlan(row.rotationId)
+  title.value = '修改种植计划'
+  const planId = row.planId || row.rotationId // 兼容旧字段
+  const res = await AgricultureRotationPlanService.getPlan(planId)
   if (res.code === 200) {
-    Object.assign(form, res.data)
+    const data = res.data
+    // 兼容旧字段，映射到新字段
+    if (data.rotationId && !data.planId) {
+      data.planId = data.rotationId
+    }
+    if (data.rotationName && !data.planName) {
+      data.planName = data.rotationName
+    }
+    if (data.rotationStatus && !data.planStatus) {
+      data.planStatus = data.rotationStatus
+    }
+    if (data.rotationDescription && !data.planDescription) {
+      data.planDescription = data.rotationDescription
+    }
+    Object.assign(form, data)
   }
 }
 
@@ -599,8 +747,13 @@ const submitForm = async () => {
   if (!planRef.value) return
   await planRef.value.validate(async (valid) => {
     if (valid) {
-      if (form.rotationId) {
-        const res = await AgricultureRotationPlanService.updatePlan(form)
+      const planId = form.planId || (form as any).rotationId // 兼容旧字段
+      if (planId) {
+        const updateData = {
+          ...form,
+          planId: planId
+        }
+        const res = await AgricultureRotationPlanService.updatePlan(updateData)
         if (res.code === 200) {
           ElMessage.success(res.msg)
           open.value = false
@@ -625,13 +778,14 @@ const submitForm = async () => {
 
 /** 删除按钮操作 */
 const handleDelete = async (row: AgricultureRotationPlanResult) => {
-  await ElMessageBox.confirm('是否确认删除轮作计划编号为"' + row.rotationId + '"的数据项？', '系统提示', {
+  const planId = row.planId || row.rotationId // 兼容旧字段
+  await ElMessageBox.confirm('是否确认删除种植计划编号为"' + planId + '"的数据项？', '系统提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   })
     .then(async () => {
-      const res = await AgricultureRotationPlanService.deletePlan(row.rotationId)
+      const res = await AgricultureRotationPlanService.deletePlan(planId)
       if (res.code === 200) {
         getList()
         ElMessage.success(res.msg)
@@ -733,18 +887,22 @@ const getClassName = (classId: string | number | undefined | null): string => {
   return classMap.value.get(classId) || String(classId)
 }
 
-/** 加载轮作计划映射 */
+/** 加载种植计划映射 */
 const loadRotationPlanMap = async () => {
   try {
     const res = await AgricultureRotationPlanService.listPlan({ pageNum: 1, pageSize: 1000 })
     if (res.code === 200 && res.rows) {
       rotationPlanMap.value.clear()
       res.rows.forEach((plan: AgricultureRotationPlanResult) => {
-        rotationPlanMap.value.set(plan.rotationId, plan.rotationName)
+        const planId = plan.planId || (plan as any).rotationId // 兼容旧字段
+        const planName = plan.planName || (plan as any).rotationName // 兼容旧字段
+        if (planId) {
+          rotationPlanMap.value.set(String(planId), String(planName || ''))
+        }
       })
     }
   } catch (error) {
-    console.error('加载轮作计划映射失败:', error)
+    console.error('加载种植计划映射失败:', error)
   }
 }
 
@@ -764,11 +922,24 @@ const loadClassMap = async () => {
   }
 }
 
+/** 加载温室列表 */
+const loadPastureList = async () => {
+  try {
+    const res = await AgriculturePastureService.listPasture({ pageNum: 1, pageSize: 1000 })
+    if (res.code === 200) {
+      pastureOptions.value = res.rows || []
+    }
+  } catch (error) {
+    console.error('加载温室列表失败:', error)
+  }
+}
+
 // 初始化
 onMounted(() => {
   // 加载映射数据
   loadRotationPlanMap()
   loadClassMap()
+  loadPastureList()
   
   getList()
 })

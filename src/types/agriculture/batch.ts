@@ -4,31 +4,30 @@ export interface AgricultureCropBatchResult {
     batchId: number | string,
     batchName: string,
     classId?: number | string,
-    planYear?: number,
-    seasonType?: string,
-    rotationPlanId?: number | string,
-    plantingDensity?: number,
-    expectedHarvestTime?: string,
-    totalGrowthDays?: number,
-    actualHarvestTime?: string,
     pastureId: number | string,
-    cropArea: number,
+    planYear?: number,
+    seasonType?: string, // 季节类型（spring=春季,summer=夏季,autumn=秋季,winter=冬季）
+    planId?: number | string, // 种植计划ID（关联agriculture_planting_plan表）
+    plantingDensity?: number | string, // 种植密度（株/亩）
+    cropArea: number, // 种植面积（亩）
     startTime?: string,
-    status?: string,
-    orderNum?: number | string,
-    delFlag?: string,
+    expectedHarvestTime?: string,
+    actualHarvestTime?: string,
+    status?: string, // 状态（0=未开始,1=进行中,2=已完成,3=已取消）
+    harvest?: string, // 收获标志(0代表已收获，1代表未收获)
     responsiblePersonId?: number | string,
     createBy?: string,
     createTime?: string,
     updateBy?: string,
     updateTime?: string,
     remark?: string,
-    harvest?: string,
+    delFlag?: string, // 删除标志（0代表存在 2代表删除）
     // 关联查询字段
     classImage?: string,
     className?: string,
     classImages?: string[],
     nickName?: string,
+    planName?: string, // 种植计划名称
 }
 
 export type AgricultureCropBatchListPageResult = BasePageResult<AgricultureCropBatchResult>
