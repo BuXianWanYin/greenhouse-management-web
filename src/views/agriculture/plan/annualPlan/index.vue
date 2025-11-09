@@ -160,11 +160,66 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 年度种植规划详情对话框 -->
+    <el-dialog title="年度种植规划详情" v-model="detailOpen" width="1200px" append-to-body>
+      <el-tabs v-model="detailActiveTab" v-loading="detailLoading">
+        <!-- 基本信息Tab -->
+        <el-tab-pane name="basicInfo" label="基本信息">
+          <template #label>
+            <span class="custom-tabs-label">
+              <el-icon><Document /></el-icon>
+              <span>基本信息</span>
+            </span>
+          </template>
+          <div class="info-container" v-if="detailInfo.planId">
+            <el-descriptions :column="2" border>
+              <el-descriptions-item label="计划ID">{{ detailInfo.planId }}</el-descriptions-item>
+              <el-descriptions-item label="计划名称">{{ detailInfo.planName }}</el-descriptions-item>
+              <el-descriptions-item label="计划年份">{{ detailInfo.planYear }}</el-descriptions-item>
+              <el-descriptions-item label="计划类型">
+                <el-tag v-if="detailInfo.planType === '0'">年度计划</el-tag>
+                <el-tag v-else-if="detailInfo.planType === '1'" type="success">季度计划</el-tag>
+                <el-tag v-else type="info">{{ detailInfo.planType }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="计划状态">
+                <el-tag v-if="detailInfo.planStatus === '0'" type="success">进行中</el-tag>
+                <el-tag v-else-if="detailInfo.planStatus === '1'" type="info">已完成</el-tag>
+                <el-tag v-else-if="detailInfo.planStatus === '2'" type="danger">已取消</el-tag>
+                <el-tag v-else>{{ detailInfo.planStatus }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="开始日期">{{ detailInfo.startDate || '--' }}</el-descriptions-item>
+              <el-descriptions-item label="结束日期">{{ detailInfo.endDate || '--' }}</el-descriptions-item>
+              <el-descriptions-item label="总面积(亩)">{{ detailInfo.totalArea || '--' }}</el-descriptions-item>
+              <el-descriptions-item label="计划描述" :span="2">{{ detailInfo.planDescription || '--' }}</el-descriptions-item>
+              <el-descriptions-item label="备注" :span="2">{{ detailInfo.remark || '--' }}</el-descriptions-item>
+            </el-descriptions>
+          </div>
+          <el-empty v-else description="暂无数据" />
+        </el-tab-pane>
+
+        <!-- 关联批次列表Tab -->
+        <el-tab-pane name="batchList" label="关联批次列表">
+          <template #label>
+            <span class="custom-tabs-label">
+              <el-icon><List /></el-icon>
+              <span>关联批次列表</span>
+            </span>
+          </template>
+          <plan-batch-list :plan-id="detailPlanId" @refresh="loadPlanDetail" />
+        </el-tab-pane>
+      </el-tabs>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="detailOpen = false">关 闭</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Search, Refresh, Plus, Download, Document, EditPen, Delete, View } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Download, Document, EditPen, Delete, View, List } from '@element-plus/icons-vue'
 import { AgricultureAnnualPlanService } from '@/api/agriculture/annualPlanApi'
 import { ref, reactive, onMounted } from 'vue'
 import { resetForm } from '@/utils/utils'
@@ -173,6 +228,7 @@ import { FormInstance } from 'element-plus'
 import { AgricultureAnnualPlanResult } from '@/types/agriculture/annualplan'
 import { downloadExcel } from '@/utils/utils'
 import { useRouter } from 'vue-router'
+import PlanBatchList from './components/PlanBatchList.vue'
 
 const router = useRouter()
 const planList = ref<AgricultureAnnualPlanResult[]>([])
@@ -286,12 +342,40 @@ const handleAdd = () => {
   title.value = '添加年度种植规划'
 }
 
+// 详情相关
+const detailOpen = ref(false)
+const detailLoading = ref(false)
+const detailInfo = ref<AgricultureAnnualPlanResult>({} as AgricultureAnnualPlanResult)
+const detailPlanId = ref<string>('')
+const detailActiveTab = ref('basicInfo')
+
 /** 详情按钮操作 */
-const handleDetail = (row: AgricultureAnnualPlanResult) => {
-  router.push({
-    path: '/agriculture/plan/annualPlan/detail',
-    query: { planId: row.planId }
-  })
+const handleDetail = async (row: AgricultureAnnualPlanResult) => {
+  detailOpen.value = true
+  detailPlanId.value = String(row.planId)
+  detailActiveTab.value = 'basicInfo'
+  detailInfo.value = row
+  // 加载计划详情
+  await loadPlanDetail()
+}
+
+/** 加载计划详情 */
+const loadPlanDetail = async () => {
+  if (!detailPlanId.value) return
+  detailLoading.value = true
+  try {
+    const res = await AgricultureAnnualPlanService.getPlan(detailPlanId.value)
+    if (res.code === 200) {
+      detailInfo.value = res.data
+    } else {
+      ElMessage.error(res.msg || '获取计划详情失败')
+    }
+  } catch (error) {
+    console.error('获取计划详情异常:', error)
+    ElMessage.error('获取计划详情失败')
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 /** 修改按钮操作 */
@@ -370,6 +454,16 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .page-content {
+  padding: 20px;
+}
+
+.custom-tabs-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.info-container {
   padding: 20px;
 }
 </style>

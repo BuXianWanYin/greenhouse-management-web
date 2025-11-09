@@ -82,9 +82,9 @@
                         <multiple-select
                           v-model="selectEmployeeList"
                           class="person-info-select"
-                          :options="employeeList"
-                          key-name="employeeName"
-                          value-name="employeeId"
+                          :options="userList"
+                          key-name="nickName"
+                          value-name="userId"
                           @change="handleTaskEmployeeChange"
                         />
                         
@@ -200,7 +200,6 @@
 <script setup>
 import { AgricultureTaskEmployeeService } from "@/api/agriculture/taskEmployeeApi"
 import { AgricultureCropBatchService } from "@/api/agriculture/cropBatchApi";
-import { AgricultureEmployeeService } from "@/api/agriculture/employeeApi";
 import { AgricultureCropBatchTaskService } from "@/api/agriculture/cropBatchTaskApi";     
 import { ref, reactive, watch, onMounted, computed } from 'vue'
 import { Document, User, Van, Paperclip, Plus, VideoCamera, Food,Delete } from '@element-plus/icons-vue'
@@ -245,9 +244,8 @@ const logList = ref([])
 const costEmployeeRef = ref(null)
 const formRef = ref(null)
 const isInit = ref(true)
-const employeeList = ref([])
 const selectEmployeeList = ref([])
-const employeeIdToTaskEmployeeId = ref({})
+const userIdToTaskEmployeeId = ref({})
 const needRefresh = ref(false)
 const userInfo = computed(() => userStore.info)
 
@@ -303,13 +301,52 @@ const fetchBatchList = async () => {
  * 获取系统用户列表（负责人）
  */
 const fetchUserList = async () => {
-    const response = await UserService.listUser({})
-    userList.value = response.rows.map(item => ({
-        ...item,
-        userId: Number(item.userId),
-        nickName: item.nickName
-    }))
-    console.log('获取到的用户列表:', userList.value)
+    try {
+        // 先查询第一页，获取总数
+        const firstRes = await UserService.listUser({ pageNum: 1, pageSize: 100 })
+        if (firstRes.code === 200) {
+            const total = firstRes.total || 0
+            const firstPageRows = firstRes.rows || []
+            
+            // 如果总数小于等于100，直接使用第一页数据
+            if (total <= 100) {
+                userList.value = firstPageRows.map(item => ({
+                    ...item,
+                    userId: Number(item.userId),
+                    nickName: item.nickName
+                }))
+                console.log('获取到的用户列表:', userList.value)
+                return
+            }
+            
+            // 如果总数大于100，需要分页查询所有数据
+            const allUsers = [...firstPageRows]
+            const totalPages = Math.ceil(total / 100)
+            
+            // 并发查询剩余页
+            const promises = []
+            for (let page = 2; page <= totalPages; page++) {
+                promises.push(UserService.listUser({ pageNum: page, pageSize: 100 }))
+            }
+            
+            const results = await Promise.all(promises)
+            results.forEach((res) => {
+                if (res.code === 200 && res.rows) {
+                    allUsers.push(...res.rows)
+                }
+            })
+            
+            userList.value = allUsers.map(item => ({
+                ...item,
+                userId: Number(item.userId),
+                nickName: item.nickName
+            }))
+            console.log('获取到的用户列表:', userList.value)
+        }
+    } catch (error) {
+        console.error('获取用户列表失败:', error)
+        ElMessage.error('获取用户列表失败')
+    }
 }
 
 /**
@@ -517,7 +554,6 @@ const initData = async () => {
             console.log('执行handleUpdate')
             await handleUpdate()
         }
-        await fetchEmployeeList()
         await fetchTaskEmployee()
         isInit.value = false
     } catch (error) {
@@ -666,34 +702,30 @@ onMounted(() => {
     initData()
 })
 
-// 获取所有员工
-const fetchEmployeeList = async () => {
-    const res = await AgricultureEmployeeService.listEmployee({})
-    employeeList.value = (res.rows || []).map(item => ({
-      ...item,
-      employeeId: Number(item.employeeId)
-    }))
-}
-
 // 获取当前任务的参与人员
 const fetchTaskEmployee = async () => {
-    // 如果员工列表还没拉取，先拉取员工列表，保证 options 有数据
-    if (!employeeList.value.length) {
-        await fetchEmployeeList();
+    // 如果用户列表还没拉取，先拉取用户列表，保证 options 有数据
+    if (!userList.value.length) {
+        await fetchUserList();
     }
     try {
         // 调用接口获取当前任务的参与人员列表
         const res = await AgricultureTaskEmployeeService.listEmployee({ taskId: props.taskId })
         // 过滤出当前任务的参与人员（防止接口返回了其他任务的员工）
         const filtered = (res.rows || []).filter(item => String(item.taskId) === String(props.taskId))
-        // 新增：维护 employeeId -> taskEmployeeId 的映射
+        // 维护 userId -> taskEmployeeId 的映射
         const map = {}
         filtered.forEach(item => {
-            map[Number(item.employeeId)] = item.id
+            // 兼容处理：如果后端返回的是 employeeId，则使用 employeeId；如果返回的是 userId，则使用 userId
+            const userId = item.userId || item.employeeId
+            map[Number(userId)] = item.id
         })
-        employeeIdToTaskEmployeeId.value = map
-        // 提取所有 employeeId，去重后赋值给 selectEmployeeList，驱动页面显示
-        const ids = [...new Set(filtered.map(item => Number(item.employeeId)))]
+        userIdToTaskEmployeeId.value = map
+        // 提取所有 userId，去重后赋值给 selectEmployeeList，驱动页面显示
+        const ids = [...new Set(filtered.map(item => {
+            // 兼容处理：如果后端返回的是 employeeId，则使用 employeeId；如果返回的是 userId，则使用 userId
+            return Number(item.userId || item.employeeId)
+        }))]
         selectEmployeeList.value = ids
     } catch (e) {
         // 捕获并打印接口异常
@@ -707,7 +739,7 @@ const handleTaskEmployeeChange = async (e) => {
         // 1. 调用 addEmployee（addTaskEmployee）接口，将新人员与当前任务关联
         await AgricultureTaskEmployeeService.addEmployee({
             taskId: props.taskId,
-            employeeId: value
+            userId: value
         })
         // 2. 接口调用成功后，记录一条"增加参与人员"的日志
         await addTaskLog("增加参与人员")
@@ -718,8 +750,8 @@ const handleTaskEmployeeChange = async (e) => {
         // 5. 如有需要，可通知子组件（如人工工时统计）刷新人员列表
         // costEmployeeRef.value?.getTaskEmployeeList?.()
     } else if (type == 'del') {
-        // 用 employeeId 查找 taskEmployeeId
-        const taskEmployeeId = employeeIdToTaskEmployeeId.value[Number(value)]
+        // 用 userId 查找 taskEmployeeId
+        const taskEmployeeId = userIdToTaskEmployeeId.value[Number(value)]
         if (!taskEmployeeId) {
             ElMessage.error("未找到对应的任务员工记录，无法删除")
             return
@@ -732,7 +764,7 @@ const handleTaskEmployeeChange = async (e) => {
 }
 
 const selectedEmployeeObjects = computed(() =>
-  employeeList.value.filter(emp => selectEmployeeList.value.includes(emp.employeeId))
+  userList.value.filter(user => selectEmployeeList.value.includes(user.userId))
 )
 
 const onTaskUpdated = () => {

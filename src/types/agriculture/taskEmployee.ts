@@ -3,7 +3,7 @@ import {BaseArrayResult, BaseObjectResult, BasePageResult} from '../axios'
 export interface AgricultureTaskEmployeeResult {
                 id: string,
                 taskId: string,
-                employeeId: string,
+                userId: string,
                 remark: string,
                 status: string,
                 orderNum: string,

@@ -13,7 +13,7 @@
     >
       <el-table-column label="雇员" align="center" prop="employeeId">
         <template #default="{ row }">
-          {{ taskEmployeeList.find(item => item.employeeId == row.employeeId)?.employeeName }}
+          {{ taskEmployeeList.find(item => item.userId == row.employeeId)?.nickName }}
         </template>
       </el-table-column>
       <el-table-column label="工时" align="center" prop="workingHours" />
@@ -101,9 +101,9 @@
           >
             <el-option
               v-for="item in taskEmployeeList"
-              :key="item.employeeId"
-              :label="item.employeeName"
-              :value="item.employeeId"
+              :key="item.userId"
+              :label="item.nickName"
+              :value="item.userId"
             />
           </el-select>
         </el-form-item>
@@ -150,14 +150,13 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { AgricultureCostEmployeeService } from "@/api/agriculture/costEmployeeApi"
 import { AgricultureTaskLogService } from "@/api/agriculture/logApi"
-import { AgricultureEmployeeService } from "@/api/agriculture/employeeApi"
 import { AgricultureCostEmployeeResult } from '@/types/agriculture/costEmployee'
-import { AgricultureEmployeeResult } from '@/types/agriculture/employee'
+import { UserResult } from '@/types/system/user'
 import { parseTime } from '@/utils/utils'
 
 const props = defineProps<{
   taskId: number | string,
-  taskEmployeeList: AgricultureEmployeeResult[],
+  taskEmployeeList: UserResult[],
   currentUser: { userId: string | number, userName: string }
 }>()
 
