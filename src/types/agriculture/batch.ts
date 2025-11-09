@@ -8,6 +8,7 @@ export interface AgricultureCropBatchResult {
     planYear?: number,
     seasonType?: string, // 季节类型（spring=春季,summer=夏季,autumn=秋季,winter=冬季）
     planId?: number | string, // 种植计划ID（关联agriculture_planting_plan表）
+    detailId?: number | string, // 轮作计划明细ID（关联agriculture_plan_detail表，仅用于轮作计划）
     plantingDensity?: number | string, // 种植密度（株/亩）
     cropArea: number, // 种植面积（亩）
     startTime?: string,

@@ -47,11 +47,39 @@
         <el-table-column label="批次ID" prop="batchId" width="100" v-if="columns[0].show" />
         <el-table-column label="批次名称" prop="batchName" min-width="150" show-overflow-tooltip v-if="columns[1].show" />
         <el-table-column label="种质" prop="className" width="120" align="center" v-if="columns[2].show" />
-        <el-table-column label="所属温室" prop="pastureId" width="120" align="center" v-if="columns[3].show" />
-        <el-table-column label="种植面积(亩)" prop="cropArea" width="120" align="center" v-if="columns[4].show" />
-        <el-table-column label="负责人" prop="nickName" width="100" align="center" v-if="columns[5].show" />
-        <el-table-column label="开始时间" prop="startTime" width="120" align="center" v-if="columns[6].show" />
-        <el-table-column label="状态" prop="status" width="100" align="center" v-if="columns[7].show">
+        <el-table-column label="所属温室" prop="pastureId" width="150" align="center" v-if="columns[3].show">
+          <template #default="scope">
+            {{ getPastureName(scope.row.pastureId) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="计划类型" width="120" align="center" v-if="columns[4].show">
+          <template #default="scope">
+            <el-tag v-if="scope.row.seasonType" type="warning">轮作计划</el-tag>
+            <el-tag v-else-if="scope.row.planId" type="success">种植计划</el-tag>
+            <el-tag v-else type="info">--</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="计划年份" prop="planYear" width="100" align="center" v-if="columns[5].show" />
+        <el-table-column label="季节类型" width="100" align="center" v-if="columns[6].show">
+          <template #default="scope">
+            <span v-if="scope.row.seasonType">{{ getSeasonTypeName(scope.row.seasonType) }}</span>
+            <span v-else>--</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="种植面积(亩)" prop="cropArea" width="120" align="center" v-if="columns[7].show" />
+        <el-table-column label="种植密度" prop="plantingDensity" width="120" align="center" v-if="columns[8].show">
+          <template #default="scope">
+            {{ scope.row.plantingDensity || '--' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="负责人" prop="nickName" width="100" align="center" v-if="columns[9].show" />
+        <el-table-column label="开始时间" prop="startTime" width="120" align="center" v-if="columns[10].show" />
+        <el-table-column label="预期收获时间" prop="expectedHarvestTime" width="150" align="center" v-if="columns[11].show">
+          <template #default="scope">
+            {{ scope.row.expectedHarvestTime || '--' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" prop="status" width="100" align="center" v-if="columns[12].show">
           <template #default="scope">
             <el-tag v-if="String(scope.row.status) === '0'" type="info">未开始</el-tag>
             <el-tag v-else-if="String(scope.row.status) === '1'" type="success">进行中</el-tag>
@@ -61,7 +89,7 @@
             <el-tag v-else type="info">未知</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" prop="createTime" width="180" align="center" v-if="columns[8].show">
+        <el-table-column label="创建时间" prop="createTime" width="180" align="center" v-if="columns[13].show">
           <template #default="scope">
             {{ formatDateTime(scope.row.createTime) }}
           </template>
@@ -115,21 +143,16 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="种植计划" prop="planId" v-if="form.planType === 'planting'">
-          <el-select 
-            v-model="form.planId" 
-            placeholder="请选择种植计划" 
-            clearable 
-            filterable 
+          <el-cascader
+            v-model="plantingPlanCascaderValue"
+            :options="plantingPlanCascaderOptions"
+            :props="plantingPlanCascaderProps"
+            placeholder="请先选择年度计划，再选择季度计划"
+            clearable
+            filterable
             style="width: 100%"
-            @change="handlePlanChange"
-          >
-            <el-option
-              v-for="item in plantingPlanOptions"
-              :key="item.planId"
-              :label="`${item.planName} (${item.planYear || '--'})`"
-              :value="item.planId"
-            />
-          </el-select>
+            @change="handlePlantingPlanCascaderChange"
+          />
         </el-form-item>
         <el-form-item label="轮作计划/季节类型" prop="rotationPlanSeason" v-if="form.planType === 'rotation'">
           <el-cascader
@@ -179,7 +202,13 @@
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
             style="width: 100%"
+            :disabled-date="disabledStartDate"
+            @change="handleStartTimeChange"
+            :key="`startTime-${open}-${planDateRange.minStartDate || ''}-${planDateRange.maxEndDate || ''}`"
           />
+          <div v-if="planDateRange.minStartDate || planDateRange.maxEndDate" style="color: #909399; font-size: 12px; margin-top: 4px;">
+            计划时间范围：{{ planDateRange.minStartDate || '无限制' }} 至 {{ planDateRange.maxEndDate || '无限制' }}
+          </div>
         </el-form-item>
         <el-form-item label="预期收获时间" prop="expectedHarvestTime">
           <el-date-picker
@@ -189,6 +218,9 @@
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
             style="width: 100%"
+            :disabled-date="disabledHarvestDate"
+            @change="handleHarvestTimeChange"
+            :key="`harvestTime-${open}-${planDateRange.minStartDate || ''}-${planDateRange.maxEndDate || ''}`"
           />
         </el-form-item>
         <el-form-item label="状态" prop="status">
@@ -221,7 +253,7 @@ import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
 import { AgricultureRotationPlanService } from '@/api/agriculture/plantingPlanApi'
 import { AgricultureRotationDetailService } from '@/api/agriculture/planDetailApi'
 import { UserService } from '@/api/system/userApi'
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { resetForm } from '@/utils/utils'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { FormInstance } from 'element-plus'
@@ -252,6 +284,15 @@ const pastureOptions = ref<any[]>([])
 const rotationPlanOptions = ref<any[]>([])
 const planOptions = ref<any[]>([]) // 所有计划（年度、季度、轮作）
 const plantingPlanOptions = ref<any[]>([]) // 仅年度和季度计划
+const plantingPlanCascaderOptions = ref<any[]>([]) // 年度和季度计划的级联选项
+const plantingPlanCascaderValue = ref<(string | number)[]>([]) // 年度和季度计划的级联值
+const plantingPlanCascaderProps = {
+  expandTrigger: 'hover' as const, // 悬停展开，和轮作计划一样
+  value: 'value',
+  label: 'label',
+  children: 'children',
+  emitPath: true // 返回完整路径
+}
 const seasonTypeOptions = ref<Array<{label: string, value: string}>>([])
 const userOptions = ref<any[]>([])
 const rotationPlanSeasonValue = ref<(string | number)[]>([])
@@ -263,14 +304,31 @@ const cascaderProps = {
   children: 'children'
 }
 
+// 计划时间范围（用于日期限制）
+const planDateRange = ref<{
+  minStartDate: string | null,
+  maxEndDate: string | null
+}>({
+  minStartDate: null,
+  maxEndDate: null
+})
+
+// 轮作计划明细信息（用于获取时间范围）
+const rotationPlanDetail = ref<any>(null)
+
 const columns = reactive([
   { name: '批次ID', show: true },
   { name: '批次名称', show: true },
   { name: '种质', show: true },
   { name: '所属温室', show: true },
+  { name: '计划类型', show: true },
+  { name: '计划年份', show: true },
+  { name: '季节类型', show: true },
   { name: '种植面积(亩)', show: true },
+  { name: '种植密度', show: true },
   { name: '负责人', show: true },
   { name: '开始时间', show: true },
+  { name: '预期收获时间', show: true },
   { name: '状态', show: true },
   { name: '创建时间', show: true }
 ])
@@ -300,6 +358,7 @@ const initialFormState = {
   seasonType: undefined as string | undefined,
   rotationPlanId: undefined as number | undefined,
   planId: undefined as number | undefined,
+  detailId: undefined as number | undefined, // 轮作计划明细ID
   plantingDensity: undefined as number | undefined,
   cropArea: 0,
   responsiblePersonId: undefined as number | undefined,
@@ -319,11 +378,68 @@ const queryParams = reactive({
   status: ''
 })
 
+/** 开始时间验证规则 */
+const validateStartTime = (rule: any, value: any, callback: any) => {
+  if (!value) {
+    callback()
+    return
+  }
+  
+  const { minStartDate, maxEndDate } = planDateRange.value
+  
+  if (minStartDate && value < minStartDate) {
+    callback(new Error(`开始时间不能早于计划的开始日期：${minStartDate}`))
+    return
+  }
+  
+  if (maxEndDate && value > maxEndDate) {
+    callback(new Error(`开始时间不能晚于计划的结束日期：${maxEndDate}`))
+    return
+  }
+  
+  if (form.expectedHarvestTime && value > form.expectedHarvestTime) {
+    callback(new Error('开始时间不能晚于预计收获时间'))
+    return
+  }
+  
+  callback()
+}
+
+/** 预计收获时间验证规则 */
+const validateHarvestTime = (rule: any, value: any, callback: any) => {
+  if (!value) {
+    callback()
+    return
+  }
+  
+  if (form.startTime && value < form.startTime) {
+    callback(new Error('预计收获时间不能早于开始时间'))
+    return
+  }
+  
+  const { maxEndDate } = planDateRange.value
+  
+  if (maxEndDate && value > maxEndDate) {
+    callback(new Error(`预计收获时间不能超过计划的结束日期：${maxEndDate}`))
+    return
+  }
+  
+  callback()
+}
+
 const rules = reactive({
   batchName: [{ required: true, message: '批次名称不能为空', trigger: 'blur' }],
   classId: [{ required: true, message: '种植种质不能为空', trigger: 'change' }],
   pastureId: [{ required: true, message: '所属温室不能为空', trigger: 'change' }],
-  cropArea: [{ required: true, message: '种植面积不能为空', trigger: 'blur' }]
+  cropArea: [{ required: true, message: '种植面积不能为空', trigger: 'blur' }],
+  startTime: [
+    { required: true, message: '开始时间不能为空', trigger: 'blur' },
+    { validator: validateStartTime, trigger: 'change' }
+  ],
+  expectedHarvestTime: [
+    { required: true, message: '预期收获时间不能为空', trigger: 'blur' },
+    { validator: validateHarvestTime, trigger: 'change' }
+  ]
 })
 
 /** 查询批次列表 */
@@ -371,7 +487,7 @@ const handleAdd = () => {
 /** 修改按钮操作 */
 const handleUpdate = async (row: AgricultureCropBatchResult) => {
   reset()
-  open.value = true
+  // 先不打开对话框，等数据加载完成后再打开
   title.value = '修改批次'
   const res = await AgricultureCropBatchService.getBatch(row.batchId)
   if (res.code === 200) {
@@ -493,6 +609,47 @@ const handleUpdate = async (row: AgricultureCropBatchResult) => {
         form.seasonType = seasonType
         // 轮作计划不应该设置 planId，保持为 undefined
         form.planId = undefined
+        
+        // 查询轮作计划明细，获取时间范围
+        try {
+          const planId = rotationPlan.planId || rotationPlan.rotationId || rotationId
+          // 季节类型转换：spring -> 1, summer -> 2, autumn -> 3, winter -> 4
+          const seasonTypeToNum: { [key: string]: string } = {
+            'spring': '1',
+            'summer': '2',
+            'autumn': '3',
+            'winter': '4'
+          }
+          const seasonTypeNum = seasonTypeToNum[seasonType] || seasonType
+          
+          const detailRes = await AgricultureRotationDetailService.listDetail({
+            planId: String(planId),
+            rotationId: String(planId),
+            seasonType: seasonTypeNum,
+            pageNum: 1,
+            pageSize: 1000
+          })
+          
+          if (detailRes.code === 200 && detailRes.rows && detailRes.rows.length > 0) {
+            const matchedDetail = detailRes.rows.find((detail: any) => {
+              const detailSeasonType = String(detail.seasonType)
+              return detailSeasonType === seasonTypeNum || 
+                     detailSeasonType === seasonType ||
+                     (seasonTypeToNum[detailSeasonType] && seasonTypeToNum[detailSeasonType] === seasonTypeNum)
+            })
+            if (matchedDetail) {
+              rotationPlanDetail.value = matchedDetail
+              // 设置轮作计划明细ID
+              if (matchedDetail.detailId) {
+                form.detailId = Number(matchedDetail.detailId)
+              }
+              // 查询到明细后立即更新时间范围
+              updatePlanDateRange()
+            }
+          }
+        } catch (error) {
+          console.error('查询轮作计划明细失败:', error)
+        }
       } else {
         rotationPlanSeasonValue.value = []
         // 即使找不到对应的轮作计划，也要设置季节类型
@@ -505,19 +662,83 @@ const handleUpdate = async (row: AgricultureCropBatchResult) => {
         form.seasonType = seasonMap[String(data.seasonType)] || String(data.seasonType)
         // 清空 planId，因为这是轮作计划
         form.planId = undefined
+        planDateRange.value = { minStartDate: null, maxEndDate: null }
+        rotationPlanDetail.value = null
+        form.detailId = undefined
       }
     } else if (data.planId) {
       // 只有planId，没有季节类型，说明是种植计划
       form.planType = 'planting'
       rotationPlanSeasonValue.value = []
-      // 确保 planId 能正确回显（转换为数字类型，因为选项的 value 是数字）
-      form.planId = Number(data.planId)
+      
+      // 查找对应的计划
+      const selectedPlan = planOptions.value.find(plan => Number(plan.planId) === Number(data.planId))
+      if (selectedPlan) {
+        if (selectedPlan.planType === 'seasonal' && selectedPlan.parentPlanId) {
+          // 如果是季度计划，设置级联选择器的值为 [年度计划ID, 季度计划ID]
+          plantingPlanCascaderValue.value = [Number(selectedPlan.parentPlanId), Number(data.planId)]
+        } else if (selectedPlan.planType === 'annual') {
+          // 如果是年度计划，设置级联选择器的值为 [年度计划ID]
+          plantingPlanCascaderValue.value = [Number(data.planId)]
+        } else {
+          // 其他情况，直接设置planId
+          plantingPlanCascaderValue.value = [Number(data.planId)]
+        }
+        form.planId = Number(data.planId)
+        // 种植计划找到后立即更新时间范围
+        updatePlanDateRange()
+      } else {
+        // 如果找不到计划，清空级联选择器
+        plantingPlanCascaderValue.value = []
+        form.planId = Number(data.planId)
+        planDateRange.value = { minStartDate: null, maxEndDate: null }
+      }
     } else {
       // 默认种植计划
       form.planType = 'planting'
       rotationPlanSeasonValue.value = []
+      plantingPlanCascaderValue.value = []
+      planDateRange.value = { minStartDate: null, maxEndDate: null }
+      rotationPlanDetail.value = null
+      form.detailId = undefined
     }
+    
+    // 在所有数据设置完成后，使用 nextTick 确保 DOM 更新后再更新时间范围
+    // 这样日期选择器的限制才能正确生效
+    await nextTick()
+    updatePlanDateRange()
+    
+    // 现在才打开对话框，此时所有数据都已加载完成，日期限制应该能正确生效
+    open.value = true
+    
+    // 对话框打开后，再次使用 nextTick 确保日期选择器正确渲染
+    await nextTick()
+    updatePlanDateRange()
   }
+}
+
+/** 根据温室ID获取温室名称 */
+const getPastureName = (pastureId: string | number | undefined) => {
+  if (!pastureId) return '--'
+  const found = pastureOptions.value.find((item: any) => String(item.id) === String(pastureId))
+  return found ? found.name : pastureId
+}
+
+/** 根据季节类型获取季节名称 */
+const getSeasonTypeName = (seasonType: string | number | undefined) => {
+  if (!seasonType) return '--'
+  const seasonMap: { [key: string]: string } = {
+    'spring': '春季',
+    'summer': '夏季',
+    'autumn': '秋季',
+    'winter': '冬季',
+    '1': '春季',
+    '2': '夏季',
+    '3': '秋季',
+    '4': '冬季'
+  }
+  const key = String(seasonType).toLowerCase()
+  return seasonMap[key] || seasonType
 }
 
 /** 详情按钮操作 */
@@ -532,10 +753,10 @@ const submitForm = async () => {
   if (!batchRef.value) return
   await batchRef.value.validate(async (valid) => {
     if (valid) {
-      // 确保状态值为字符串格式，并移除前端临时字段
-      const { rotationPlanId, planType, ...formData } = form
+      // 确保状态值为字符串格式，并移除前端临时字段和不需要的字段
+      const { rotationPlanId, planType, harvest, ...formData } = form
       
-      // 处理日期字段，确保只包含日期部分（YYYY-MM-DD），不包含时间部分
+      // 处理日期字段
       const formatDateOnly = (dateValue: any): string | undefined => {
         if (!dateValue) return undefined
         const dateStr = String(dateValue)
@@ -550,13 +771,36 @@ const submitForm = async () => {
         return dateStr
       }
       
+      // 处理日期时间字段（转换为 yyyy-MM-dd HH:mm:ss 格式）
+      const formatDateTime = (dateValue: any): string | undefined => {
+        if (!dateValue) return undefined
+        const dateStr = String(dateValue)
+        // 如果已经是日期时间格式，直接返回
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) {
+          return dateStr
+        }
+        // 如果是日期格式，添加时间部分
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          return dateStr + ' 00:00:00'
+        }
+        // 如果包含空格，只取日期部分再添加时间
+        if (dateStr.includes(' ')) {
+          return dateStr.split(' ')[0] + ' 00:00:00'
+        }
+        return dateStr
+      }
+      
+      // 如果是种植计划（年度/季度计划），确保 seasonType 为 null
       const submitData = {
         ...formData,
         status: form.status != null && form.status !== '' && form.status !== undefined ? String(form.status) : '0',
-        startTime: formatDateOnly(form.startTime),
-        expectedHarvestTime: formatDateOnly(form.expectedHarvestTime)
+        startTime: formatDateOnly(form.startTime), // LocalDate 格式：yyyy-MM-dd
+        expectedHarvestTime: formatDateTime(form.expectedHarvestTime), // LocalDateTime 格式：yyyy-MM-dd HH:mm:ss
+        // 如果是种植计划（年度/季度计划），设置 seasonType 为 null，detailId 为 null
+        // 如果是轮作计划，保留 detailId
+        seasonType: form.planType === 'planting' ? null : formData.seasonType,
+        detailId: form.planType === 'planting' ? null : formData.detailId
       }
-      console.log('提交的数据:', submitData)
       if (form.batchId) {
         const res = await AgricultureCropBatchService.updateBatch(submitData)
         if (res.code === 200) {
@@ -613,8 +857,13 @@ const reset = () => {
   Object.assign(form, initialFormState)
   // 清空级联选择器的值
   rotationPlanSeasonValue.value = []
+  plantingPlanCascaderValue.value = []
   // 重置计划类型为种植计划
   form.planType = 'planting'
+  // 清空时间范围
+  planDateRange.value = { minStartDate: null, maxEndDate: null }
+  rotationPlanDetail.value = null
+  form.detailId = undefined
 }
 
 /** 获取种植列表 */
@@ -646,22 +895,97 @@ const getPlanList = async () => {
     rotationPlanOptions.value = (res.rows || []).filter((plan: any) => 
       plan.planType === 'rotation'
     )
-    // 构建级联选择器的选项
+    // 构建年度和季度计划的级联选项
+    buildPlantingPlanCascaderOptions()
+    // 构建轮作计划的级联选择器选项
     await buildCascaderOptions()
   }
 }
 
-/** 种植计划改变事件 */
-const handlePlanChange = (planId: number | string | null) => {
-  if (planId) {
-    // 查找选中的种植计划
-    const selectedPlan = planOptions.value.find(plan => plan.planId == planId)
-    if (selectedPlan) {
-      // 自动填充计划年份
-      form.planYear = selectedPlan.planYear
+/** 构建年度和季度计划的级联选项 */
+const buildPlantingPlanCascaderOptions = () => {
+  const options: any[] = []
+  
+  // 获取所有年度计划
+  const annualPlans = planOptions.value.filter((plan: any) => plan.planType === 'annual')
+  
+  // 获取所有季度计划
+  const seasonalPlans = planOptions.value.filter((plan: any) => plan.planType === 'seasonal')
+  
+  // 为每个年度计划构建选项
+  annualPlans.forEach((annualPlan: any) => {
+    // 查找该年度计划下的所有季度计划
+    const children = seasonalPlans
+      .filter((seasonalPlan: any) => {
+        const parentId = seasonalPlan.parentPlanId
+        const annualId = annualPlan.planId
+        const match = parentId && (Number(parentId) === Number(annualId) || String(parentId) === String(annualId))
+        return match
+      })
+      .map((seasonalPlan: any) => ({
+        label: `${seasonalPlan.planName} (${seasonalPlan.planYear || '--'})`,
+        value: Number(seasonalPlan.planId),
+        isLeaf: true // 季度计划是叶子节点
+      }))
+      .sort((a, b) => {
+        // 按计划名称排序
+        return a.label.localeCompare(b.label)
+      })
+    
+    // 无论是否有季度计划，都添加到选项
+    // 如果有季度计划，显示子级；如果没有季度计划，年度计划本身也可以选择
+    if (children.length > 0) {
+      options.push({
+        label: `${annualPlan.planName} (${annualPlan.planYear || '--'})`,
+        value: Number(annualPlan.planId),
+        children: children
+      })
+    } else {
+      // 如果没有季度计划，年度计划本身也可以选择（作为叶子节点）
+      options.push({
+        label: `${annualPlan.planName} (${annualPlan.planYear || '--'})`,
+        value: Number(annualPlan.planId),
+        isLeaf: true
+      })
     }
+  })
+  
+  // 按年度排序
+  options.sort((a, b) => {
+    const yearA = a.label.match(/\((\d+)\)/)?.[1] || '0'
+    const yearB = b.label.match(/\((\d+)\)/)?.[1] || '0'
+    return Number(yearB) - Number(yearA) // 降序排列
+  })
+  
+  plantingPlanCascaderOptions.value = options
+}
+
+/** 种植计划级联选择器改变事件 */
+const handlePlantingPlanCascaderChange = (value: any) => {
+  if (value && Array.isArray(value) && value.length > 0) {
+    // 如果选择了季度计划（两级），使用季度计划的ID
+    if (value.length === 2) {
+      form.planId = Number(value[1])
+      // 查找选中的季度计划，填充计划年份
+      const selectedPlan = planOptions.value.find(plan => Number(plan.planId) === Number(value[1]))
+      if (selectedPlan) {
+        form.planYear = selectedPlan.planYear
+      }
+    } else if (value.length === 1) {
+      // 如果只选择了年度计划（一级），使用年度计划的ID
+      form.planId = Number(value[0])
+      // 查找选中的年度计划，填充计划年份
+      const selectedPlan = planOptions.value.find(plan => Number(plan.planId) === Number(value[0]))
+      if (selectedPlan) {
+        form.planYear = selectedPlan.planYear
+      }
+    }
+    // 更新时间范围
+    updatePlanDateRange()
   } else {
+    form.planId = undefined
     form.planYear = undefined
+    planDateRange.value = { minStartDate: null, maxEndDate: null }
   }
 }
 
@@ -745,19 +1069,33 @@ const handlePlanTypeChange = (value: string | number | boolean | undefined) => {
     form.rotationPlanId = undefined
     form.seasonType = undefined
     rotationPlanSeasonValue.value = []
+    rotationPlanDetail.value = null
+    form.detailId = undefined
     // 清空 planId，因为之前可能是轮作计划的ID
     form.planId = undefined
+    // 清空种植计划级联选择器值
+    plantingPlanCascaderValue.value = []
     // 清空种植面积和密度（因为是从轮作计划切换过来的）
     form.cropArea = 0
     form.plantingDensity = undefined
+    // 清空时间范围
+    planDateRange.value = { minStartDate: null, maxEndDate: null }
   } else if (planType === 'rotation') {
     // 选择轮作计划，清空种植计划字段
     form.planId = undefined
     form.planYear = undefined
+    // 清空种植计划级联选择器值
+    plantingPlanCascaderValue.value = []
     // 如果还没有选择轮作计划，清空种植面积和密度
     if (!form.rotationPlanId) {
       form.cropArea = 0
       form.plantingDensity = undefined
+    }
+    // 如果没有选择轮作计划明细，清空时间范围
+    if (!form.rotationPlanId || !form.seasonType) {
+      planDateRange.value = { minStartDate: null, maxEndDate: null }
+      rotationPlanDetail.value = null
+      form.detailId = undefined
     }
   }
 }
@@ -811,6 +1149,14 @@ const handleCascaderChange = async (value: any) => {
         })
         
         if (matchedDetail) {
+          // 保存明细信息用于时间范围限制
+          rotationPlanDetail.value = matchedDetail
+          
+          // 设置轮作计划明细ID
+          if (matchedDetail.detailId) {
+            form.detailId = Number(matchedDetail.detailId)
+          }
+          
           // 自动填充种植面积和密度
           if (matchedDetail.plantingArea) {
             form.cropArea = Number(matchedDetail.plantingArea)
@@ -825,13 +1171,22 @@ const handleCascaderChange = async (value: any) => {
           }
         }
       }
+      
+      // 更新时间范围
+      updatePlanDateRange()
     } catch (error) {
       console.error('查询轮作计划明细失败:', error)
       ElMessage.warning('获取轮作计划明细信息失败')
+      rotationPlanDetail.value = null
+      form.detailId = undefined
+      planDateRange.value = { minStartDate: null, maxEndDate: null }
     }
   } else {
     form.rotationPlanId = undefined
     form.seasonType = undefined
+    rotationPlanDetail.value = null
+    form.detailId = undefined
+    planDateRange.value = { minStartDate: null, maxEndDate: null }
     // 清空种植面积和密度
     if (form.planType === 'rotation') {
       form.cropArea = 0
@@ -895,6 +1250,162 @@ onMounted(() => {
   }
 })
 
+/** 获取计划时间范围 */
+const getPlanDateRange = () => {
+  if (form.planType === 'planting' && form.planId) {
+    // 种植计划（年度/季度计划）
+    const selectedPlan = planOptions.value.find(p => Number(p.planId) === Number(form.planId))
+    if (selectedPlan) {
+      return {
+        minStartDate: selectedPlan.startDate || null,
+        maxEndDate: selectedPlan.endDate || null
+      }
+    }
+  } else if (form.planType === 'rotation' && form.rotationPlanId && form.seasonType && rotationPlanDetail.value) {
+    // 轮作计划
+    return {
+      minStartDate: rotationPlanDetail.value.expectedStartDate || null,
+      maxEndDate: rotationPlanDetail.value.expectedEndDate || null
+    }
+  }
+  return { minStartDate: null, maxEndDate: null }
+}
+
+/** 更新计划时间范围 */
+const updatePlanDateRange = () => {
+  const range = getPlanDateRange()
+  planDateRange.value.minStartDate = range.minStartDate
+  planDateRange.value.maxEndDate = range.maxEndDate
+  
+  // 如果当前已选择的时间超出新的限制范围，给出提示并调整
+  if (form.startTime && range.minStartDate && form.startTime < range.minStartDate) {
+    ElMessage.warning(`开始时间不能早于计划开始日期：${range.minStartDate}，已自动调整`)
+    form.startTime = range.minStartDate
+  }
+  if (form.startTime && range.maxEndDate && form.startTime > range.maxEndDate) {
+    ElMessage.warning(`开始时间不能晚于计划结束日期：${range.maxEndDate}，已清空`)
+    form.startTime = ''
+  }
+  if (form.expectedHarvestTime && range.maxEndDate && form.expectedHarvestTime > range.maxEndDate) {
+    ElMessage.warning(`预计收获时间不能晚于计划结束日期：${range.maxEndDate}，已自动调整`)
+    form.expectedHarvestTime = range.maxEndDate
+  }
+  if (form.expectedHarvestTime && range.minStartDate && form.expectedHarvestTime < range.minStartDate) {
+    ElMessage.warning(`预计收获时间不能早于计划开始日期：${range.minStartDate}，已自动调整`)
+    form.expectedHarvestTime = range.minStartDate
+  }
+}
+
+/** 开始时间禁用日期函数 */
+const disabledStartDate = (time: Date) => {
+  const { minStartDate, maxEndDate } = planDateRange.value
+  
+  // 如果计划有最小开始日期，禁用早于该日期的所有日期
+  if (minStartDate) {
+    const minDate = new Date(minStartDate)
+    minDate.setHours(0, 0, 0, 0)
+    if (time < minDate) return true
+  }
+  
+  // 如果计划有最大结束日期，禁用晚于该日期的所有日期
+  if (maxEndDate) {
+    const maxDate = new Date(maxEndDate)
+    maxDate.setHours(23, 59, 59, 999)
+    if (time > maxDate) return true
+  }
+  
+  // 如果已选择预计收获时间，开始时间不能晚于预计收获时间
+  if (form.expectedHarvestTime) {
+    const harvestDate = new Date(form.expectedHarvestTime)
+    harvestDate.setHours(23, 59, 59, 999)
+    if (time > harvestDate) return true
+  }
+  
+  return false
+}
+
+/** 预计收获时间禁用日期函数 */
+const disabledHarvestDate = (time: Date) => {
+  const { minStartDate, maxEndDate } = planDateRange.value
+  
+  // 如果计划有最大结束日期，禁用晚于该日期的所有日期
+  if (maxEndDate) {
+    const maxDate = new Date(maxEndDate)
+    maxDate.setHours(23, 59, 59, 999)
+    if (time > maxDate) return true
+  }
+  
+  // 如果计划有最小开始日期，禁用早于该日期的所有日期
+  if (minStartDate) {
+    const minDate = new Date(minStartDate)
+    minDate.setHours(0, 0, 0, 0)
+    if (time < minDate) return true
+  }
+  
+  // 预计收获时间不能早于开始时间
+  if (form.startTime) {
+    const startDate = new Date(form.startTime)
+    startDate.setHours(0, 0, 0, 0)
+    if (time < startDate) return true
+  }
+  
+  return false
+}
+
+/** 开始时间变更处理 */
+const handleStartTimeChange = (value: string) => {
+  if (!value) return
+  
+  const { minStartDate, maxEndDate } = planDateRange.value
+  
+  // 检查是否早于计划开始日期
+  if (minStartDate && value < minStartDate) {
+    ElMessage.warning(`开始时间不能早于计划开始日期：${minStartDate}`)
+    form.startTime = minStartDate
+    return
+  }
+  
+  // 检查是否晚于计划结束日期
+  if (maxEndDate && value > maxEndDate) {
+    ElMessage.warning(`开始时间不能晚于计划结束日期：${maxEndDate}`)
+    form.startTime = maxEndDate
+    return
+  }
+  
+  // 检查是否晚于预计收获时间
+  if (form.expectedHarvestTime && value > form.expectedHarvestTime) {
+    ElMessage.warning('开始时间不能晚于预计收获时间，已清空预计收获时间')
+    form.expectedHarvestTime = undefined
+  }
+}
+
+/** 预计收获时间变更处理 */
+const handleHarvestTimeChange = (value: string) => {
+  if (!value) return
+  
+  const { minStartDate, maxEndDate } = planDateRange.value
+  
+  // 检查是否早于开始时间
+  if (form.startTime && value < form.startTime) {
+    ElMessage.warning('预计收获时间不能早于开始时间')
+    form.expectedHarvestTime = form.startTime
+    return
+  }
+  
+  // 检查是否晚于计划结束日期
+  if (maxEndDate && value > maxEndDate) {
+    ElMessage.warning(`预计收获时间不能超过计划的结束日期：${maxEndDate}，已自动调整`)
+    form.expectedHarvestTime = maxEndDate
+    return
+  }
+  
+  // 检查是否早于计划开始日期
+  if (minStartDate && value < minStartDate) {
+    ElMessage.warning(`预计收获时间不能早于计划开始日期：${minStartDate}，已自动调整`)
+    form.expectedHarvestTime = minStartDate
+  }
+}
+
 /** 从轮作计划明细创建批次 */
 const handleAddFromRotationDetail = async (params: any) => {
   reset()
@@ -939,6 +1450,45 @@ const handleAddFromRotationDetail = async (params: any) => {
     rotationPlanSeasonValue.value = [Number(params.rotationPlanId), seasonType]
     form.rotationPlanId = Number(params.rotationPlanId)
     form.seasonType = seasonType
+    
+    // 查询轮作计划明细，获取时间范围
+    try {
+      const selectedPlan = rotationPlanOptions.value.find(p => 
+        (p.planId || p.rotationId) == params.rotationPlanId
+      )
+      if (selectedPlan) {
+        const planId = selectedPlan.planId || selectedPlan.rotationId || params.rotationPlanId
+        const seasonTypeNum = seasonMap[seasonType] || seasonType
+        const detailRes = await AgricultureRotationDetailService.listDetail({
+          planId: String(planId),
+          rotationId: String(planId),
+          seasonType: seasonTypeNum,
+          pageNum: 1,
+          pageSize: 1000
+        })
+        
+        if (detailRes.code === 200 && detailRes.rows && detailRes.rows.length > 0) {
+          const matchedDetail = detailRes.rows.find((detail: any) => {
+            const detailSeasonType = String(detail.seasonType)
+            return detailSeasonType === seasonTypeNum || 
+                   detailSeasonType === seasonType ||
+                   (seasonMap[detailSeasonType] && seasonMap[detailSeasonType] === seasonTypeNum)
+          })
+          if (matchedDetail) {
+            rotationPlanDetail.value = matchedDetail
+            // 设置轮作计划明细ID
+            if (matchedDetail.detailId) {
+              form.detailId = Number(matchedDetail.detailId)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('查询轮作计划明细失败:', error)
+    }
+    
+    // 更新时间范围
+    updatePlanDateRange()
   }
   
   // 生成批次名称
