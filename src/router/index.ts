@@ -1,3 +1,6 @@
+// 路由模块主文件
+// 负责创建路由实例、配置静态路由、处理路由守卫和动态路由注册
+
 import type { App } from 'vue'
 import {
   createRouter,
@@ -37,9 +40,14 @@ export type AppRouteRecordRaw = RouteRecordRaw & {
 /** 首页路径常量 */
 export const HOME_PAGE = '/console'
 
-/** 静态路由配置 */
+/** 
+ * 静态路由配置
+ * 这些路由在应用启动时就已经定义，不需要从后端动态获取
+ */
 const staticRoutes: AppRouteRecordRaw[] = [
+  // 根路径重定向到首页
   { path: '/', redirect: HOME_PAGE },
+  // 工作台/控制台路由
   {
     path: '/dashboard',
     component: Home,
@@ -54,24 +62,28 @@ const staticRoutes: AppRouteRecordRaw[] = [
       }
     ]
   },
+  // 登录页面
   {
     path: RoutesAlias.Login,
     name: 'Login',
     component: () => import('@views/login/index.vue'),
     meta: { title: 'menus.login.title', isHideTab: true, setTheme: true }
   },
+  // 注册页面
   {
     path: RoutesAlias.Register,
     name: 'Register',
     component: () => import('@views/register/index.vue'),
     meta: { title: 'menus.register.title', isHideTab: true, noLogin: true, setTheme: true }
   },
+  // 忘记密码页面
   {
     path: RoutesAlias.ForgetPassword,
     name: 'ForgetPassword',
     component: () => import('@views/forget-password/index.vue'),
     meta: { title: 'menus.forgetPassword.title', isHideTab: true, noLogin: true, setTheme: true }
   },
+  // 异常页面（403、404、500）
   {
     path: '/exception',
     component: Home,
@@ -98,6 +110,7 @@ const staticRoutes: AppRouteRecordRaw[] = [
       }
     ]
   },
+  // 用户中心路由
   {
     path: '/user',
     component: Home,
@@ -112,6 +125,7 @@ const staticRoutes: AppRouteRecordRaw[] = [
       }
     ]
   },
+  // 外部页面路由（iframe）
   {
     path: '/outside',
     component: Home,
@@ -126,6 +140,7 @@ const staticRoutes: AppRouteRecordRaw[] = [
       }
     ]
   },
+  // 溯源页面
   {
     path: '/trace',
     name: 'Trace',
@@ -141,7 +156,7 @@ export const router = createRouter({
   scrollBehavior: () => ({ left: 0, top: 0 })
 })
 
-// 标记是否已经注册动态路由
+// 标记是否已经注册动态路由，避免重复注册
 const isRouteRegistered = ref(false)
 
 /**
@@ -162,6 +177,7 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // 检查登录状态，如果未登录则跳转到登录页
+  // 排除登录页本身和设置了 noLogin 的路由（如注册、忘记密码等）
   if (!userStore.isLogin && to.path !== '/login' && !to.meta.noLogin) {
     userStore.logOut()
     return next('/login')
@@ -171,9 +187,11 @@ router.beforeEach(async (to, from, next) => {
   // 对于设置了 noLogin 的路由，跳过菜单数据获取
   if (!isRouteRegistered.value && userStore.isLogin && !to.meta.noLogin) {
     await getMenuData()
+    // 如果当前路由是404，重新导航以匹配新注册的路由
     if (to.name === 'Exception404') {
       return next({ path: to.path, query: to.query, replace: true })
     } else {
+      // 重新导航到当前路由，确保匹配到新注册的动态路由
       return next({ ...to, replace: true })
     }
   }
