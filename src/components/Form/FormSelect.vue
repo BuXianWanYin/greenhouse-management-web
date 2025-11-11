@@ -2,7 +2,7 @@
 <template>
   <el-col :xs="24" :sm="12" :lg="6">
     <el-form-item :label="`${label}`" :prop="prop">
-      <el-select v-model="modelValue" clearable placeholder="请选择" style="width: 100%">
+      <el-select v-model="modelValue" clearable placeholder="请选择" style="width: 100%" @change="handleChange">
         <el-option
           v-for="item in options"
           :key="item.value"
@@ -18,7 +18,7 @@
 <script setup lang="ts">
   const modelValue = defineModel<string>({ required: true })
 
-  defineProps({
+  const props = defineProps({
     label: String,
     prop: String,
     options: {
@@ -26,6 +26,12 @@
       default: () => []
     }
   })
+
+  const emit = defineEmits(['change'])
+
+  const handleChange = (value: string) => {
+    emit('change', value)
+  }
 </script>
 
 <style lang="scss" scoped></style>

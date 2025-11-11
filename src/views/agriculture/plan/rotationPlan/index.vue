@@ -311,7 +311,7 @@
     </el-dialog>
 
     <!-- 轮作计划明细对话框 -->
-    <el-dialog :title="detailTitle" v-model="detailOpen" width="1200px" append-to-body>
+    <el-dialog :title="detailTitle" v-model="detailOpen" width="90%" append-to-body>
       <div class="detail-content" v-if="detailInfo.planType === 'rotation'">
         <!-- 轮作明细 -->
         <table-bar
@@ -324,11 +324,21 @@
           <template #top>
             <el-form :model="detailQueryParams" ref="detailSearchFormRef" label-width="82px">
               <el-row :gutter="20">
-                <form-input
+                <form-select
+                  label="轮作顺序"
+                  prop="rotationOrder"
+                  v-model="detailQueryParams.rotationOrder"
+                  :options="rotationOrderOptions"
+                  clearable
+                  @change="searchDetailInDialog"
+                />
+                <form-select
                   label="季节类型"
                   prop="seasonType"
-                  @keyup.enter="searchDetailInDialog"
                   v-model="detailQueryParams.seasonType"
+                  :options="seasonTypeOptions"
+                  clearable
+                  @change="searchDetailInDialog"
                 />
               </el-row>
             </el-form>
@@ -347,38 +357,39 @@
           @size-change="handleDetailSizeChange"
           @current-change="handleDetailCurrentChange"
           v-loading="detailLoading"
+          style="width: 100%"
         >
           <template #default>
             <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="轮作顺序" prop="rotationOrder" width="100" align="center" v-if="columnsDetail[0].show">
+            <el-table-column label="轮作顺序" prop="rotationOrder" min-width="90" align="center" v-if="columnsDetail[0].show">
               <template #default="scope">
                 <el-tag type="primary" effect="plain" size="small">第{{ scope.row.rotationOrder }}年</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="种质名称" prop="classId" width="150" v-if="columnsDetail[1].show">
+            <el-table-column label="种质名称" prop="classId" min-width="100" v-if="columnsDetail[1].show" show-overflow-tooltip>
               <template #default="scope">
                 {{ getClassName(scope.row.classId) }}
               </template>
             </el-table-column>
-            <el-table-column label="季节类型" prop="seasonType" width="120" align="center" v-if="columnsDetail[2].show">
+            <el-table-column label="季节类型" prop="seasonType" min-width="90" align="center" v-if="columnsDetail[2].show">
               <template #default="scope">
                 <el-tag :type="getSeasonTypeTagType(scope.row.seasonType)" effect="dark" size="small">
                   {{ getSeasonTypeName(scope.row.seasonType) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="种植面积(亩)" prop="plantingArea" width="120" align="center" v-if="columnsDetail[3].show" />
-            <el-table-column label="种植密度" prop="plantingDensity" width="120" align="center" v-if="columnsDetail[4].show" />
-            <el-table-column label="预期开始" prop="expectedStartDate" width="120" align="center" v-if="columnsDetail[5].show" />
-            <el-table-column label="预期结束" prop="expectedEndDate" width="120" align="center" v-if="columnsDetail[6].show" />
-            <el-table-column label="实际开始" prop="actualStartDate" width="120" align="center" v-if="columnsDetail[7].show" />
-            <el-table-column label="实际结束" prop="actualEndDate" width="120" align="center" v-if="columnsDetail[8].show" />
-            <el-table-column label="关联批次" prop="batchNames" width="200" align="center" v-if="columnsDetail[9].show" show-overflow-tooltip>
+            <el-table-column label="种植面积(亩)" prop="plantingArea" min-width="100" align="center" v-if="columnsDetail[3].show" />
+            <el-table-column label="种植密度" prop="plantingDensity" min-width="90" align="center" v-if="columnsDetail[4].show" />
+            <el-table-column label="预期开始" prop="expectedStartDate" min-width="100" align="center" v-if="columnsDetail[5].show" />
+            <el-table-column label="预期结束" prop="expectedEndDate" min-width="100" align="center" v-if="columnsDetail[6].show" />
+            <el-table-column label="实际开始" prop="actualStartDate" min-width="100" align="center" v-if="columnsDetail[7].show" />
+            <el-table-column label="实际结束" prop="actualEndDate" min-width="100" align="center" v-if="columnsDetail[8].show" />
+            <el-table-column label="关联批次" prop="batchNames" min-width="120" align="center" v-if="columnsDetail[9].show" show-overflow-tooltip>
               <template #default="scope">
                 {{ scope.row.batchNames && scope.row.batchNames.length > 0 ? scope.row.batchNames.join('、') : '--' }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="200" align="center" fixed="right">
+            <el-table-column label="操作" min-width="150" align="center">
               <template #default="scope">
                 <el-button link type="primary" @click="handleUpdateDetailInDialog(scope.row)" v-auth="['agriculture:rotationdetail:edit']">
                   <el-icon><EditPen /></el-icon>修改
@@ -429,56 +440,56 @@
             @size-change="handleSeasonalPlanSizeChange"
             @current-change="handleSeasonalPlanCurrentChange"
             v-loading="seasonalPlanLoading"
+            style="width: 100%"
           >
             <template #default>
               <el-table-column type="selection" width="55" align="center" />
-              <el-table-column label="计划名称" prop="planName" min-width="150" show-overflow-tooltip v-if="columnsSeasonalPlan[0].show" />
-              <el-table-column label="计划年份" prop="planYear" width="100" align="center" v-if="columnsSeasonalPlan[1].show">
+              <el-table-column label="计划名称" prop="planName" min-width="100" show-overflow-tooltip v-if="columnsSeasonalPlan[0].show" />
+              <el-table-column label="计划年份" prop="planYear" min-width="90" align="center" v-if="columnsSeasonalPlan[1].show">
                 <template #default="scope">
                   <el-tag type="primary" effect="plain" size="small">{{ scope.row.planYear }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="季节类型" prop="seasonType" width="120" align="center" v-if="columnsSeasonalPlan[2].show">
+              <el-table-column label="季节类型" prop="seasonType" min-width="90" align="center" v-if="columnsSeasonalPlan[2].show">
                 <template #default="scope">
                   <el-tag :type="getSeasonTypeTagType(scope.row.seasonType)" effect="dark" size="small">
                     {{ getSeasonTypeName(scope.row.seasonType) }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="所属温室" prop="pastureId" width="150" align="center" v-if="columnsSeasonalPlan[3].show">
+              <el-table-column label="所属温室" prop="pastureId" min-width="110" align="center" v-if="columnsSeasonalPlan[3].show" show-overflow-tooltip>
                 <template #default="scope">
                   {{ getPastureName(scope.row.pastureId) }}
                 </template>
               </el-table-column>
-              <el-table-column label="种质" prop="classId" width="150" align="center" v-if="columnsSeasonalPlan[4].show">
+              <el-table-column label="种质" prop="classId" min-width="90" align="center" v-if="columnsSeasonalPlan[4].show" show-overflow-tooltip>
                 <template #default="scope">
                   {{ getClassName(scope.row.classId) }}
                 </template>
               </el-table-column>
-              <el-table-column label="总面积(亩)" prop="totalArea" width="120" align="center" v-if="columnsSeasonalPlan[5].show" />
-              <el-table-column label="种植密度(株/亩)" prop="plantingDensity" width="140" align="center" v-if="columnsSeasonalPlan[6].show" />
-              <el-table-column label="预期开始" prop="startDate" width="120" align="center" v-if="columnsSeasonalPlan[7].show" />
-              <el-table-column label="预期结束" prop="endDate" width="120" align="center" v-if="columnsSeasonalPlan[8].show" />
-              <el-table-column label="实际开始" prop="actualStartDate" width="120" align="center" v-if="columnsSeasonalPlan[9].show">
+              <el-table-column label="总面积(亩)" prop="totalArea" min-width="100" align="center" v-if="columnsSeasonalPlan[5].show" />
+              <el-table-column label="种植密度(株/亩)" prop="plantingDensity" min-width="120" align="center" v-if="columnsSeasonalPlan[6].show" />
+              <el-table-column label="预期开始" prop="startDate" min-width="100" align="center" v-if="columnsSeasonalPlan[7].show" />
+              <el-table-column label="预期结束" prop="endDate" min-width="100" align="center" v-if="columnsSeasonalPlan[8].show" />
+              <el-table-column label="实际开始" prop="actualStartDate" min-width="100" align="center" v-if="columnsSeasonalPlan[9].show">
                 <template #default="scope">
                   {{ scope.row.actualStartDate || '--' }}
                 </template>
               </el-table-column>
-              <el-table-column label="实际结束" prop="actualEndDate" width="120" align="center" v-if="columnsSeasonalPlan[10].show">
+              <el-table-column label="实际结束" prop="actualEndDate" min-width="100" align="center" v-if="columnsSeasonalPlan[10].show">
                 <template #default="scope">
                   {{ scope.row.actualEndDate || '--' }}
                 </template>
               </el-table-column>
-              <el-table-column label="计划状态" prop="planStatus" width="100" align="center" v-if="columnsSeasonalPlan[11].show">
+              <el-table-column label="计划状态" prop="planStatus" min-width="90" align="center" v-if="columnsSeasonalPlan[11].show">
                 <template #default="scope">
                   <el-tag v-if="scope.row.planStatus === '0'" type="info">未开始</el-tag>
                   <el-tag v-else-if="scope.row.planStatus === '1'" type="success">执行中</el-tag>
                   <el-tag v-else-if="scope.row.planStatus === '2'" type="primary">已完成</el-tag>
-                  <el-tag v-else-if="scope.row.planStatus === '3'" type="danger">已取消</el-tag>
                   <el-tag v-else>{{ scope.row.planStatus || '--' }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="200" align="center" fixed="right">
+              <el-table-column label="操作" min-width="150" align="center">
                 <template #default="scope">
                   <el-button link type="primary" @click="handleUpdateSeasonalPlanInDialog(scope.row)" v-auth="['agriculture:plantingplan:edit']">
                     <el-icon><EditPen /></el-icon>修改
@@ -630,7 +641,7 @@ import { AgricultureRotationDetailService } from '@/api/agriculture/planDetailAp
 import { AgricultureClassService } from '@/api/agriculture/classApi'
 import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
 import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { resetForm } from '@/utils/utils'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { FormInstance } from 'element-plus'
@@ -656,7 +667,7 @@ const parentAnnualPlanDateRange = ref<[string, string] | null>(null) // 父年�
 const parentAnnualPlanTotalArea = ref<number | null>(null) // 父年度计划的总面积
 
 const columns = reactive([
-  { name: '计划ID', show: true },
+  { name: '计划ID', show: false },
   { name: '计划名称', show: true },
   { name: '计划年份', show: true },
   { name: '计划类型', show: true },
@@ -1540,9 +1551,34 @@ const detailQueryParams = reactive({
   pageNum: 1,
   pageSize: 10,
   planId: '',
-  seasonType: ''
+  seasonType: '',
+  rotationOrder: '' // 轮作顺序筛选
 })
 const detailSearchFormRef = ref<FormInstance>()
+
+// 轮作顺序选项（根据轮作周期生成）
+const rotationOrderOptions = computed(() => {
+  if (!detailInfo.value?.rotationCycle) {
+    return []
+  }
+  const cycle = Number(detailInfo.value.rotationCycle)
+  const options = []
+  for (let i = 1; i <= cycle; i++) {
+    options.push({
+      label: `第${i}年`,
+      value: String(i)
+    })
+  }
+  return options
+})
+
+// 季节类型选项
+const seasonTypeOptions = [
+  { label: '春季', value: '1' },
+  { label: '夏季', value: '2' },
+  { label: '秋季', value: '3' },
+  { label: '冬季', value: '4' }
+]
 
 // 季度计划相关（用于年度计划详情）
 const seasonalPlanListData = ref<AgricultureRotationPlanResult[]>([])
@@ -1595,6 +1631,7 @@ const handleDetail = async (row: AgricultureRotationPlanResult) => {
     detailQueryParams.pageSize = 10
     detailQueryParams.planId = String(planId)
     detailQueryParams.seasonType = ''
+    detailQueryParams.rotationOrder = ''
     // 先清空数据，避免显示旧数据
     detailListData.value = []
     detailTotal.value = 0
@@ -1637,12 +1674,22 @@ const loadDetailList = async () => {
     if (res.code === 200) {
       const rows = res.rows || []
       // 按轮作顺序排序
-      detailListData.value = rows.sort((a: any, b: any) => {
+      let filteredRows = rows.sort((a: any, b: any) => {
         const orderA = Number(a.rotationOrder) || 0
         const orderB = Number(b.rotationOrder) || 0
         return orderA - orderB
       })
-      detailTotal.value = res.total || 0
+      
+      // 如果选择了轮作顺序筛选，进行前端过滤
+      if (detailQueryParams.rotationOrder) {
+        const selectedOrder = Number(detailQueryParams.rotationOrder)
+        filteredRows = filteredRows.filter((row: any) => {
+          return Number(row.rotationOrder) === selectedOrder
+        })
+      }
+      
+      detailListData.value = filteredRows
+      detailTotal.value = filteredRows.length
       
       // 查询每个明细关联的批次
       await loadBatchNamesForDetails()
@@ -1667,12 +1714,25 @@ const searchDetailInDialog = () => {
   loadDetailList()
 }
 
+// 监听季节类型和轮作顺序的变化，自动触发搜索
+let isInitializing = false
+watch(
+  () => [detailQueryParams.seasonType, detailQueryParams.rotationOrder],
+  (newVal, oldVal) => {
+    // 只有在对话框打开且不是初始化时才触发搜索
+    if (detailOpen.value && !isInitializing && oldVal !== undefined) {
+      searchDetailInDialog()
+    }
+  }
+)
+
 /** 详情对话框中的重置 */
 const resetDetailSearchInDialog = () => {
   if (detailSearchFormRef.value) {
     detailSearchFormRef.value.resetFields()
   }
   detailQueryParams.seasonType = ''
+  detailQueryParams.rotationOrder = ''
   searchDetailInDialog()
 }
 
