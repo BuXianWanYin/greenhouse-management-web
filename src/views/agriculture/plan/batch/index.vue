@@ -116,32 +116,13 @@
         <el-form-item label="批次名称" prop="batchName">
           <el-input v-model="form.batchName" placeholder="请输入批次名称" />
         </el-form-item>
-        <el-form-item label="种植种质" prop="classId">
-          <el-select v-model="form.classId" placeholder="请选择种植种质" clearable style="width: 100%">
-            <el-option
-              v-for="item in classOptions"
-              :key="item.classId"
-              :label="item.className"
-              :value="item.classId"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="所属温室" prop="pastureId">
-          <el-select v-model="form.pastureId" placeholder="请选择所属温室" clearable style="width: 100%">
-            <el-option
-              v-for="item in pastureOptions"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="计划类型" prop="planType">
+        <el-form-item label="所属计划类型" prop="planType">
           <el-radio-group v-model="form.planType" @change="handlePlanTypeChange">
             <el-radio label="planting">种植计划</el-radio>
             <el-radio label="rotation">轮作计划</el-radio>
           </el-radio-group>
         </el-form-item>
+
         <el-form-item label="种植计划" prop="planId" v-if="form.planType === 'planting'">
           <el-cascader
             v-model="plantingPlanCascaderValue"
@@ -166,12 +147,32 @@
             @change="handleCascaderChange"
           />
         </el-form-item>
+        <el-form-item label="所属温室" prop="pastureId">
+          <el-select v-model="form.pastureId" placeholder="请选择所属温室" clearable style="width: 100%" disabled>
+            <el-option
+              v-for="item in pastureOptions"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="种植种质" prop="classId">
+          <el-select v-model="form.classId" placeholder="请选择种植种质" clearable style="width: 100%" disabled>
+            <el-option
+              v-for="item in classOptions"
+              :key="item.classId"
+              :label="item.className"
+              :value="item.classId"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="种植面积(亩)" prop="cropArea">
           <el-input-number 
             v-model="form.cropArea" 
             :min="0" 
             :precision="2" 
-            :disabled="form.planType === 'rotation'"
+            disabled
             style="width: 100%" 
           />
         </el-form-item>
@@ -180,7 +181,7 @@
             v-model="form.plantingDensity" 
             :min="0" 
             :precision="2" 
-            :disabled="form.planType === 'rotation'"
+            disabled
             style="width: 100%" 
           />
         </el-form-item>
@@ -224,12 +225,15 @@
           />
         </el-form-item>
         <el-form-item label="状态" prop="status">
-          <el-select v-model="form.status" placeholder="请选择状态" style="width: 100%">
+          <el-select v-model="form.status" placeholder="请选择状态" style="width: 100%" disabled>
             <el-option label="未开始" value="0" />
             <el-option label="进行中" value="1" />
             <el-option label="已完成" value="2" />
             <el-option label="已取消" value="3" />
           </el-select>
+          <div style="color: #909399; font-size: 12px; margin-top: 4px;">
+            批次状态由系统根据执行情况自动更新，不可手动修改
+          </div>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注" />
@@ -961,7 +965,7 @@ const buildPlantingPlanCascaderOptions = () => {
 }
 
 /** 种植计划级联选择器改变事件 */
-const handlePlantingPlanCascaderChange = (value: any) => {
+const handlePlantingPlanCascaderChange = async (value: any) => {
   if (value && Array.isArray(value) && value.length > 0) {
     // 如果选择了季度计划（两级），使用季度计划的ID
     if (value.length === 2) {
@@ -970,6 +974,19 @@ const handlePlantingPlanCascaderChange = (value: any) => {
       const selectedPlan = planOptions.value.find(plan => Number(plan.planId) === Number(value[1]))
       if (selectedPlan) {
         form.planYear = selectedPlan.planYear
+        // 自动绑定计划的所属温室、种质、总面积和种植密度
+        if (selectedPlan.pastureId) {
+          form.pastureId = Number(selectedPlan.pastureId)
+        }
+        if (selectedPlan.classId) {
+          form.classId = Number(selectedPlan.classId)
+        }
+        if (selectedPlan.totalArea) {
+          form.cropArea = Number(selectedPlan.totalArea)
+        }
+        if (selectedPlan.plantingDensity) {
+          form.plantingDensity = Number(selectedPlan.plantingDensity)
+        }
       }
     } else if (value.length === 1) {
       // 如果只选择了年度计划（一级），使用年度计划的ID
@@ -978,6 +995,19 @@ const handlePlantingPlanCascaderChange = (value: any) => {
       const selectedPlan = planOptions.value.find(plan => Number(plan.planId) === Number(value[0]))
       if (selectedPlan) {
         form.planYear = selectedPlan.planYear
+        // 自动绑定计划的所属温室、种质、总面积和种植密度
+        if (selectedPlan.pastureId) {
+          form.pastureId = Number(selectedPlan.pastureId)
+        }
+        if (selectedPlan.classId) {
+          form.classId = Number(selectedPlan.classId)
+        }
+        if (selectedPlan.totalArea) {
+          form.cropArea = Number(selectedPlan.totalArea)
+        }
+        if (selectedPlan.plantingDensity) {
+          form.plantingDensity = Number(selectedPlan.plantingDensity)
+        }
       }
     }
     // 更新时间范围
@@ -985,6 +1015,10 @@ const handlePlantingPlanCascaderChange = (value: any) => {
   } else {
     form.planId = undefined
     form.planYear = undefined
+    form.pastureId = undefined
+    form.classId = undefined
+    form.cropArea = 0
+    form.plantingDensity = undefined
     planDateRange.value = { minStartDate: null, maxEndDate: null }
   }
 }
@@ -1078,6 +1112,9 @@ const handlePlanTypeChange = (value: string | number | boolean | undefined) => {
     // 清空种植面积和密度（因为是从轮作计划切换过来的）
     form.cropArea = 0
     form.plantingDensity = undefined
+    // 清空所属温室和种质
+    form.pastureId = undefined
+    form.classId = undefined
     // 清空时间范围
     planDateRange.value = { minStartDate: null, maxEndDate: null }
   } else if (planType === 'rotation') {
@@ -1090,6 +1127,9 @@ const handlePlanTypeChange = (value: string | number | boolean | undefined) => {
     if (!form.rotationPlanId) {
       form.cropArea = 0
       form.plantingDensity = undefined
+      // 清空所属温室和种质
+      form.pastureId = undefined
+      form.classId = undefined
     }
     // 如果没有选择轮作计划明细，清空时间范围
     if (!form.rotationPlanId || !form.seasonType) {
@@ -1165,8 +1205,18 @@ const handleCascaderChange = async (value: any) => {
             form.plantingDensity = Number(matchedDetail.plantingDensity)
           }
           
-          // 如果明细中有种质ID，也自动填充
-          if (matchedDetail.classId && !form.classId) {
+          // 自动绑定计划的所属温室和种质
+          if (selectedPlan) {
+            if (selectedPlan.pastureId) {
+              form.pastureId = Number(selectedPlan.pastureId)
+            }
+            if (selectedPlan.classId) {
+              form.classId = Number(selectedPlan.classId)
+            }
+          }
+          
+          // 如果明细中有种质ID，也自动填充（明细优先）
+          if (matchedDetail.classId) {
             form.classId = Number(matchedDetail.classId)
           }
         }
@@ -1191,6 +1241,9 @@ const handleCascaderChange = async (value: any) => {
     if (form.planType === 'rotation') {
       form.cropArea = 0
       form.plantingDensity = undefined
+      // 清空所属温室和种质
+      form.pastureId = undefined
+      form.classId = undefined
     }
   }
 }

@@ -805,16 +805,8 @@ const disableActualFinishDate = (date) => {
 };
 
 const disableActualStartDate = (date) => {
-  // 获取当前日期的00:00:00时间戳
-  const currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0);
-  
-  // 获取待检查日期的00:00:00时间戳
-  const checkDate = new Date(date);
-  checkDate.setHours(0, 0, 0, 0);
-  
-  // 只禁用今天之前的日期
-  return checkDate.getTime() < currentDate.getTime();
+  // 去掉不能选择今天之前的限制，允许选择任意日期
+  return false;
 };
 
 </script>

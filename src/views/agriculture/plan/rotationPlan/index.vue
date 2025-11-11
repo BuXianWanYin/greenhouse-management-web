@@ -69,7 +69,7 @@
               <template #default="scope">
                 <el-tag v-if="scope.row.planType === 'annual'" type="primary">年度计划</el-tag>
                 <el-tag v-else-if="scope.row.planType === 'seasonal'" type="success">季度计划</el-tag>
-                <el-tag v-else-if="scope.row.planType === 'rotation'" type="info">轮作计划</el-tag>
+                <el-tag v-else-if="scope.row.planType === 'rotation'" type="warning">轮作计划</el-tag>
                 <el-tag v-else>{{ scope.row.planType || '--' }}</el-tag>
               </template>
             </el-table-column>
@@ -119,7 +119,7 @@
         <el-form-item label="计划名称" prop="planName">
           <el-input v-model="form.planName" placeholder="请输入计划名称" />
         </el-form-item>
-        <el-form-item label="计划年份" prop="planYear">
+        <el-form-item label="计划年份" prop="planYear" v-if="form.planType !== 'seasonal'">
           <el-date-picker
             v-model="form.planYear"
             type="year"
@@ -130,27 +130,25 @@
             @change="handlePlanYearChange"
           />
         </el-form-item>
-        <el-form-item label="计划类型" prop="planType">
+        <el-form-item label="计划类型" prop="planType" v-if="form.planType !== 'seasonal'">
           <el-select 
             v-model="form.planType" 
             placeholder="请选择计划类型" 
             style="width: 100%" 
             @change="handlePlanTypeChange"
-            :disabled="form.planType === 'seasonal'"
           >
             <el-option label="年度计划" value="annual" />
-            <el-option label="季度计划" value="seasonal" />
+            <el-option v-if="form.planId || form.parentPlanId" label="季度计划" value="seasonal" />
             <el-option label="轮作计划" value="rotation" />
           </el-select>
         </el-form-item>
-        <el-form-item label="所属温室" prop="pastureId">
+        <el-form-item label="所属温室" prop="pastureId" v-if="form.planType !== 'seasonal'">
           <el-select 
             v-model="form.pastureId" 
             placeholder="请选择所属温室" 
             clearable 
             filterable 
             style="width: 100%"
-            :disabled="form.planType === 'seasonal'"
             @change="handlePastureIdChange"
           >
             <el-option
@@ -167,6 +165,16 @@
             <el-option label="夏季" value="summer" />
             <el-option label="秋季" value="autumn" />
             <el-option label="冬季" value="winter" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="种质" prop="classId" v-if="form.planType === 'seasonal'">
+          <el-select v-model="form.classId" placeholder="请选择种质" filterable style="width: 100%">
+            <el-option
+              v-for="item in classOptions"
+              :key="item.classId"
+              :label="item.className"
+              :value="item.classId"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="轮作周期(年)" prop="rotationCycle" v-if="form.planType === 'rotation'">
@@ -187,15 +195,17 @@
             v-model="form.planStatus" 
             placeholder="请选择状态" 
             style="width: 100%"
-            :disabled="form.planType === 'annual' && hasSeasonalPlans"
+            :disabled="form.planType === 'annual' && hasSeasonalPlans || form.planType === 'rotation' || form.planType === 'seasonal'"
           >
             <el-option label="未开始" value="0" />
             <el-option label="执行中" value="1" />
             <el-option label="已完成" value="2" />
-            <el-option label="已取消" value="3" />
           </el-select>
           <div v-if="form.planType === 'annual' && hasSeasonalPlans" style="color: #909399; font-size: 12px; margin-top: 4px;">
             年度计划状态由季度计划状态自动计算，不可手动修改
+          </div>
+          <div v-if="form.planType === 'rotation' || form.planType === 'seasonal'" style="color: #909399; font-size: 12px; margin-top: 4px;">
+            计划状态由系统根据执行情况自动更新，不可手动修改
           </div>
         </el-form-item>
         <el-form-item label="日期范围" prop="dateRange" v-if="form.planType === 'annual'">
@@ -212,9 +222,6 @@
             :disabled-date="disabledAnnualPlanDateRange"
             @change="handleAnnualPlanDateRangeChange"
           />
-          <div v-if="form.planYear" style="color: #909399; font-size: 12px; margin-top: 4px;">
-            结束日期只能选择{{ form.planYear }}年12月1日至{{ Number(form.planYear) + 1 }}年3月31日
-          </div>
         </el-form-item>
         <el-form-item label="开始日期" prop="startDate" v-if="form.planType === 'seasonal'">
           <el-date-picker
@@ -224,6 +231,7 @@
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
             style="width: 100%"
+            :disabled-date="disabledSeasonalPlanStartDate"
           />
         </el-form-item>
         <el-form-item label="结束日期" prop="endDate" v-if="form.planType === 'seasonal'">
@@ -234,6 +242,7 @@
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
             style="width: 100%"
+            :disabled-date="disabledSeasonalPlanEndDate"
           />
         </el-form-item>
         <el-form-item label="日期范围" prop="dateYearRange" v-if="form.planType === 'rotation'">
@@ -265,14 +274,26 @@
             :min="0.01" 
             :precision="2" 
             style="width: 100%"
-            :disabled="form.planType === 'seasonal'"
+            :max="form.planType === 'seasonal' && parentAnnualPlanTotalArea !== null ? parentAnnualPlanTotalArea : undefined"
           />
-          <div v-if="form.pastureId" style="color: #909399; font-size: 12px; margin-top: 4px;">
+          <div v-if="form.pastureId && form.planType !== 'seasonal'" style="color: #909399; font-size: 12px; margin-top: 4px;">
             <span v-if="getPastureArea(form.pastureId) > 0">
               温室面积：{{ getPastureArea(form.pastureId) }}亩
             </span>
             <span v-else>无法获取温室面积信息</span>
           </div>
+          <div v-if="form.planType === 'seasonal' && parentAnnualPlanTotalArea !== null && form.totalArea && Number(form.totalArea) > parentAnnualPlanTotalArea" style="color: #F56C6C; font-size: 12px; margin-top: 4px;">
+            年度计划总面积：{{ parentAnnualPlanTotalArea }}亩，季度计划总面积不能超过此值
+          </div>
+        </el-form-item>
+        <el-form-item label="种植密度(株/亩)" prop="plantingDensity" v-if="form.planType === 'seasonal'">
+          <el-input-number 
+            v-model="form.plantingDensity" 
+            :min="0" 
+            :precision="0" 
+            placeholder="请输入种植密度"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="计划描述" prop="planDescription">
           <el-input v-model="form.planDescription" type="textarea" :rows="4" placeholder="请输入计划描述" />
@@ -329,23 +350,30 @@
         >
           <template #default>
             <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="种质名称" prop="classId" width="150" v-if="columnsDetail[0].show">
+            <el-table-column label="轮作顺序" prop="rotationOrder" width="100" align="center" v-if="columnsDetail[0].show">
+              <template #default="scope">
+                <el-tag type="primary" effect="plain" size="small">第{{ scope.row.rotationOrder }}年</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="种质名称" prop="classId" width="150" v-if="columnsDetail[1].show">
               <template #default="scope">
                 {{ getClassName(scope.row.classId) }}
               </template>
             </el-table-column>
-            <el-table-column label="季节类型" prop="seasonType" width="120" align="center" v-if="columnsDetail[1].show">
+            <el-table-column label="季节类型" prop="seasonType" width="120" align="center" v-if="columnsDetail[2].show">
               <template #default="scope">
-                {{ getSeasonTypeName(scope.row.seasonType) }}
+                <el-tag :type="getSeasonTypeTagType(scope.row.seasonType)" effect="dark" size="small">
+                  {{ getSeasonTypeName(scope.row.seasonType) }}
+                </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="种植面积(亩)" prop="plantingArea" width="120" align="center" v-if="columnsDetail[2].show" />
-            <el-table-column label="种植密度" prop="plantingDensity" width="120" align="center" v-if="columnsDetail[3].show" />
-            <el-table-column label="预期开始" prop="expectedStartDate" width="120" align="center" v-if="columnsDetail[4].show" />
-            <el-table-column label="预期结束" prop="expectedEndDate" width="120" align="center" v-if="columnsDetail[5].show" />
-            <el-table-column label="实际开始" prop="actualStartDate" width="120" align="center" v-if="columnsDetail[6].show" />
-            <el-table-column label="实际结束" prop="actualEndDate" width="120" align="center" v-if="columnsDetail[7].show" />
-            <el-table-column label="关联批次" prop="batchNames" width="200" align="center" v-if="columnsDetail[8].show" show-overflow-tooltip>
+            <el-table-column label="种植面积(亩)" prop="plantingArea" width="120" align="center" v-if="columnsDetail[3].show" />
+            <el-table-column label="种植密度" prop="plantingDensity" width="120" align="center" v-if="columnsDetail[4].show" />
+            <el-table-column label="预期开始" prop="expectedStartDate" width="120" align="center" v-if="columnsDetail[5].show" />
+            <el-table-column label="预期结束" prop="expectedEndDate" width="120" align="center" v-if="columnsDetail[6].show" />
+            <el-table-column label="实际开始" prop="actualStartDate" width="120" align="center" v-if="columnsDetail[7].show" />
+            <el-table-column label="实际结束" prop="actualEndDate" width="120" align="center" v-if="columnsDetail[8].show" />
+            <el-table-column label="关联批次" prop="batchNames" width="200" align="center" v-if="columnsDetail[9].show" show-overflow-tooltip>
               <template #default="scope">
                 {{ scope.row.batchNames && scope.row.batchNames.length > 0 ? scope.row.batchNames.join('、') : '--' }}
               </template>
@@ -405,25 +433,43 @@
             <template #default>
               <el-table-column type="selection" width="55" align="center" />
               <el-table-column label="计划名称" prop="planName" min-width="150" show-overflow-tooltip v-if="columnsSeasonalPlan[0].show" />
-              <el-table-column label="计划年份" prop="planYear" width="100" align="center" v-if="columnsSeasonalPlan[1].show" />
-              <el-table-column label="季节类型" prop="seasonType" width="120" align="center" v-if="columnsSeasonalPlan[2].show">
+              <el-table-column label="计划年份" prop="planYear" width="100" align="center" v-if="columnsSeasonalPlan[1].show">
                 <template #default="scope">
-                  {{ getSeasonTypeName(scope.row.seasonType) }}
+                  <el-tag type="primary" effect="plain" size="small">{{ scope.row.planYear }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="预期开始" prop="startDate" width="120" align="center" v-if="columnsSeasonalPlan[3].show" />
-              <el-table-column label="预期结束" prop="endDate" width="120" align="center" v-if="columnsSeasonalPlan[4].show" />
-              <el-table-column label="实际开始" prop="actualStartDate" width="120" align="center" v-if="columnsSeasonalPlan[5].show">
+              <el-table-column label="季节类型" prop="seasonType" width="120" align="center" v-if="columnsSeasonalPlan[2].show">
+                <template #default="scope">
+                  <el-tag :type="getSeasonTypeTagType(scope.row.seasonType)" effect="dark" size="small">
+                    {{ getSeasonTypeName(scope.row.seasonType) }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="所属温室" prop="pastureId" width="150" align="center" v-if="columnsSeasonalPlan[3].show">
+                <template #default="scope">
+                  {{ getPastureName(scope.row.pastureId) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="种质" prop="classId" width="150" align="center" v-if="columnsSeasonalPlan[4].show">
+                <template #default="scope">
+                  {{ getClassName(scope.row.classId) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="总面积(亩)" prop="totalArea" width="120" align="center" v-if="columnsSeasonalPlan[5].show" />
+              <el-table-column label="种植密度(株/亩)" prop="plantingDensity" width="140" align="center" v-if="columnsSeasonalPlan[6].show" />
+              <el-table-column label="预期开始" prop="startDate" width="120" align="center" v-if="columnsSeasonalPlan[7].show" />
+              <el-table-column label="预期结束" prop="endDate" width="120" align="center" v-if="columnsSeasonalPlan[8].show" />
+              <el-table-column label="实际开始" prop="actualStartDate" width="120" align="center" v-if="columnsSeasonalPlan[9].show">
                 <template #default="scope">
                   {{ scope.row.actualStartDate || '--' }}
                 </template>
               </el-table-column>
-              <el-table-column label="实际结束" prop="actualEndDate" width="120" align="center" v-if="columnsSeasonalPlan[6].show">
+              <el-table-column label="实际结束" prop="actualEndDate" width="120" align="center" v-if="columnsSeasonalPlan[10].show">
                 <template #default="scope">
                   {{ scope.row.actualEndDate || '--' }}
                 </template>
               </el-table-column>
-              <el-table-column label="计划状态" prop="planStatus" width="100" align="center" v-if="columnsSeasonalPlan[7].show">
+              <el-table-column label="计划状态" prop="planStatus" width="100" align="center" v-if="columnsSeasonalPlan[11].show">
                 <template #default="scope">
                   <el-tag v-if="scope.row.planStatus === '0'" type="info">未开始</el-tag>
                   <el-tag v-else-if="scope.row.planStatus === '1'" type="success">执行中</el-tag>
@@ -505,7 +551,18 @@
           </el-select>
         </el-form-item>
         <el-form-item label="轮作顺序" prop="rotationOrder">
-          <el-input-number v-model="formDetail.rotationOrder" :min="1" style="width: 100%" />
+          <el-input-number 
+            v-model="formDetail.rotationOrder" 
+            :min="1" 
+            :max="detailInfo.rotationCycle ? Number(detailInfo.rotationCycle) : undefined"
+            style="width: 100%" 
+            placeholder="请输入轮作顺序"
+          />
+          <div style="color: #909399; font-size: 12px; margin-top: 4px;">
+            轮作顺序表示在轮作周期内的执行顺序，范围：1 - {{ detailInfo.rotationCycle || '轮作周期' }}年
+            <br />
+            例如：第1年种番茄（顺序1），第2年种黄瓜（顺序2），第3年种茄子（顺序3）
+          </div>
         </el-form-item>
         <el-form-item label="季节类型" prop="seasonType">
           <el-select v-model="formDetail.seasonType" placeholder="请选择季节类型" style="width: 100%">
@@ -516,7 +573,16 @@
           </el-select>
         </el-form-item>
         <el-form-item label="种植面积(亩)" prop="plantingArea">
-          <el-input-number v-model="formDetail.plantingArea" :min="0" :precision="2" style="width: 100%" />
+          <el-input-number 
+            v-model="formDetail.plantingArea" 
+            :min="0" 
+            :precision="2" 
+            :max="detailInfo.totalArea ? Number(detailInfo.totalArea) : undefined"
+            style="width: 100%" 
+          />
+          <div v-if="detailInfo.totalArea && formDetail.plantingArea && Number(formDetail.plantingArea) > Number(detailInfo.totalArea)" style="color: #F56C6C; font-size: 12px; margin-top: 4px;">
+            轮作计划总面积：{{ detailInfo.totalArea }}亩，种植面积不能超过此值
+          </div>
         </el-form-item>
         <el-form-item label="种植密度" prop="plantingDensity">
           <el-input v-model="formDetail.plantingDensity" placeholder="请输入种植密度" />
@@ -529,6 +595,7 @@
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
             style="width: 100%"
+            :disabled-date="disabledRotationDetailStartDate"
           />
         </el-form-item>
         <el-form-item label="预期结束日期" prop="expectedEndDate">
@@ -539,26 +606,7 @@
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
             style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="实际开始日期" prop="actualStartDate">
-          <el-date-picker
-            v-model="formDetail.actualStartDate"
-            type="date"
-            placeholder="选择实际开始日期"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="实际结束日期" prop="actualEndDate">
-          <el-date-picker
-            v-model="formDetail.actualEndDate"
-            type="date"
-            placeholder="选择实际结束日期"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
-            style="width: 100%"
+            :disabled-date="disabledRotationDetailEndDate"
           />
         </el-form-item>
         <el-form-item label="备注" prop="remark">
@@ -604,6 +652,8 @@ const queryRef = ref()
 const searchFormRef = ref<FormInstance>()
 const planRef = ref<FormInstance>()
 const hasSeasonalPlans = ref(false) // 年度计划是否有季度计划
+const parentAnnualPlanDateRange = ref<[string, string] | null>(null) // 父年度计划的日期范围
+const parentAnnualPlanTotalArea = ref<number | null>(null) // 父年度计划的总面积
 
 const columns = reactive([
   { name: '计划ID', show: true },
@@ -648,6 +698,7 @@ const initialFormState = {
   parentPlanId: undefined as number | string | null | undefined,
   seasonType: undefined as string | undefined,
   pastureId: undefined as number | string | undefined,
+  classId: undefined as number | string | undefined,
   rotationCycle: undefined as number | string | undefined,
   planDescription: '',
   planStatus: '0',
@@ -658,6 +709,7 @@ const initialFormState = {
   actualStartDate: undefined as string | undefined,
   actualEndDate: undefined as string | undefined,
   totalArea: undefined as number | string | undefined,
+  plantingDensity: undefined as number | string | undefined,
   createBy: '',
   createTime: '',
   updateBy: '',
@@ -697,8 +749,16 @@ const rules = reactive({
           return
         }
         
-        // 检查是否超过温室面积
-        if (form.pastureId) {
+        // 如果是季度计划，检查是否超过年度计划的总面积
+        if (form.planType === 'seasonal' && parentAnnualPlanTotalArea.value) {
+          if (Number(value) > parentAnnualPlanTotalArea.value) {
+            callback(new Error(`总面积不能超过年度计划的总面积（${parentAnnualPlanTotalArea.value}亩）`))
+            return
+          }
+        }
+        
+        // 检查是否超过温室面积（非季度计划）
+        if (form.pastureId && form.planType !== 'seasonal') {
           const selectedPasture = pastureOptions.value.find(item => item.id === form.pastureId)
           if (selectedPasture && selectedPasture.area) {
             const pastureArea = Number(selectedPasture.area)
@@ -717,6 +777,93 @@ const rules = reactive({
     }
   ],
   planDescription: [{ required: true, message: '计划描述不能为空', trigger: 'blur' }],
+  startDate: [
+    {
+      required: true,
+      validator: (rule: any, value: any, callback: any) => {
+        if (form.planType === 'seasonal') {
+          if (!value || value === undefined || value === null || value === '') {
+            callback(new Error('开始日期不能为空'))
+          } else {
+            callback()
+          }
+        } else {
+          callback()
+        }
+      },
+      trigger: 'change'
+    }
+  ],
+  endDate: [
+    {
+      required: true,
+      validator: (rule: any, value: any, callback: any) => {
+        if (form.planType === 'seasonal') {
+          if (!value || value === undefined || value === null || value === '') {
+            callback(new Error('结束日期不能为空'))
+          } else {
+            callback()
+          }
+        } else {
+          callback()
+        }
+      },
+      trigger: 'change'
+    }
+  ],
+  seasonType: [
+    {
+      required: true,
+      validator: (rule: any, value: any, callback: any) => {
+        if (form.planType === 'seasonal') {
+          if (!value || value === undefined || value === null || value === '') {
+            callback(new Error('季节类型不能为空'))
+          } else {
+            callback()
+          }
+        } else {
+          callback()
+        }
+      },
+      trigger: 'change'
+    }
+  ],
+  plantingDensity: [
+    {
+      required: true,
+      validator: (rule: any, value: any, callback: any) => {
+        if (form.planType === 'seasonal') {
+          if (!value || value === undefined || value === null || value === '') {
+            callback(new Error('种植密度不能为空'))
+          } else if (Number(value) <= 0) {
+            callback(new Error('种植密度必须大于0'))
+          } else {
+            callback()
+          }
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  classId: [
+    {
+      required: true,
+      validator: (rule: any, value: any, callback: any) => {
+        if (form.planType === 'seasonal') {
+          if (!value || value === undefined || value === null || value === '') {
+            callback(new Error('种质不能为空'))
+          } else {
+            callback()
+          }
+        } else {
+          callback()
+        }
+      },
+      trigger: 'change'
+    }
+  ],
   rotationCycle: [
     {
       validator: (rule: any, value: any, callback: any) => {
@@ -756,6 +903,7 @@ const detailRef = ref<FormInstance>()
 
 // 明细列表列配置（用于详情对话框）
 const columnsDetail = reactive([
+  { name: '轮作顺序', show: true },
   { name: '种质名称', show: true },
   { name: '季节类型', show: true },
   { name: '种植面积(亩)', show: true },
@@ -795,8 +943,65 @@ const formDetail = reactive({ ...initialFormStateDetail })
 const rulesDetail = reactive({
   planId: [{ required: true, message: '计划ID不能为空', trigger: 'blur' }],
   classId: [{ required: true, message: '种质ID不能为空', trigger: 'blur' }],
-  rotationOrder: [{ required: true, message: '轮作顺序不能为空', trigger: 'blur' }],
-  seasonType: [{ required: true, message: '季节类型不能为空', trigger: 'blur' }]
+  rotationOrder: [
+    { required: true, message: '轮作顺序不能为空', trigger: 'blur' },
+    {
+      validator: (rule: any, value: any, callback: any) => {
+        if (!value || value === undefined || value === null || value === '') {
+          callback(new Error('轮作顺序不能为空'))
+          return
+        }
+        
+        const order = Number(value)
+        if (order < 1) {
+          callback(new Error('轮作顺序不能小于1'))
+          return
+        }
+        
+        // 检查是否超过轮作周期
+        const rotationCycle = detailInfo.value?.rotationCycle
+        if (rotationCycle && order > Number(rotationCycle)) {
+          callback(new Error(`轮作顺序不能超过轮作周期（${rotationCycle}年）`))
+          return
+        }
+        
+        callback()
+      },
+      trigger: 'blur'
+    }
+  ],
+  seasonType: [{ required: true, message: '季节类型不能为空', trigger: 'blur' }],
+  plantingArea: [
+    { required: true, message: '种植面积不能为空', trigger: 'blur' },
+    {
+      validator: (rule: any, value: any, callback: any) => {
+        if (!value || value === undefined || value === null || value === '') {
+          callback()
+          return
+        }
+        
+        // 检查是否大于0
+        if (Number(value) <= 0) {
+          callback(new Error('种植面积必须大于0'))
+          return
+        }
+        
+        // 检查是否超过轮作计划的总面积
+        if (detailInfo.value && detailInfo.value.totalArea) {
+          const rotationPlanTotalArea = Number(detailInfo.value.totalArea)
+          if (!isNaN(rotationPlanTotalArea) && rotationPlanTotalArea > 0) {
+            if (Number(value) > rotationPlanTotalArea) {
+              callback(new Error(`种植面积不能超过轮作计划的总面积（${rotationPlanTotalArea}亩）`))
+              return
+            }
+          }
+        }
+        
+        callback()
+      },
+      trigger: 'blur'
+    }
+  ]
 })
 
 /** 查询轮作计划列表 */
@@ -879,6 +1084,10 @@ const handlePlanTypeChange = (value: string) => {
     }
     // 新增时，年度计划没有季度计划
     hasSeasonalPlans.value = false
+    // 新增时，确保状态为未开始
+    if (value === 'annual' || value === 'rotation' || value === 'seasonal') {
+      form.planStatus = '0'
+    }
   }
   
   // 如果不是轮作计划，清空轮作周期
@@ -898,7 +1107,8 @@ const handlePlanTypeChange = (value: string) => {
   // 如果切换到年度计划且已有计划年份，自动设置日期范围
   if (value === 'annual' && form.planYear) {
     const startDate = `${form.planYear}-01-01`
-    form.dateRange = [startDate, undefined as any]
+    // 使用空字符串作为结束日期，这样 el-date-picker 可以正确显示开始日期
+    form.dateRange = [startDate, '' as any]
   }
   
   // 如果切换到轮作计划且已有计划年份和轮作周期，自动计算日期范围
@@ -914,7 +1124,13 @@ const handlePlanTypeChange = (value: string) => {
 
 /** 计划年份变化处理 */
 const handlePlanYearChange = (value: string | null) => {
-  if (!value) return
+  if (!value) {
+    // 如果清空年份，也清空日期范围
+    if (form.planType === 'annual') {
+      form.dateRange = undefined
+    }
+    return
+  }
   
   if (form.planType === 'annual') {
     // 年度计划：自动设置开始日期为本年的1月1日，并更新日期范围
@@ -926,20 +1142,27 @@ const handlePlanYearChange = (value: string | null) => {
       // 检查结束日期是否在允许范围内
       const endDateObj = new Date(endDate)
       const planYear = Number(value)
-      const minEndDate = new Date(planYear, 11, 1) // 12月1日
+      
+      // 结束日期必须在计划年份或次年内（1月1日至次年3月31日）
+      const minEndDate = new Date(planYear, 0, 1) // 1月1日
       const maxEndDate = new Date(planYear + 1, 2, 31) // 次年3月31日
       
-      if (endDateObj >= minEndDate && endDateObj <= maxEndDate) {
+      if (endDateObj >= minEndDate && endDateObj <= maxEndDate && endDateObj >= new Date(startDate)) {
         form.dateRange = [startDate, endDate]
       } else {
-        form.dateRange = [startDate, undefined as any]
+        // 结束日期不在允许范围内，只设置开始日期
+        form.dateRange = [startDate, '' as any]
       }
     } else {
-      form.dateRange = [startDate, undefined as any]
+      // 没有日期范围或日期范围不完整，自动填充开始日期
+      form.dateRange = [startDate, '' as any]
     }
   } else if (form.planType === 'rotation') {
     // 轮作计划：更新日期范围
     updateRotationPlanDateRange()
+  } else {
+    // 如果还没有选择计划类型，但选择了年份，先不处理
+    // 等用户选择计划类型时，会触发 handlePlanTypeChange 来处理
   }
 }
 
@@ -988,7 +1211,8 @@ const disabledAnnualPlanDateRange = (time: Date) => {
     // 如果已选择开始日期，则限制结束日期
     const startDate = new Date(form.dateRange[0])
     if (startDate.getFullYear() === planYear && startDate.getMonth() === 0 && startDate.getDate() === 1) {
-      // 开始日期是1月1日，限制结束日期范围：12月1日至次年3月31日
+      // 开始日期是1月1日，限制结束日期范围：计划年份的1月1日至次年3月31日
+      // 结束日期可以在计划年份或次年内，且不能早于开始日期
       const minYear = planYear
       const maxYear = planYear + 1
       
@@ -997,12 +1221,9 @@ const disabledAnnualPlanDateRange = (time: Date) => {
         return true
       }
       
-      // 如果是计划年份，只能选择12月1日及之后
+      // 如果是计划年份，不能早于开始日期（1月1日）
       if (timeYear === minYear) {
-        if (timeMonth < 11) { // 12月之前
-          return true
-        }
-        if (timeMonth === 11 && timeDate < 1) { // 12月1日之前
+        if (timeMonth === 0 && timeDate < 1) {
           return true
         }
         return false
@@ -1018,10 +1239,159 @@ const disabledAnnualPlanDateRange = (time: Date) => {
         }
         return false
       }
+      
+      return false
     }
   } else {
     // 未选择开始日期时，限制开始日期必须是计划年份的1月1日
     if (timeYear !== planYear || timeMonth !== 0 || timeDate !== 1) {
+      return true
+    }
+  }
+  
+  return false
+}
+
+/** 禁用季度计划开始日期 */
+const disabledSeasonalPlanStartDate = (time: Date) => {
+  if (form.planType !== 'seasonal' || !parentAnnualPlanDateRange.value) {
+    return false
+  }
+  
+  const [minDate, maxDate] = parentAnnualPlanDateRange.value
+  const timeDate = new Date(time.getFullYear(), time.getMonth(), time.getDate())
+  const minDateObj = new Date(minDate)
+  const maxDateObj = new Date(maxDate)
+  
+  // 如果日期在父年度计划的日期范围外，禁用
+  if (timeDate < minDateObj || timeDate > maxDateObj) {
+    return true
+  }
+  
+  // 如果已选择结束日期，开始日期不能晚于结束日期
+  if (form.endDate) {
+    const endDateObj = new Date(form.endDate)
+    if (timeDate > endDateObj) {
+      return true
+    }
+  }
+  
+  return false
+}
+
+/** 禁用季度计划结束日期 */
+const disabledSeasonalPlanEndDate = (time: Date) => {
+  if (form.planType !== 'seasonal' || !parentAnnualPlanDateRange.value) {
+    return false
+  }
+  
+  const [minDate, maxDate] = parentAnnualPlanDateRange.value
+  const timeDate = new Date(time.getFullYear(), time.getMonth(), time.getDate())
+  const minDateObj = new Date(minDate)
+  const maxDateObj = new Date(maxDate)
+  
+  // 如果日期在父年度计划的日期范围外，禁用
+  if (timeDate < minDateObj || timeDate > maxDateObj) {
+    return true
+  }
+  
+  // 如果已选择开始日期，结束日期不能早于开始日期
+  if (form.startDate) {
+    const startDateObj = new Date(form.startDate)
+    if (timeDate < startDateObj) {
+      return true
+    }
+  }
+  
+  return false
+}
+
+/** 禁用轮作明细开始日期 */
+const disabledRotationDetailStartDate = (time: Date) => {
+  // 需要轮作计划信息、计划年份和轮作顺序
+  if (!detailInfo.value || !detailInfo.value.planYear || !formDetail.rotationOrder) {
+    return false
+  }
+  
+  const planYear = Number(detailInfo.value.planYear)
+  const rotationOrder = Number(formDetail.rotationOrder)
+  
+  if (!planYear || !rotationOrder || rotationOrder < 1) {
+    return false
+  }
+  
+  // 计算该轮作顺序对应的年份：计划年份 + (轮作顺序 - 1)
+  // 例如：计划年份2025，轮作顺序1 -> 2025年；轮作顺序2 -> 2026年
+  const targetYear = planYear + (rotationOrder - 1)
+  const timeYear = time.getFullYear()
+  const timeDateObj = new Date(time.getFullYear(), time.getMonth(), time.getDate())
+  
+  // 开始日期必须在该年份的任意日期（1月1日到12月31日之间）
+  if (timeYear !== targetYear) {
+    return true // 禁用其他年份的日期
+  }
+  
+  // 如果已选择结束日期，开始日期不能晚于结束日期
+  if (formDetail.expectedEndDate) {
+    const endDateObj = new Date(formDetail.expectedEndDate)
+    if (timeDateObj > endDateObj) {
+      return true
+    }
+  }
+  
+  return false // 允许选择该年份的任意日期
+}
+
+/** 禁用轮作明细结束日期 */
+const disabledRotationDetailEndDate = (time: Date) => {
+  // 需要轮作计划信息、计划年份和轮作顺序
+  if (!detailInfo.value || !detailInfo.value.planYear || !formDetail.rotationOrder) {
+    return false
+  }
+  
+  const planYear = Number(detailInfo.value.planYear)
+  const rotationOrder = Number(formDetail.rotationOrder)
+  
+  if (!planYear || !rotationOrder || rotationOrder < 1) {
+    return false
+  }
+  
+  // 计算该轮作顺序对应的年份范围
+  // 开始年份：计划年份 + (轮作顺序 - 1)
+  // 结束年份：计划年份 + 轮作顺序（次年3月31日）
+  const startYear = planYear + (rotationOrder - 1)
+  const endYear = planYear + rotationOrder
+  const timeYear = time.getFullYear()
+  const timeMonth = time.getMonth() // 0-11
+  const timeDate = time.getDate()
+  const timeDateObj = new Date(time.getFullYear(), time.getMonth(), time.getDate())
+  
+  // 结束日期必须在开始年份到结束年份的3月31日之间
+  if (timeYear < startYear || timeYear > endYear) {
+    return true
+  }
+  
+  // 如果是开始年份，不能早于1月1日
+  if (timeYear === startYear) {
+    // 允许从1月1日开始
+    return false
+  }
+  
+  // 如果是结束年份，只能选择到3月31日
+  if (timeYear === endYear) {
+    if (timeMonth > 2) { // 3月之后
+      return true
+    }
+    if (timeMonth === 2 && timeDate > 31) { // 3月31日之后
+      return true
+    }
+    return false
+  }
+  
+  // 如果已选择开始日期，结束日期不能早于开始日期
+  if (formDetail.expectedStartDate) {
+    const startDateObj = new Date(formDetail.expectedStartDate)
+    if (timeDateObj < startDateObj) {
       return true
     }
   }
@@ -1056,12 +1426,51 @@ const handleAnnualPlanDateRangeChange = (value: [string, string] | null) => {
   if (form.planYear && endDate) {
     const endDateObj = new Date(endDate)
     const planYear = Number(form.planYear)
-    const minEndDate = new Date(planYear, 11, 1) // 12月1日
+    const minEndDate = new Date(planYear, 0, 1) // 1月1日
     const maxEndDate = new Date(planYear + 1, 2, 31) // 次年3月31日
     
+    // 结束日期必须在计划年份或次年内，且不能早于开始日期
+    if (endDateObj.getFullYear() < planYear || endDateObj.getFullYear() > planYear + 1) {
+      ElMessage.warning(`结束日期必须在${form.planYear}年或${Number(form.planYear) + 1}年内`)
+      form.dateRange = [startDate, '' as any]
+      form.startDate = startDate
+      form.endDate = undefined
+      return
+    }
+    
+    // 结束日期不能早于开始日期
+    if (endDateObj < new Date(startDate)) {
+      ElMessage.warning('结束日期不能早于开始日期')
+      form.dateRange = [startDate, '' as any]
+      form.startDate = startDate
+      form.endDate = undefined
+      return
+    }
+    
+    // 如果结束日期在计划年份内，必须在1月1日之后
+    if (endDateObj.getFullYear() === planYear && endDateObj < minEndDate) {
+      ElMessage.warning(`结束日期不能早于${form.planYear}年1月1日`)
+      form.dateRange = [startDate, '' as any]
+      form.startDate = startDate
+      form.endDate = undefined
+      return
+    }
+    
+    // 如果结束日期在次年内，必须在3月31日之前
+    if (endDateObj.getFullYear() === planYear + 1) {
+      if (endDateObj > maxEndDate) {
+        ElMessage.warning(`结束日期不能晚于${Number(form.planYear) + 1}年3月31日`)
+        form.dateRange = [startDate, '' as any]
+        form.startDate = startDate
+        form.endDate = undefined
+        return
+      }
+    }
+    
+    // 验证结束日期是否在允许范围内
     if (endDateObj < minEndDate || endDateObj > maxEndDate) {
-      ElMessage.warning(`结束日期只能选择${form.planYear}年12月1日至${Number(form.planYear) + 1}年3月31日`)
-      form.dateRange = [startDate, undefined as any]
+      ElMessage.warning(`结束日期只能选择${form.planYear}年1月1日至${Number(form.planYear) + 1}年3月31日`)
+      form.dateRange = [startDate, '' as any]
       form.startDate = startDate
       form.endDate = undefined
       return
@@ -1115,6 +1524,8 @@ const handleAdd = () => {
   title.value = '添加种植计划'
   // 默认不显示轮作周期字段
   form.planType = undefined
+  // 新增时默认状态为未开始
+  form.planStatus = '0'
 }
 
 // 详情相关
@@ -1150,6 +1561,10 @@ const columnsSeasonalPlan = reactive([
   { name: '计划名称', show: true },
   { name: '计划年份', show: true },
   { name: '季节类型', show: true },
+  { name: '所属温室', show: true },
+  { name: '种质', show: true },
+  { name: '总面积(亩)', show: true },
+  { name: '种植密度(株/亩)', show: true },
   { name: '预期开始', show: true },
   { name: '预期结束', show: true },
   { name: '实际开始', show: true },
@@ -1220,7 +1635,13 @@ const loadDetailList = async () => {
     }
     const res = await AgricultureRotationDetailService.listDetail(queryParams)
     if (res.code === 200) {
-      detailListData.value = res.rows || []
+      const rows = res.rows || []
+      // 按轮作顺序排序
+      detailListData.value = rows.sort((a: any, b: any) => {
+        const orderA = Number(a.rotationOrder) || 0
+        const orderB = Number(b.rotationOrder) || 0
+        return orderA - orderB
+      })
       detailTotal.value = res.total || 0
       
       // 查询每个明细关联的批次
@@ -1321,8 +1742,23 @@ const loadSeasonalPlanList = async () => {
     }
     const res = await AgricultureRotationPlanService.listPlan(queryParams)
     if (res.code === 200) {
-      seasonalPlanListData.value = res.rows || []
-      seasonalPlanTotal.value = res.total || 0
+      const rows = res.rows || []
+      // 确保只显示与当前年度计划关联的季度计划（前端再次过滤，确保准确性）
+      const parentPlanIdStr = String(seasonalPlanQueryParams.parentPlanId)
+      const filteredRows = rows.filter((plan: AgricultureRotationPlanResult) => {
+        // 必须是季度计划
+        if (plan.planType !== 'seasonal') {
+          return false
+        }
+        // parentPlanId 必须匹配
+        const planParentId = plan.parentPlanId
+        if (!planParentId) {
+          return false
+        }
+        return String(planParentId) === parentPlanIdStr || Number(planParentId) === Number(parentPlanIdStr)
+      })
+      seasonalPlanListData.value = filteredRows
+      seasonalPlanTotal.value = filteredRows.length
     } else {
       seasonalPlanListData.value = []
       seasonalPlanTotal.value = 0
@@ -1374,9 +1810,20 @@ const handleAddSeasonalPlanInDialog = () => {
   form.parentPlanId = Number(detailInfo.value.planId)
   form.planYear = String(detailInfo.value.planYear || '')
   form.pastureId = detailInfo.value.pastureId
+  // 新增时默认状态为未开始
+  form.planStatus = '0'
   // 从父年度计划读取总面积
   if (detailInfo.value && detailInfo.value.totalArea) {
+    parentAnnualPlanTotalArea.value = Number(detailInfo.value.totalArea)
     form.totalArea = Number(detailInfo.value.totalArea)
+  } else {
+    parentAnnualPlanTotalArea.value = null
+  }
+  // 从父年度计划获取日期范围
+  if (detailInfo.value && detailInfo.value.startDate && detailInfo.value.endDate) {
+    parentAnnualPlanDateRange.value = [detailInfo.value.startDate, detailInfo.value.endDate]
+  } else {
+    parentAnnualPlanDateRange.value = null
   }
 }
 
@@ -1423,13 +1870,29 @@ const handleUpdateSeasonalPlanInDialog = async (row: AgricultureRotationPlanResu
     Object.assign(form, formData)
     // 设置计划类型为季度计划，且不可修改
     form.planType = 'seasonal'
+    // 计划年份从父年度计划获取，且不可修改
+    if (detailInfo.value && detailInfo.value.planYear) {
+      form.planYear = String(detailInfo.value.planYear)
+    }
     // 所属温室继承自父年度计划，且不可修改
     if (detailInfo.value && detailInfo.value.pastureId) {
       form.pastureId = detailInfo.value.pastureId
     }
     // 总面积从父年度计划读取
     if (detailInfo.value && detailInfo.value.totalArea) {
-      form.totalArea = Number(detailInfo.value.totalArea)
+      parentAnnualPlanTotalArea.value = Number(detailInfo.value.totalArea)
+      // 如果季度计划没有总面积，则使用父年度计划的总面积
+      if (!form.totalArea) {
+        form.totalArea = Number(detailInfo.value.totalArea)
+      }
+    } else {
+      parentAnnualPlanTotalArea.value = null
+    }
+    // 从父年度计划获取日期范围
+    if (detailInfo.value && detailInfo.value.startDate && detailInfo.value.endDate) {
+      parentAnnualPlanDateRange.value = [detailInfo.value.startDate, detailInfo.value.endDate]
+    } else {
+      parentAnnualPlanDateRange.value = null
     }
   }
 }
@@ -1586,7 +2049,7 @@ const handleUpdate = async (row: AgricultureRotationPlanResult) => {
     } else if (data.planType === 'annual' && form.planYear) {
       // 如果没有日期，自动设置开始日期为计划年份的1月1日
       const startDate = `${form.planYear}-01-01`
-      form.dateRange = [startDate, undefined as any]
+      form.dateRange = [startDate, '' as any]
       form.startDate = startDate
     }
     
@@ -1644,6 +2107,39 @@ const submitForm = async () => {
         const endYear = Number(form.dateYearRange[1])
         formData.startDate = `${startYear}-01-01`
         formData.endDate = `${endYear}-12-31`
+      }
+      
+      // 如果是季度计划，验证日期是否在父年度计划的日期范围内
+      if (form.planType === 'seasonal' && parentAnnualPlanDateRange.value) {
+        const [minDate, maxDate] = parentAnnualPlanDateRange.value
+        const minDateObj = new Date(minDate)
+        const maxDateObj = new Date(maxDate)
+        
+        if (formData.startDate) {
+          const startDateObj = new Date(formData.startDate)
+          if (startDateObj < minDateObj || startDateObj > maxDateObj) {
+            ElMessage.warning(`开始日期必须在所属年度计划的日期范围内（${minDate} 至 ${maxDate}）`)
+            return
+          }
+        }
+        
+        if (formData.endDate) {
+          const endDateObj = new Date(formData.endDate)
+          if (endDateObj < minDateObj || endDateObj > maxDateObj) {
+            ElMessage.warning(`结束日期必须在所属年度计划的日期范围内（${minDate} 至 ${maxDate}）`)
+            return
+          }
+        }
+        
+        // 验证开始日期不能晚于结束日期
+        if (formData.startDate && formData.endDate) {
+          const startDateObj = new Date(formData.startDate)
+          const endDateObj = new Date(formData.endDate)
+          if (startDateObj > endDateObj) {
+            ElMessage.warning('开始日期不能晚于结束日期')
+            return
+          }
+        }
       }
       
       if (planId) {
@@ -1759,6 +2255,8 @@ const reset = () => {
   hasSeasonalPlans.value = false
   form.dateYearRange = undefined
   form.dateRange = undefined
+  parentAnnualPlanDateRange.value = null
+  parentAnnualPlanTotalArea.value = null
 }
 
 /** 提交明细按钮 */
@@ -1766,8 +2264,23 @@ const submitFormDetail = async () => {
   if (!detailRef.value) return
   await detailRef.value.validate(async (valid) => {
     if (valid) {
+      // 验证种植面积是否超过轮作计划的总面积
+      if (formDetail.plantingArea && detailInfo.value && detailInfo.value.totalArea) {
+        const plantingArea = Number(formDetail.plantingArea)
+        const rotationPlanTotalArea = Number(detailInfo.value.totalArea)
+        if (!isNaN(plantingArea) && !isNaN(rotationPlanTotalArea) && rotationPlanTotalArea > 0) {
+          if (plantingArea > rotationPlanTotalArea) {
+            ElMessage.warning(`种植面积不能超过轮作计划的总面积（${rotationPlanTotalArea}亩）`)
+            return
+          }
+        }
+      }
+      
+      // 排除实际日期字段，这些字段由后端自动更新
+      const { actualStartDate, actualEndDate, ...formData } = formDetail
+      
       if (formDetail.detailId) {
-        const res = await AgricultureRotationDetailService.updateDetail(formDetail)
+        const res = await AgricultureRotationDetailService.updateDetail(formData)
         if (res.code === 200) {
           ElMessage.success(res.msg)
           openDetail.value = false
@@ -1777,7 +2290,7 @@ const submitFormDetail = async () => {
           }
         }
       } else {
-        const res = await AgricultureRotationDetailService.addDetail(formDetail)
+        const res = await AgricultureRotationDetailService.addDetail(formData)
         if (res.code === 200) {
           ElMessage.success(res.msg)
           openDetail.value = false
@@ -1800,6 +2313,32 @@ const cancelDetail = () => {
 // 表单重置（明细）
 const resetDetail = () => {
   Object.assign(formDetail, initialFormStateDetail)
+}
+
+/** 获取季节类型标签类型（用于不同季节显示不同颜色） */
+const getSeasonTypeTagType = (seasonType: string | undefined | null): 'success' | 'warning' | 'info' | 'primary' | 'danger' => {
+  if (!seasonType) return 'info'
+  
+  const seasonTypeStr = String(seasonType).toLowerCase()
+  
+  // 春季：绿色（success）
+  if (seasonTypeStr === '1' || seasonTypeStr === 'spring' || seasonTypeStr === '春季') {
+    return 'success'
+  }
+  // 夏季：橙色（warning）
+  if (seasonTypeStr === '2' || seasonTypeStr === 'summer' || seasonTypeStr === '夏季') {
+    return 'warning'
+  }
+  // 秋季：蓝色（info）
+  if (seasonTypeStr === '3' || seasonTypeStr === 'autumn' || seasonTypeStr === 'fall' || seasonTypeStr === '秋季') {
+    return 'info'
+  }
+  // 冬季：深蓝色（primary）
+  if (seasonTypeStr === '4' || seasonTypeStr === 'winter' || seasonTypeStr === '冬季') {
+    return 'primary'
+  }
+  
+  return 'info'
 }
 
 /** 获取季节类型中文名称 */
