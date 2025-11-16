@@ -524,11 +524,7 @@
       }
       batch.displayClassName = displayClassName
       
-      const res = await partitionFoodService.page({
-        partitionId: batch.batchId,
-        pageNum: 1,
-        pageSize: 1
-      })
+      const res = await partitionFoodService.listFood({iaPartitionId: batch.batchId})
       batch.hasHarvestRecord = res.rows && res.rows.length > 0
     }
 
@@ -635,7 +631,7 @@
 
   async function fetchProcessData(batchId: string | number) {
     if (!batchId) return
-    const res = await partitionFoodService.page({
+    const res = await partitionFoodService.listFood({
       partitionId: batchId,
       pageNum: 1,
       pageSize: 100

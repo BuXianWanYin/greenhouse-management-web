@@ -20,7 +20,7 @@
             <form-select
               label="批次状态"
               prop="status"
-              v-model="queryParams.status"
+              v-model="queryParams.status"找一下路由的组件在哪里
               :options="statusOptions"
             />
           </el-row>

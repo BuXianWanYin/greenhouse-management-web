@@ -42,14 +42,6 @@ export class partitionFoodService {
         })
     }
 
-    // 查询 采摘列表
-    static page(query: any) {
-        return request.get<AgriculturePartitionFoodListPageResult>({
-            url: '/agriculture/partitionFood/page',
-            params: query
-        })
-    }
-
     // 导出 采摘列表
     static exportExcel(data: any) {
         return request.post({
