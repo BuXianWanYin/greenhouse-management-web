@@ -8,6 +8,9 @@ import { useCeremony } from '@/composables/useCeremony'
 
 const { defaultMenuWidth, defaultCustomRadius, defaultTabStyle } = AppConfig.systemSetting
 
+/**
+ * 系统设置状态接口
+ */
 export interface SettingState {
   menuType: MenuTypeEnum // 菜单类型
   menuOpenWidth: number // 菜单展开宽度
@@ -40,6 +43,10 @@ export interface SettingState {
   containerWidth: ContainerWidthEnum // 容器宽度
 }
 
+/**
+ * 系统设置状态管理 Store
+ * 用于管理系统主题、菜单配置、UI 设置等全局配置
+ */
 export const useSettingStore = defineStore({
   id: 'settingStore',
   state: (): SettingState => ({
@@ -259,6 +266,10 @@ export const useSettingStore = defineStore({
   }
 })
 
+/**
+ * 设置 Element Plus 主题颜色
+ * @param color 主题颜色值
+ */
 function setElementThemeColor(color: string) {
   const mixColor = '#ffffff'
   const elStyle = document.documentElement.style

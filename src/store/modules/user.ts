@@ -8,6 +8,9 @@ import { getSysStorage } from '@/utils/storage'
 import { MenuListType } from '@/types/menu'
 import { AvatarImga } from '@/utils/utils'
 
+/**
+ * 用户状态接口
+ */
 interface UserState {
   language: LanguageEnum // 语言
   isLogin: boolean // 是否登录
@@ -19,6 +22,10 @@ interface UserState {
   refreshToken: string // 添加刷新令牌
 }
 
+/**
+ * 用户状态管理 Store
+ * 用于管理用户信息、登录状态、语言设置、搜索历史等
+ */
 export const useUserStore = defineStore({
   id: 'userStore',
   state: (): UserState => ({
@@ -43,6 +50,10 @@ export const useUserStore = defineStore({
     }
   },
   actions: {
+    /**
+     * 初始化用户状态
+     * 从本地存储中恢复用户信息、登录状态等
+     */
     initState() {
       let sys = getSysStorage()
 
@@ -97,27 +108,56 @@ export const useUserStore = defineStore({
         }
       })
     },
+    /**
+     * 设置用户信息
+     * @param info 用户信息对象
+     */
     setUserInfo(info: UserInfo) {
       info.avatar = AvatarImga(info.avatar) as string
       this.info = info
       this.saveUserData()
     },
+    /**
+     * 设置登录状态
+     * @param isLogin 是否已登录
+     */
     setLoginStatus(isLogin: boolean) {
       this.isLogin = isLogin
     },
+    /**
+     * 设置语言
+     * @param lang 语言枚举值
+     */
     setLanguage(lang: LanguageEnum) {
       setPageTitle(router.currentRoute.value)
       this.language = lang
     },
+    /**
+     * 设置搜索历史
+     * @param list 搜索历史列表
+     */
     setSearchHistory(list: Array<MenuListType>) {
       this.searchHistory = list
     },
+    /**
+     * 设置锁屏状态
+     * @param isLock 是否锁屏
+     */
     setLockStatus(isLock: boolean) {
       this.isLock = isLock
     },
+    /**
+     * 设置锁屏密码
+     * @param password 锁屏密码
+     */
     setLockPassword(password: string) {
       this.lockPassword = password
     },
+    /**
+     * 设置访问令牌和刷新令牌
+     * @param accessToken 访问令牌
+     * @param refreshToken 刷新令牌（可选）
+     */
     setToken(accessToken: string, refreshToken?: string) {
       this.accessToken = accessToken
       if (refreshToken) {
@@ -126,9 +166,17 @@ export const useUserStore = defineStore({
       localStorage.setItem('accessToken', accessToken)
       this.saveUserData()
     },
+    /**
+     * 设置用户头像
+     * @param url 头像地址
+     */
     setAvatar(url: string) {
       this.info.avatar = AvatarImga(url)
     },
+    /**
+     * 用户登出
+     * 清空用户信息、令牌，跳转到登录页
+     */
     logOut() {
       setTimeout(() => {
         this.info = {}
@@ -147,6 +195,10 @@ export const useUserStore = defineStore({
   }
 })
 
+/**
+ * 初始化版本号
+ * @param version 版本号
+ */
 function initVersion(version: string) {
   const vs = localStorage.getItem('version')
   if (!vs) {
@@ -154,7 +206,10 @@ function initVersion(version: string) {
   }
 }
 
-// 数据持久化存储
+/**
+ * 数据持久化存储
+ * @param newData 要存储的新数据
+ */
 function saveStoreStorage<T>(newData: T) {
   const version = import.meta.env.VITE_VERSION
   initVersion(version)

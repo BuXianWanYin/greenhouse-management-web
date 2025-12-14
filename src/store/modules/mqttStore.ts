@@ -3,6 +3,10 @@ import { ref } from 'vue'
 import { getMqttClient } from '@/api/mqtt/mqttClient'
 import { AgricultureDeviceMqttConfigService } from '@/api/device/deviceConfigApi'
 
+/**
+ * MQTT 状态管理 Store
+ * 用于管理 MQTT 客户端连接、设备数据订阅和预警数据
+ */
 export const useMqttStore = defineStore('mqtt', () => {
   // 设备数据Map
   const deviceDataMap = ref<{ [deviceId: string]: any }>({})
@@ -14,8 +18,11 @@ export const useMqttStore = defineStore('mqtt', () => {
   const subscribedTopics = new Set<string>()
   let messageHandler: any = null
 
+  /**
+   * 预警主题配置
+   */
   const ALERT_TOPICS = {
-    ALERTS: 'fish-dish/alerts'
+    ALERTS: 'fish-dish/alerts' // 预警主题
   }
 
   // 初始化MQTT客户端和消息处理器
@@ -94,11 +101,11 @@ export const useMqttStore = defineStore('mqtt', () => {
   }
 
   return {
-    deviceDataMap,
-    alertData,
-    initMqttClient,
-    subscribeAllDeviceTopics,
-    subscribeAlertTopics, 
-    unsubscribeAlertTopics
+    deviceDataMap, // 设备数据映射表
+    alertData, // 预警数据
+    initMqttClient, // 初始化 MQTT 客户端
+    subscribeAllDeviceTopics, // 订阅所有设备主题
+    subscribeAlertTopics, // 订阅预警主题
+    unsubscribeAlertTopics // 取消订阅预警主题
   }
 })
