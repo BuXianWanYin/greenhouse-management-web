@@ -1,27 +1,11 @@
 {
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.enable": true,
-  "volar.takeOverMode.enabled": true,
-  "volar.autoCompleteRefs": true,
-  "volar.codeLens.pugTools": false,
-  "volar.codeLens.scriptSetupTools": true,
   "files.associations": {
     "*.vue": "vue"
   },
-  "vetur.experimental.templateInterpolationService": false,
   "typescript.preferences.importModuleSpecifier": "relative",
-  "typescript.validate.enable": true,
-  "javascript.validate.enable": true,
   "[vue]": {
     "editor.defaultFormatter": "Vue.volar"
   },
-  "volar.completion.preferredTagNameCase": "pascal",
-  "typescript.preferences.includePackageJsonAutoImports": "on",
-  "typescript.suggest.autoImports": true,
-  "typescript.disableAutomaticTypeAcquisition": false,
-  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
-  "typescript.tsserver.maxTsServerMemory": 4096,
-  "typescript.tsserver.watchOptions": {
-    "excludeDirectories": ["**/node_modules", "**/dist"]
-  }
+  "typescript.tsserver.maxTsServerMemory": 4096
 }
