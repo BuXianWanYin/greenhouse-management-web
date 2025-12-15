@@ -10,7 +10,7 @@
     "esModuleInterop": true,
     "lib": ["esnext", "dom"],
     "types": ["vite/client", "node", "element-plus/global"],
-    "skipLibCheck": true, // 针对element-plus的打包校验
+    "skipLibCheck": true,
     "baseUrl": ".", 
     "paths": {
       "@/*": ["src/*"]
@@ -20,8 +20,5 @@
     "noEmit": true
   },
   "include": ["src/**/*", "src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "jsmpeg"],
-  "exclude": ["node_modules", "dist", "**/*.js"],
-  "vueCompilerOptions": {
-    "target": 3
-  }
+  "exclude": ["node_modules", "dist", "**/*.js"]
 }
