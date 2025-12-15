@@ -11,7 +11,7 @@
             </div>
             <div class="info-content">
               <h2>{{ className }}</h2>
-              <div class="type-tag">{{ classTypeName }}</div>
+              <div class="type-tag">{{ getCategoryName(classTypeName) }}</div>
               <div class="meta-info">
                 <div>{{ reportData.reportId }}</div>
                 <div>
@@ -19,7 +19,15 @@
                   {{ reportData.createTime }}
                 </div>
               </div>
-              <el-button size="default" type="primary" @click="handleAiAdd">重新智能分析</el-button>
+              <el-button 
+                size="default" 
+                type="primary" 
+                :loading="isLoading"
+                :disabled="isLoading"
+                @click="handleAiAdd"
+              >
+                重新智能分析
+              </el-button>
             </div>
           </div>
 
@@ -72,7 +80,7 @@
           <div class="suggestions-card card">
             <div class="section-title">
               <el-icon><Opportunity /></el-icon>
-              <span>{{ prop.classType === '0' ? '养殖建议' : '种植建议' }}</span>
+              <span>种植建议</span>
             </div>
             <div class="suggestions-grid grid">
               <div class="suggestion-item item">
@@ -80,7 +88,7 @@
                   <el-icon><InfoFilled /></el-icon>
                 </div>
                 <div class="suggestion-content">
-                  <h4>{{ prop.classType === '0' ? '水质管理' : '水分管理' }}</h4>
+                  <h4>水分管理</h4>
                   <p>{{ reportData.waterManagement }}</p>
                 </div>
               </div>
@@ -89,7 +97,7 @@
                   <el-icon><Food /></el-icon>
                 </div>
                 <div class="suggestion-content">
-                  <h4>{{ prop.classType === '0' ? '投喂管理' : '肥料管理' }}</h4>
+                  <h4>肥料管理</h4>
                   <p>{{ reportData.feedingManagement }}</p>
                 </div>
               </div>
@@ -129,7 +137,7 @@
                 <p>{{ reportData.growthAssessment }}</p>
               </div>
               <div class="analysis-item item">
-                <h4>{{ prop.classType === '0' ? '养殖难度' : '种植难度' }}</h4>
+                <h4>种植难度</h4>
                 <p>{{ reportData.cultivationDifficulty }}</p>
               </div>
               <div class="analysis-item item">
@@ -147,7 +155,14 @@
     </template>
     <div v-else class="analyze-button-container">
       <el-empty description="暂无数据"></el-empty>
-      <el-button type="primary" @click="handleAiAdd">开始智能分析</el-button>
+      <el-button 
+        type="primary" 
+        :loading="isLoading"
+        :disabled="isLoading"
+        @click="handleAiAdd"
+      >
+        开始智能分析
+      </el-button>
     </div>
   </div>
 </template>
@@ -157,6 +172,7 @@
   import { AgricultureClassAiReportResult } from '@/types/agriculture/classReport'
 
   const report = ref<AgricultureClassAiReportResult>()
+  const isLoading = ref(false)
   const prop = defineProps({
     classId: {
       type: [String, Number],
@@ -181,26 +197,20 @@
   const environmentParams = computed(() => {
     if (!reportData.value) return []
 
-    if (prop.classType === '0') {
-      // 鱼类
-      return [
-        { name: '水温', ...parseParamValue(reportData.value.optimalWaterTemperature) },
-        { name: 'pH值', ...parseParamValue(reportData.value.optimalWaterPh) },
-        { name: '溶解氧', ...parseParamValue(reportData.value.optimalDissolvedOxygen) },
-        { name: '氨氮', ...parseParamValue(reportData.value.optimalAmmonia) },
-        { name: '亚硝酸盐', ...parseParamValue(reportData.value.optimalNitrite) }
-      ]
-    } else {
-      // 植物
-      return [
-        { name: '温度', ...parseParamValue(reportData.value.optimalTemperature) },
-        { name: '湿度', ...parseParamValue(reportData.value.optimalHumidity) },
-        { name: '光照', ...parseParamValue(reportData.value.optimalLight) },
-        { name: '风向', ...parseParamValue(reportData.value.optimalWindDirection) },
-        { name: '风速', ...parseParamValue(reportData.value.optimalWindSpeed) },
-        { name: '土壤pH值', ...parseParamValue(reportData.value.optimalSoilPh) }
-      ]
-    }
+    // 统一显示实际检测的环境参数
+    return [
+      { name: '环境温度', ...parseParamValue(reportData.value.optimalTemperature) },
+      { name: '环境湿度', ...parseParamValue(reportData.value.optimalHumidity) },
+      { name: '环境光照', ...parseParamValue(reportData.value.optimalLight) },
+      { name: '土壤温度', ...parseParamValue(reportData.value.optimalSoilTemperature) },
+      { name: '土壤湿度', ...parseParamValue(reportData.value.optimalSoilHumidity) },
+      { name: '土壤电导率', ...parseParamValue(reportData.value.optimalSoilConductivity) },
+      { name: '土壤pH值', ...parseParamValue(reportData.value.optimalSoilPh) },
+      { name: '土壤盐分', ...parseParamValue(reportData.value.optimalSoilSalinity) },
+      { name: '土壤氮含量', ...parseParamValue(reportData.value.optimalSoilNitrogen) },
+      { name: '土壤磷含量', ...parseParamValue(reportData.value.optimalSoilPhosphorus) },
+      { name: '土壤钾含量', ...parseParamValue(reportData.value.optimalSoilPotassium) }
+    ]
   })
 
   const coreIndicators = computed(() => {
@@ -220,8 +230,8 @@
         color: '#67C23A'
       },
       {
-        icon: prop.classType === '0' ? 'Food' : 'Goods',
-        name: prop.classType === '0' ? '饲料转化率' : '肥料转化率',
+        icon: 'Goods',
+        name: '肥料转化率',
         value: reportData.value.feedConversion,
         color: '#E6A23C'
       },
@@ -254,20 +264,43 @@
     const res = await AgricultureClassAiReportService.getReport({ classId: prop.classId })
     if (res.code === 200) {
       report.value = res.data
+      // 如果获取到数据，说明报告已生成，重置loading状态
+      if (res.data) {
+        isLoading.value = false
+      }
     }
+  }
+
+  // 将类别英文值转换为中文显示
+  const getCategoryName = (category: string) => {
+    const categoryMap: Record<string, string> = {
+      'fruit': '瓜果',
+      'vegetable': '蔬菜',
+      'other': '其他'
+    }
+    return categoryMap[category] || category
   }
 
   // 智能分析按钮
   const handleAiAdd = async () => {
-    const res = await AgricultureClassService.aiAddClassReport({
-      classId: prop.classId,
-      className: prop.className,
-      classTypeName: prop.classTypeName,
-      classType: prop.classType
-    })
-    if (res.code === 200) {
-      ElMessage.success(res.msg)
+    if (isLoading.value) return
+    
+    isLoading.value = true
+    try {
+      const res = await AgricultureClassService.aiAddClassReport({
+        classId: prop.classId,
+        className: prop.className,
+        classTypeName: prop.classTypeName,
+        classType: prop.classType
+      })
+      if (res.code === 200) {
+        ElMessage.success('操作成功 请耐心等待报告生成 预估时间30s')
+      }
+    } catch (error) {
+      console.error('智能分析失败:', error)
+      isLoading.value = false
     }
+    // 注意：loading状态会在WebSocket收到消息后通过getInfo()刷新数据时重置
   }
 
   import { WebSocketType, WebSocketContant, WebSocketKey } from '@/enums/agricultureEnum'
@@ -293,7 +326,7 @@
         dangerouslyUseHTMLString: true
       })
       playAudio()
-      // 刷新信息
+      // 刷新信息，并在获取到数据后重置loading状态
       getInfo()
     })
   }

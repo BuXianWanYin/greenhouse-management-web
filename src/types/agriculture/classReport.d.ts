@@ -6,14 +6,14 @@ export interface AgricultureClassAiReportResult {
   optimalTemperature: string
   optimalHumidity: string
   optimalLight: string
+  optimalSoilTemperature: string
+  optimalSoilHumidity: string
+  optimalSoilConductivity: string
   optimalSoilPh: string
-  optimalWindDirection: string
-  optimalWindSpeed: string
-  optimalWaterTemperature: string
-  optimalWaterPh: string
-  optimalDissolvedOxygen: string
-  optimalAmmonia: string
-  optimalNitrite: string
+  optimalSoilSalinity: string
+  optimalSoilNitrogen: string
+  optimalSoilPhosphorus: string
+  optimalSoilPotassium: string
   growthRate: string
   diseaseResistance: string
   feedConversion: string

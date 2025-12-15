@@ -132,7 +132,6 @@
                 :taskId="taskId"
                 :oprType="oprType || 'update'"
                 :batchId="props.batchId"
-                :fishDish="currentTaskFishDish"
                 :readonly="props.readonly"
                 :key="taskId"
                 @close="showTaskDetailDialog = false"
@@ -241,7 +240,6 @@ const queryFormRef = ref()
 const taskId = ref<number | null>(null)
 const oprType = ref<'add' | 'update' | 'view' | null>(null)
 const showTaskDetailDialog = ref(false)
-const currentTaskFishDish = ref(0)
 
 // 查询参数
 const queryParams = reactive<QueryParams>({
@@ -458,9 +456,6 @@ const shouldShowActualTime = (task: AgricultureCropBatchTaskResult) => {
 
 // 处理任务按钮
 const handleTask = (id: number) => {
-    const task = taskList.value.find(t => t.taskId === id);
-    // dishFish 字段可能是字符串，需要转换为数字
-    currentTaskFishDish.value = task?.dishFish ? (typeof task.dishFish === 'string' ? Number(task.dishFish) : task.dishFish) : 0; // 0为鱼，1为菜
     taskId.value = id;
     oprType.value = 'update';
     showTaskDetailDialog.value = true;
@@ -468,9 +463,6 @@ const handleTask = (id: number) => {
 
 // 处理任务详情按钮（只读模式）
 const handleTaskDetail = (id: number) => {
-    const task = taskList.value.find(t => t.taskId === id);
-    // dishFish 字段可能是字符串，需要转换为数字
-    currentTaskFishDish.value = task?.dishFish ? (typeof task.dishFish === 'string' ? Number(task.dishFish) : task.dishFish) : 0;
     taskId.value = id;
     oprType.value = 'view'; // 设置为查看模式
     showTaskDetailDialog.value = true;

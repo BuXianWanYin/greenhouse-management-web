@@ -6,7 +6,6 @@ export interface AgricultureCropBatchTaskResult {
     taskName: string;
     planStart: string;
     planFinish: string;
-    dishFish: string;
     actualStart: string | null;
     actualFinish: string | null;
     taskDetail: string | null;
