@@ -45,8 +45,8 @@
             </el-form>
           </template>
           <template #bottom>
-            <el-button @click="handleAdd" v-auth="['agriculture:rotationplan:add']" v-ripple>新增</el-button>
-            <el-button @click="handleExport" v-auth="['agriculture:rotationplan:export']" v-ripple>导出</el-button>
+            <el-button @click="handleAdd" v-hasPermi="['agriculture:rotationplan:add']" v-ripple>新增</el-button>
+            <el-button @click="handleExport" v-hasPermi="['agriculture:rotationplan:export']" v-ripple>导出</el-button>
           </template>
         </table-bar>
 
@@ -99,13 +99,13 @@
             <el-table-column label="创建时间" prop="createTime" width="180" align="center" v-if="columns[11].show" />
             <el-table-column label="操作" width="250" align="center" fixed="right">
               <template #default="scope">
-                <el-button link type="primary" @click="handleDetail(scope.row)" v-auth="['agriculture:rotationplan:query']">
+                <el-button link type="primary" @click="handleDetail(scope.row)" v-hasPermi="['agriculture:rotationplan:query']">
                   <el-icon><View /></el-icon>详情
                 </el-button>
-                <el-button link type="primary" @click="handleUpdate(scope.row)" v-auth="['agriculture:rotationplan:edit']">
+                <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['agriculture:rotationplan:edit']">
                   <el-icon><EditPen /></el-icon>修改
                 </el-button>
-                <el-button link type="danger" @click="handleDelete(scope.row)" v-auth="['agriculture:rotationplan:remove']">
+                <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['agriculture:rotationplan:remove']">
                   <el-icon><Delete /></el-icon>删除
                 </el-button>
               </template>
@@ -344,7 +344,7 @@
             </el-form>
           </template>
           <template #bottom>
-            <el-button @click="handleAddDetailInDialog" v-auth="['agriculture:rotationdetail:add']" v-ripple>新增</el-button>
+            <el-button @click="handleAddDetailInDialog" v-hasPermi="['agriculture:rotationdetail:add']" v-ripple>新增</el-button>
           </template>
         </table-bar>
 
@@ -391,10 +391,10 @@
             </el-table-column>
             <el-table-column label="操作" min-width="150" align="center">
               <template #default="scope">
-                <el-button link type="primary" @click="handleUpdateDetailInDialog(scope.row)" v-auth="['agriculture:rotationdetail:edit']">
+                <el-button link type="primary" @click="handleUpdateDetailInDialog(scope.row)" v-hasPermi="['agriculture:rotationdetail:edit']">
                   <el-icon><EditPen /></el-icon>修改
                 </el-button>
-                <el-button link type="danger" @click="handleDeleteDetailInDialog(scope.row)" v-auth="['agriculture:rotationdetail:remove']">
+                <el-button link type="danger" @click="handleDeleteDetailInDialog(scope.row)" v-hasPermi="['agriculture:rotationdetail:remove']">
                   <el-icon><Delete /></el-icon>删除
                 </el-button>
               </template>
@@ -427,7 +427,7 @@
               </el-form>
             </template>
             <template #bottom>
-              <el-button @click="handleAddSeasonalPlanInDialog" v-auth="['agriculture:plantingplan:add']" v-ripple>新增季度计划</el-button>
+              <el-button @click="handleAddSeasonalPlanInDialog" v-hasPermi="['agriculture:plantingplan:add']" v-ripple>新增季度计划</el-button>
             </template>
           </table-bar>
 
@@ -491,10 +491,10 @@
               </el-table-column>
               <el-table-column label="操作" min-width="150" align="center">
                 <template #default="scope">
-                  <el-button link type="primary" @click="handleUpdateSeasonalPlanInDialog(scope.row)" v-auth="['agriculture:plantingplan:edit']">
+                  <el-button link type="primary" @click="handleUpdateSeasonalPlanInDialog(scope.row)" v-hasPermi="['agriculture:plantingplan:edit']">
                     <el-icon><EditPen /></el-icon>修改
                   </el-button>
-                  <el-button link type="danger" @click="handleDeleteSeasonalPlanInDialog(scope.row)" v-auth="['agriculture:plantingplan:remove']">
+                  <el-button link type="danger" @click="handleDeleteSeasonalPlanInDialog(scope.row)" v-hasPermi="['agriculture:plantingplan:remove']">
                     <el-icon><Delete /></el-icon>删除
                   </el-button>
                 </template>

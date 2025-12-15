@@ -4,7 +4,7 @@
             <div class="chat-header">
                 <div class="header-content">
                     <div class="title-section">
-                        <div class="title">小农</div>
+                        <div class="title">智能助手</div>
                     </div>
                     <div class="close-btn" @click="$emit('close')">×</div>
                 </div>
@@ -25,38 +25,20 @@
                                     <writer v-else :text="message.text" :delay="30"
                                         :start-delay="message.type === 'received' ? 500 : 0" @update="onWriterUpdate" />
                                 </div>
-                                <div v-if="message.image" class="image-content">
-                                    <img :src="message.image" class="message-image"
-                                        @click="previewImage(message.image)" />
-                                </div>
                             </div>
                         </div>
                     </template>
                 </div>
             </div>
             <div class="chat-footer">
-                <div class="preview-area" v-if="tempImage">
-                    <div class="preview-image-container">
-                        <img :src="previewImageUrl" class="preview-image" v-if="previewImageUrl" />
-                        <div class="remove-image" @click="removeTempImage">×</div>
-                    </div>
-                </div>
                 <div class="input-wrapper">
                     <input v-model="inputMessage" @keyup.enter="sendMessage" type="text" placeholder="输入消息..." />
-                    <label class="upload-btn">
-                        <input type="file" accept="image/*" @change="handleImageUpload" class="hidden-input" />
-                        <i class="image-icon">📷</i>
-                    </label>
                     <button @click="sendMessage" class="send-btn">发送</button>
                 </div>
             </div>
         </div>
     </transition>
 
-    <!-- 图片预览模态框 -->
-    <div v-if="previewVisible" class="image-preview-modal" @click="closePreview">
-        <img :src="previewImageUrl || undefined" class="preview-image" />
-    </div>
 </template>
 
 <script setup lang="ts">
@@ -64,7 +46,6 @@ import writer from './writer.vue'
 import { useSettingStore } from '@/store/modules/setting'
 import { startSSE } from '@/utils/event'
 import { nextTick, onUnmounted } from 'vue'
-import { getBase64 } from '@/utils/utils'
 import { AgricultureRobotService } from '@/api/agriculture/robot'
 import { useUserStore } from '@/store/modules/user'
 import { onMounted,watch } from 'vue'
@@ -78,7 +59,6 @@ const sseController = new AbortController()
 
 interface ChatMessage {
     text?: string
-    image?: string
     type: 'sent' | 'received'
     time: string
     date: string
@@ -156,8 +136,6 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const inputMessage = ref('')
-const tempImage = ref<File | null>(null)
-const previewImageUrl = ref<string | null>(null)
 const messages = ref<ChatMessage[]>([
     {
         text: '你好！我是你的助手，有什么可以帮你的吗？',
@@ -318,37 +296,6 @@ watch(() => props.visible, (val) => {
   }
 })
 
-const previewVisible = ref(false)
-
-const previewImage = (url: string) => {
-    previewImageUrl.value = url
-    previewVisible.value = true
-}
-
-const closePreview = () => {
-    previewVisible.value = false
-}
-
-const removeTempImage = () => {
-    tempImage.value = null
-    if (previewImageUrl.value) {
-        URL.revokeObjectURL(previewImageUrl.value)
-        previewImageUrl.value = null
-    }
-}
-
-const handleImageUpload = (event: Event) => {
-    const target = event.target as HTMLInputElement
-    const file = target.files?.[0]
-    if (file) {
-        tempImage.value = file
-        // 释放旧的 URL
-        if (previewImageUrl.value) {
-            URL.revokeObjectURL(previewImageUrl.value)
-        }
-        previewImageUrl.value = URL.createObjectURL(file)
-    }
-}
 
 const onWriterUpdate = () => {
     nextTick(() => {
@@ -358,23 +305,14 @@ const onWriterUpdate = () => {
 
 // 发送消息（用户提问和机器人回复）
 const sendMessage = async () => {
-    if (!inputMessage.value.trim() && !tempImage.value) return
+    if (!inputMessage.value.trim()) return
 
     const timeInfo = formatTime()
     const messageData: ChatMessage = {
         type: 'sent',
+        text: inputMessage.value.trim(),
         ...timeInfo,
         isHistory: false
-    }
-
-    if (inputMessage.value.trim()) {
-        messageData.text = inputMessage.value
-    }
-    // 图片转base64
-    let tempImageBase64 = ''
-    if (tempImage.value) {
-        messageData.image = URL.createObjectURL(tempImage.value)
-        tempImageBase64 = await getBase64(tempImage.value as File)
     }
 
     messages.value.push(messageData);
@@ -382,7 +320,7 @@ const sendMessage = async () => {
     // 存储用户消息
     AgricultureRobotService.addRobot({
         type: 'user',
-        content: inputMessage.value.trim() || tempImageBase64,  // 消息内容，保留换行符
+        content: inputMessage.value.trim(),  // 消息内容，保留换行符
         userId: userStore.getUserInfo.id,  // 用户id
         timestamp: Date.now()  // 时间戳
     })
@@ -399,8 +337,7 @@ const sendMessage = async () => {
     startSSE.post({
         url: '/agriculture/ai/chatStream',
         data: {
-            prompt: inputMessage.value,
-            file: tempImageBase64
+            prompt: inputMessage.value.trim()
         },
         container: sseController,
         // 每收到一段 bot 回复时触发
@@ -427,7 +364,6 @@ const sendMessage = async () => {
     });
 
     inputMessage.value = ''
-    tempImage.value = null
 }
 </script>
 
@@ -668,20 +604,6 @@ const sendMessage = async () => {
             word-wrap: break-word;
         }
 
-        .image-content {
-            .message-image {
-                max-width: 200px;
-                max-height: 200px;
-                border-radius: 8px;
-                cursor: pointer;
-                transition: all 0.3s ease;
-
-                &:hover {
-                    transform: scale(1.05) rotate(1deg);
-                    filter: brightness(1.1);
-                }
-            }
-        }
     }
 
     .message-time {
@@ -691,47 +613,10 @@ const sendMessage = async () => {
     }
 }
 
-.chat-footer {
+    .chat-footer {
     padding: 16px;
     background: white;
     border-top: 1px solid #eee;
-
-    .preview-area {
-        padding: 8px 16px;
-        border-top: 1px solid #eee;
-
-        .preview-image-container {
-            position: relative;
-            display: inline-block;
-            margin: 4px;
-
-            .preview-image {
-                max-width: 100px;
-                max-height: 100px;
-                border-radius: 8px;
-            }
-
-            .remove-image {
-                position: absolute;
-                top: -8px;
-                right: -8px;
-                width: 20px;
-                height: 20px;
-                background: rgba(0, 0, 0, 0.5);
-                color: white;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                font-size: 14px;
-
-                &:hover {
-                    background: rgba(0, 0, 0, 0.7);
-                }
-            }
-        }
-    }
 
     .input-wrapper {
         display: flex;
@@ -739,34 +624,6 @@ const sendMessage = async () => {
         background: #f8f9fa;
         padding: 8px;
         border-radius: 24px;
-
-        .upload-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            cursor: pointer;
-            border-radius: 50%;
-            transition: background-color 0.3s;
-
-            &:hover {
-                background-color: rgba(0, 0, 0, 0.05);
-            }
-
-            .hidden-input {
-                display: none;
-            }
-
-            .image-icon {
-                font-size: 20px;
-                transition: transform 0.3s ease;
-            }
-
-            &:hover .image-icon {
-                transform: scale(1.2);
-            }
-        }
     }
 
     input {
@@ -829,24 +686,6 @@ const sendMessage = async () => {
     opacity: 0;
 }
 
-.image-preview-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 999;
-
-    .preview-image {
-        max-width: 80%;
-        max-height: 80%;
-        object-fit: contain;
-    }
-}
 
 @keyframes messageIn {
     0% {

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <table-bar
       :showTop="false"
@@ -29,12 +29,12 @@
         <el-button
           @click="handleDelete"
           :disabled="multiple"
-          v-auth="['system:log:remove']"
+          v-hasPermi="['system:log:remove']"
           v-ripple
           >删除
         </el-button>
-        <el-button @click="handleClean" v-auth="['system:log:remove']" v-ripple>清空 </el-button>
-        <el-button @click="handleExport" v-auth="['system:log:export']" v-ripple>导出 </el-button>
+        <el-button @click="handleClean" v-hasPermi="['system:log:remove']" v-ripple>清空 </el-button>
+        <el-button @click="handleExport" v-hasPermi="['system:log:export']" v-ripple>导出 </el-button>
         <el-button @click="handleClose" v-ripple>关闭 </el-button>
       </template>
     </table-bar>
@@ -84,7 +84,7 @@
           <template #default="scope">
             <button-table
               type="delete"
-              v-auth="['system:log:remove']"
+              v-hasPermi="['system:log:remove']"
               @click="handleDelete(scope.row)"
             />
           </template>

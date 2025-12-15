@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <table-bar
       :showTop="false"
@@ -57,16 +57,16 @@
         </el-form>
       </template>
       <template #bottom>
-        <el-button @click="handleAdd" v-auth="['system:user:add']" v-ripple>新增 </el-button>
+        <el-button @click="handleAdd" v-hasPermi="['system:user:add']" v-ripple>新增 </el-button>
         <el-button
           @click="handleDelete"
           :disabled="multiple"
-          v-auth="['system:user:remove']"
+          v-hasPermi="['system:user:remove']"
           v-ripple
           >删除
         </el-button>
-        <el-button @click="handleImport" v-auth="['system:user:import']" v-ripple>导入 </el-button>
-        <el-button @click="handleExport" v-auth="['system:user:export']" v-ripple>导出 </el-button>
+        <el-button @click="handleImport" v-hasPermi="['system:user:import']" v-ripple>导入 </el-button>
+        <el-button @click="handleExport" v-hasPermi="['system:user:export']" v-ripple>导出 </el-button>
       </template>
     </table-bar>
 
@@ -150,24 +150,24 @@
           <template #default="scope">
             <button-table
               type="edit"
-              v-auth="['system:user:edit']"
+              v-hasPermi="['system:user:edit']"
               @click="handleUpdate(scope.row)"
             />
             <button-table
               type="delete"
-              v-auth="['system:user:remove']"
+              v-hasPermi="['system:user:remove']"
               @click="handleDelete(scope.row)"
             />
             <button-table
               icon="&#xe889;"
               type="add"
-              v-auth="['system:user:resetPwd']"
+              v-hasPermi="['system:user:resetPwd']"
               @click="handleResetPwd(scope.row)"
             />
             <button-table
               icon="&#xe715;"
               type="add"
-              v-auth="['system:user:edit']"
+              v-hasPermi="['system:user:edit']"
               @click="handleAuthRole(scope.row)"
             />
           </template>

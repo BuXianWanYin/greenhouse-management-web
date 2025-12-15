@@ -70,7 +70,7 @@
                                     plain 
                                     @click="handleTask(Number(task.taskId))" 
                                     v-if="!tableBorder"
-                                    v-auth="['agriculture:batchtask:query']">
+                                    v-hasPermi="['agriculture:batchtask:query']">
                                     <el-icon>
                                         <Edit />
                                     </el-icon>任务处理
@@ -92,7 +92,7 @@
                                     plain 
                                     @click="handleUpdate(task)"
                                     v-if="tableBorder && !readonly" 
-                                    v-auth="['agriculture:batchtask:edit']">
+                                    v-hasPermi="['agriculture:batchtask:edit']">
                                     <el-icon>
                                         <Edit />
                                     </el-icon>修改
@@ -103,7 +103,7 @@
                                     plain 
                                     @click="handleDelete(task)"
                                     v-if="tableBorder && !readonly" 
-                                    v-auth="['agriculture:batchtask:remove']">
+                                    v-hasPermi="['agriculture:batchtask:remove']">
                                     <el-icon>
                                         <Delete />
                                     </el-icon>删除

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <table-bar
       :showTop="false"
@@ -105,7 +105,7 @@
               type="primary"
               icon="Delete"
               @click="handleForceLogout(scope.row)"
-              v-auth="['monitor:online:forceLogout']"
+              v-hasPermi="['monitor:online:forceLogout']"
               >强退</el-button
             >
           </template>

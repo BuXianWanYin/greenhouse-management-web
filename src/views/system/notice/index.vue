@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <table-bar
       :showTop="false"
@@ -20,11 +20,11 @@
         </el-form>
       </template>
       <template #bottom>
-        <el-button @click="handleAdd" v-auth="['system:notice:add']" v-ripple>新增 </el-button>
+        <el-button @click="handleAdd" v-hasPermi="['system:notice:add']" v-ripple>新增 </el-button>
         <el-button
           @click="handleDelete"
           :disabled="multiple"
-          v-auth="['system:notice:remove']"
+          v-hasPermi="['system:notice:remove']"
           v-ripple
           >删除
         </el-button>
@@ -74,12 +74,12 @@
           <template #default="scope">
             <button-table
               type="edit"
-              v-auth="['system:notice:edit']"
+              v-hasPermi="['system:notice:edit']"
               @click="handleUpdate(scope.row)"
             />
             <button-table
               type="delete"
-              v-auth="['system:notice:remove']"
+              v-hasPermi="['system:notice:remove']"
               @click="handleDelete(scope.row)"
             />
           </template>

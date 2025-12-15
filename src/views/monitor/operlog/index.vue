@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <table-bar
       :showTop="false"
@@ -67,14 +67,14 @@
         <el-button
           @click="handleDelete"
           :disabled="multiple"
-          v-auth="['monitor:operlog:remove']"
+          v-hasPermi="['monitor:operlog:remove']"
           v-ripple
           >删除
         </el-button>
-        <el-button @click="handleClean" v-auth="['monitor:operlog:remove']" v-ripple
+        <el-button @click="handleClean" v-hasPermi="['monitor:operlog:remove']" v-ripple
           >清空
         </el-button>
-        <el-button @click="handleExport" v-auth="['monitor:operlog:export']" v-ripple
+        <el-button @click="handleExport" v-hasPermi="['monitor:operlog:export']" v-ripple
           >导出
         </el-button>
       </template>

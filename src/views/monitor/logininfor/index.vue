@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <table-bar
       :showTop="false"
@@ -53,21 +53,21 @@
         <el-button
           @click="handleDelete"
           :disabled="multiple"
-          v-auth="['monitor:logininfor:remove']"
+          v-hasPermi="['monitor:logininfor:remove']"
           v-ripple
           >删除
         </el-button>
-        <el-button @click="handleClean" v-auth="['monitor:logininfor:remove']" v-ripple
+        <el-button @click="handleClean" v-hasPermi="['monitor:logininfor:remove']" v-ripple
           >清空
         </el-button>
         <el-button
           @click="handleUnlock"
           :disabled="single"
-          v-auth="['monitor:logininfor:unlock']"
+          v-hasPermi="['monitor:logininfor:unlock']"
           v-ripple
           >解锁</el-button
         >
-        <el-button @click="handleExport" v-auth="['monitor:logininfor:export']" v-ripple
+        <el-button @click="handleExport" v-hasPermi="['monitor:logininfor:export']" v-ripple
           >导出
         </el-button>
       </template>

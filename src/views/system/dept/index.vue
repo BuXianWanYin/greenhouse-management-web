@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <table-bar
       :showTop="false"
@@ -26,7 +26,7 @@
         </el-form>
       </template>
       <template #bottom>
-        <el-button @click="handleAdd" v-auth="['system:dept:add']" v-ripple>新增 </el-button>
+        <el-button @click="handleAdd" v-hasPermi="['system:dept:add']" v-ripple>新增 </el-button>
         <el-button @click="toggleExpand" v-ripple>
           {{ isExpandAll ? '折叠' : '展开' }}
         </el-button>
@@ -51,16 +51,16 @@
         <el-table-column label="创建时间" align="center" prop="createTime" v-if="columns[9].show" />
         <el-table-column label="操作" align="center">
           <template #default="scope">
-            <button-table type="add" v-auth="['system:dept:add']" @click="handleAdd(scope.row)" />
+            <button-table type="add" v-hasPermi="['system:dept:add']" @click="handleAdd(scope.row)" />
             <button-table
               type="edit"
-              v-auth="['system:dept:edit']"
+              v-hasPermi="['system:dept:edit']"
               @click="handleUpdate(scope.row)"
             />
             <button-table
               v-if="scope.row.parentId != 0"
               type="delete"
-              v-auth="['system:dept:remove']"
+              v-hasPermi="['system:dept:remove']"
               @click="handleDelete(scope.row)"
             />
           </template>

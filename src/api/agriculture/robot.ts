@@ -12,7 +12,7 @@ export class AgricultureRobotService {
         })
     }
 
-      // 新增小农机器人聊天记录
+      // 新增智能助手聊天记录
       static addRobot(data: any) {
         return request.post<CodeMsgResult>({
             url: '/agriculture/robot',

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <table-bar
       :showTop="false"
@@ -33,15 +33,15 @@
         </el-form>
       </template>
       <template #bottom>
-        <el-button @click="handleAdd" v-auth="['system:type:add']" v-ripple>新增</el-button>
+        <el-button @click="handleAdd" v-hasPermi="['system:type:add']" v-ripple>新增</el-button>
         <el-button
           @click="handleDelete"
           :disabled="multiple"
-          v-auth="['system:type:remove']"
+          v-hasPermi="['system:type:remove']"
           v-ripple
           >删除
         </el-button>
-        <el-button @click="handleExport" v-auth="['system:type:export']" v-ripple>导出</el-button>
+        <el-button @click="handleExport" v-hasPermi="['system:type:export']" v-ripple>导出</el-button>
         <el-button @click="handlerefreshCache" v-ripple>刷新缓存 </el-button>
       </template>
     </table-bar>
@@ -78,12 +78,12 @@
           <template #default="scope">
             <button-table
               type="edit"
-              v-auth="['system:type:edit']"
+              v-hasPermi="['system:type:edit']"
               @click="handleUpdate(scope.row)"
             />
             <button-table
               type="delete"
-              v-auth="['system:type:remove']"
+              v-hasPermi="['system:type:remove']"
               @click="handleDelete(scope.row)"
             />
           </template>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <table-bar
         :showTop="false"
@@ -26,13 +26,13 @@
         </el-form>
       </template>
       <template #bottom>
-        <el-button @click="handleAdd" v-auth="['agriculture:pasture:add']"
+        <el-button @click="handleAdd" v-hasPermi="['agriculture:pasture:add']"
                    v-ripple>新增
         </el-button>
-        <el-button @click="handleDelete" :disabled="multiple" v-auth="['agriculture:pasture:remove']"
+        <el-button @click="handleDelete" :disabled="multiple" v-hasPermi="['agriculture:pasture:remove']"
                    v-ripple>删除
         </el-button>
-        <el-button @click="handleExport" v-auth="['agriculture:pasture:export']"
+        <el-button @click="handleExport" v-hasPermi="['agriculture:pasture:export']"
                    v-ripple>导出
         </el-button>
       </template>

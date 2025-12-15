@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <!-- 角色管理 -->
     <table-bar
@@ -67,12 +67,12 @@
             <div v-if="scope.row.roleId !== 1">
               <button-table
                 type="edit"
-                v-auth="['system:menu:edit']"
+                v-hasPermi="['system:menu:edit']"
                 @click="showDialog('edit', scope.row)"
               />
               <button-table
                 type="delete"
-                v-auth="['system:menu:remove']"
+                v-hasPermi="['system:menu:remove']"
                 @click="deleteRole(scope.row)"
               />
               <button-more

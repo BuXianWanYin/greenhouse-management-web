@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <!-- 搜索栏开始 -->
     <el-form :model="queryParams" ref="queryRef" label-width="82px">
@@ -22,10 +22,10 @@
           <el-button @click="resetForm(queryRef)" v-ripple>
             <el-icon><Refresh /></el-icon>重置
           </el-button>
-          <el-button @click="handleAdd" v-auth="['agriculture:resource:add']" v-ripple>
+          <el-button @click="handleAdd" v-hasPermi="['agriculture:resource:add']" v-ripple>
             <el-icon><Plus /></el-icon>新增
           </el-button>
-          <el-button @click="handleExport" v-auth="['agriculture:resource:export']" v-ripple>
+          <el-button @click="handleExport" v-hasPermi="['agriculture:resource:export']" v-ripple>
             <el-icon><Download /></el-icon>导出
           </el-button>
         </el-col>
@@ -72,12 +72,12 @@
               
               <div class="card-actions">
                 <el-button type="primary" size="small" @click="handleUpdate(item)" 
-                  v-auth="['agriculture:resource:edit']" class="action-button">
+                  v-hasPermi="['agriculture:resource:edit']" class="action-button">
                   <el-icon><EditPen /></el-icon>
                   修改
                 </el-button>
                 <el-button type="danger" size="small" @click="handleDelete(item)"
-                  v-auth="['agriculture:resource:remove']" class="action-button">
+                  v-hasPermi="['agriculture:resource:remove']" class="action-button">
                   <el-icon><Delete /></el-icon>
                   删除
                 </el-button>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <!-- 农资使用管理 -->
     <table-bar
@@ -60,8 +60,8 @@
         </el-form>
       </template>
       <template #bottom>
-        <el-button @click="handleAdd" v-auth="['agriculture:resourceusage:add']" v-ripple>新增</el-button>
-        <el-button @click="handleExport" v-auth="['agriculture:resourceusage:export']" v-ripple>导出</el-button>
+        <el-button @click="handleAdd" v-hasPermi="['agriculture:resourceusage:add']" v-ripple>新增</el-button>
+        <el-button @click="handleExport" v-hasPermi="['agriculture:resourceusage:export']" v-ripple>导出</el-button>
       </template>
     </table-bar>
 
@@ -112,7 +112,7 @@
             <el-button link type="primary" @click="handleUpdate(scope.row)">
               <el-icon><Document /></el-icon>详情
             </el-button>
-            <el-button link type="danger" @click="handleDelete(scope.row)" v-auth="['agriculture:resourceusage:remove']">
+            <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['agriculture:resourceusage:remove']">
               <el-icon><Delete /></el-icon>删除
             </el-button>
           </template>

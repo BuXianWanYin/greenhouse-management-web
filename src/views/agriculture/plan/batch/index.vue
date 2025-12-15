@@ -27,8 +27,8 @@
         </el-form>
       </template>
       <template #bottom>
-        <el-button @click="handleAdd" v-auth="['agriculture:batch:add']" v-ripple>新增</el-button>
-        <el-button @click="handleExport" v-auth="['agriculture:batch:export']" v-ripple>导出</el-button>
+        <el-button @click="handleAdd" v-hasPermi="['agriculture:batch:add']" v-ripple>新增</el-button>
+        <el-button @click="handleExport" v-hasPermi="['agriculture:batch:export']" v-ripple>导出</el-button>
       </template>
     </table-bar>
 
@@ -96,13 +96,13 @@
         </el-table-column>
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="scope">
-            <el-button link type="primary" @click="handleDetail(scope.row)" v-auth="['agriculture:batch:query']">
+            <el-button link type="primary" @click="handleDetail(scope.row)" v-hasPermi="['agriculture:batch:query']">
               <el-icon><View /></el-icon>详情
             </el-button>
-            <el-button link type="primary" @click="handleUpdate(scope.row)" v-auth="['agriculture:batch:edit']">
+            <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['agriculture:batch:edit']">
               <el-icon><EditPen /></el-icon>修改
             </el-button>
-            <el-button link type="danger" @click="handleDelete(scope.row)" v-auth="['agriculture:batch:remove']">
+            <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['agriculture:batch:remove']">
               <el-icon><Delete /></el-icon>删除
             </el-button>
           </template>

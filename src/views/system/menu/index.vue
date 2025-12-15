@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <!-- 菜单管理 -->
     <table-bar
@@ -76,17 +76,17 @@
           <template #default="scope">
             <button-table
               type="add"
-              v-auth="['system:menu:add']"
+              v-hasPermi="['system:menu:add']"
               @click="showModel('add', scope.row)"
             />
             <button-table
               type="edit"
-              v-auth="['system:menu:edit']"
+              v-hasPermi="['system:menu:edit']"
               @click="showModel('edit', scope.row)"
             />
             <button-table
               type="delete"
-              v-auth="['system:menu:remove']"
+              v-hasPermi="['system:menu:remove']"
               @click="deleteMenu(scope.row)"
             />
           </template>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-content">
     <table-bar
       :showTop="false"
@@ -32,16 +32,16 @@
         </el-form>
       </template>
       <template #bottom>
-        <el-button @click="handleAdd" v-auth="['system:job:add']" v-ripple>新增 </el-button>
+        <el-button @click="handleAdd" v-hasPermi="['system:job:add']" v-ripple>新增 </el-button>
         <el-button
           @click="handleDelete"
           :disabled="multiple"
-          v-auth="['system:job:remove']"
+          v-hasPermi="['system:job:remove']"
           v-ripple
           >删除
         </el-button>
-        <el-button @click="handleExport" v-auth="['system:job:export']" v-ripple>导出 </el-button>
-        <el-button @click="handleJobLog" v-auth="['monitor:job:query']" v-ripple>日志</el-button>
+        <el-button @click="handleExport" v-hasPermi="['system:job:export']" v-ripple>导出 </el-button>
+        <el-button @click="handleJobLog" v-hasPermi="['monitor:job:query']" v-ripple>日志</el-button>
       </template>
     </table-bar>
 
@@ -101,12 +101,12 @@
           <template #default="scope">
             <button-table
               type="edit"
-              v-auth="['system:job:edit']"
+              v-hasPermi="['system:job:edit']"
               @click="handleUpdate(scope.row)"
             />
             <button-table
               type="delete"
-              v-auth="['system:job:remove']"
+              v-hasPermi="['system:job:remove']"
               @click="handleDelete(scope.row)"
             />
             <button-more
