@@ -14,8 +14,14 @@
     "baseUrl": ".", 
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "allowJs": true,
+    "isolatedModules": true,
+    "noEmit": true
   },
   "include": ["src/**/*", "src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "jsmpeg"],
-  "exclude": ["node_modules", "dist", "**/*.js"]
+  "exclude": ["node_modules", "dist", "**/*.js"],
+  "vueCompilerOptions": {
+    "target": 3
+  }
 }
