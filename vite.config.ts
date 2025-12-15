@@ -78,7 +78,9 @@ export default ({ mode }) => {
         extensions: ['vue'],
         dirs: ['src/components'], // 自动导入的组件目录
         resolvers: [ElementPlusResolver()],
-        dts: 'src/types/components.d.ts' // 指定类型声明文件的路径
+        dts: 'src/types/components.d.ts', // 指定类型声明文件的路径
+        // 排除 Layout/Chat 目录，避免与 Bot/chat.vue 命名冲突
+        exclude: [/[\\/]Layout[\\/]Chat[\\/]/]
       }),
       AutoImport({
         imports: ['vue', 'vue-router', '@vueuse/core', 'pinia'],

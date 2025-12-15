@@ -2,9 +2,10 @@ import { ref } from 'vue'
 
 // 定义WebSocket消息类型
 export interface WebSocketMessage {
-  id: string
+  id: string | number
   type: string
   content: string
+  className?: string // 种类名称（可选）
 }
 
 // 定义WebSocket配置选项
