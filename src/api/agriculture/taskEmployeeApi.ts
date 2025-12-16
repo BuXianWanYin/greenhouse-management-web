@@ -53,4 +53,32 @@ export class AgricultureTaskEmployeeService {
             data: data
         })
     }
+    
+    // 获取可选人员列表（支持排班筛选）
+    static getAvailableEmployees(params: {
+        taskId?: number | string
+        taskDate?: string
+        pastureId?: number | string
+        filterBySchedule?: boolean
+    }) {
+        return request.get<any[]>({
+            url: '/agriculture/taskEmployee/available',
+            params
+        })
+    }
+    
+    // 获取人员排班状态
+    static getEmployeeScheduleStatus(userId: number | string, date: string) {
+        return request.get<{
+            hasSchedule: boolean
+            workStartTime?: string
+            workEndTime?: string
+            workType?: string
+            pastureId?: number | string
+            pastureName?: string
+        }>({
+            url: '/agriculture/taskEmployee/scheduleStatus',
+            params: { userId, date }
+        })
+    }
 }
