@@ -34,9 +34,9 @@
               >
                 <el-option
                   v-for="pasture in pastureList"
-                  :key="pasture.pastureId"
-                  :label="pasture.pastureName"
-                  :value="pasture.pastureId"
+                  :key="pasture.id || pasture.pastureId"
+                  :label="pasture.name || pasture.pastureName"
+                  :value="pasture.id || pasture.pastureId"
                 />
               </el-select>
             </el-form-item>
@@ -126,7 +126,7 @@
                 class="schedule-item"
                 :class="schedule.workType || 'normal'"
                 @click.stop="handleScheduleClick(schedule)"
-                :title="`${schedule.userName || schedule.nickName || '未知'} ${schedule.workStartTime?.substring(11, 16) || ''}-${schedule.workEndTime?.substring(11, 16) || ''}`"
+                :title="`${schedule.nickName || schedule.userName || '未知'} ${schedule.workStartTime?.substring(11, 16) || ''}-${schedule.workEndTime?.substring(11, 16) || ''}`"
               >
                 <span class="schedule-time" v-if="schedule.workStartTime && schedule.workEndTime">
                   {{ schedule.workStartTime.substring(11, 16) }}-{{ schedule.workEndTime.substring(11, 16) }}
@@ -152,22 +152,28 @@
         v-loading="loading"
         :data="scheduleList"
         @selection-change="handleSelectionChange"
+        stripe
+        style="width: 100%"
       >
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="排班ID" prop="scheduleId" width="100" />
-        <el-table-column label="用户姓名" prop="userName" width="120" />
-        <el-table-column label="温室名称" prop="pastureName" width="150" />
-        <el-table-column label="排班日期" prop="scheduleDate" width="120" />
-        <el-table-column label="工作开始时间" prop="workStartTime" width="160" />
-        <el-table-column label="工作结束时间" prop="workEndTime" width="160" />
-        <el-table-column label="工作类型" prop="workType" width="100">
+        <el-table-column label="排班ID" prop="scheduleId" min-width="100" />
+        <el-table-column label="用户姓名" min-width="120">
+          <template #default="scope">
+            {{ scope.row.nickName || scope.row.userName || '未知' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="温室名称" prop="pastureName" min-width="150" />
+        <el-table-column label="排班日期" prop="scheduleDate" min-width="120" />
+        <el-table-column label="工作开始时间" prop="workStartTime" min-width="160" />
+        <el-table-column label="工作结束时间" prop="workEndTime" min-width="160" />
+        <el-table-column label="工作类型" prop="workType" min-width="100">
           <template #default="scope">
             <el-tag v-if="scope.row.workType === 'normal'">正常班</el-tag>
             <el-tag type="warning" v-else-if="scope.row.workType === 'overtime'">加班</el-tag>
             <el-tag type="info" v-else-if="scope.row.workType === 'leave'">请假</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" prop="status" width="80">
+        <el-table-column label="状态" prop="status" min-width="80">
           <template #default="scope">
             <el-tag :type="scope.row.status === '0' ? 'success' : 'danger'">
               {{ scope.row.status === '0' ? '正常' : '已取消' }}
@@ -194,18 +200,21 @@
         </el-table-column>
       </el-table>
 
-      <pagination
+      <el-pagination
         v-show="total > 0"
         :total="total"
-        v-model:page="queryParams.pageNum"
-        v-model:limit="queryParams.pageSize"
-        @pagination="getList"
+        v-model:current-page="queryParams.pageNum"
+        v-model:page-size="queryParams.pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="getList"
+        @current-change="getList"
       />
     </el-card>
 
     <!-- 添加或修改对话框 -->
     <el-dialog :title="title" v-model="open" width="600px" append-to-body>
-      <el-form ref="scheduleRef" :model="form" :rules="rules" label-width="100px">
+      <el-form ref="scheduleRef" :model="form" :rules="rules" label-width="140px">
         <el-form-item label="用户" prop="userId">
           <el-select
             v-model="form.userId"
@@ -230,9 +239,9 @@
           >
             <el-option
               v-for="pasture in pastureList"
-              :key="pasture.pastureId"
-              :label="pasture.pastureName"
-              :value="pasture.pastureId"
+              :key="pasture.id || pasture.pastureId"
+              :label="pasture.name || pasture.pastureName"
+              :value="pasture.id || pasture.pastureId"
             />
           </el-select>
         </el-form-item>
@@ -272,8 +281,8 @@
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
-            <el-radio label="0">正常</el-radio>
-            <el-radio label="1">已取消</el-radio>
+            <el-radio :value="'0'">正常</el-radio>
+            <el-radio :value="'1'">已取消</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
@@ -686,9 +695,36 @@ const reset = () => {
 /** 获取用户列表 */
 const getUserList = async () => {
   try {
-    const res = await UserService.listUser({ status: '0' })
-    if (res.code === 200) {
-      userList.value = res.rows || []
+    // 先查询第一页，获取总数
+    const firstRes = await UserService.listUser({ status: '0', pageNum: 1, pageSize: 100 })
+    if (firstRes.code === 200) {
+      const total = firstRes.total || 0
+      const firstPageRows = firstRes.rows || []
+      
+      // 如果总数小于等于100，直接使用第一页数据
+      if (total <= 100) {
+        userList.value = firstPageRows
+        return
+      }
+      
+      // 如果总数大于100，需要分页查询所有数据
+      const allUsers = [...firstPageRows]
+      const totalPages = Math.ceil(total / 100)
+      
+      // 并发查询剩余页
+      const promises = []
+      for (let page = 2; page <= totalPages; page++) {
+        promises.push(UserService.listUser({ status: '0', pageNum: page, pageSize: 100 }))
+      }
+      
+      const results = await Promise.all(promises)
+      results.forEach((res: any) => {
+        if (res.code === 200 && res.rows) {
+          allUsers.push(...res.rows)
+        }
+      })
+      
+      userList.value = allUsers
     }
   } catch (error) {
     console.error('获取用户列表失败:', error)
@@ -698,7 +734,8 @@ const getUserList = async () => {
 /** 获取温室列表 */
 const getPastureList = async () => {
   try {
-    const res = await AgriculturePastureService.listPasture({})
+    // 温室列表需要传分页参数，获取足够多的数据
+    const res = await AgriculturePastureService.listPasture({ pageNum: 1, pageSize: 1000 })
     if (res.code === 200) {
       pastureList.value = res.rows || []
     }
@@ -923,6 +960,15 @@ onMounted(() => {
         }
       }
     }
+  }
+}
+
+// 表格视图样式优化
+:deep(.el-table) {
+  width: 100% !important;
+  
+  .el-table__body-wrapper {
+    width: 100% !important;
   }
 }
 </style>
