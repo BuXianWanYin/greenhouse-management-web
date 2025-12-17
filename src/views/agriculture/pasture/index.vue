@@ -120,6 +120,16 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- AI环境调控建议对话框 -->
+    <el-dialog title="AI环境调控建议" v-model="showAISuggestionDialog" width="800px" append-to-body>
+      <AIDecisionPanel
+        v-if="selectedPastureIdForAI"
+        type="environment"
+        :target-id="selectedPastureIdForAI"
+        :auto-load="true"
+      />
+    </el-dialog>
   </div>
 </template>
 
@@ -147,6 +157,13 @@
   const pastureRef = ref<FormInstance>()
   const showAISuggestionDialog = ref(false);
   const selectedPastureIdForAI = ref<number | string | null>(null);
+
+  // 打开AI建议对话框
+  const showAISuggestion = (pastureId: number | string) => {
+    selectedPastureIdForAI.value = pastureId;
+    showAISuggestionDialog.value = true;
+  }
+
   // 定义初始表单状态
   const initialFormState = {
     id: null,

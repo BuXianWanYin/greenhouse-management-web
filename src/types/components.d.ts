@@ -7,6 +7,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AIBatchSuggestionPanel: typeof import('./../components/AIBatchSuggestionPanel/index.vue')['default']
     AIDecisionPanel: typeof import('./../components/AIDecisionPanel/index.vue')['default']
     AlertCenter: typeof import('./../components/Layout/AlertCenter/index.vue')['default']
     AlertList: typeof import('./../components/Layout/AlertCenter/AlertList.vue')['default']

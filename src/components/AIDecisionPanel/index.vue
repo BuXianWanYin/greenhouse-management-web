@@ -13,26 +13,35 @@
           :loading="loading"
           @click="handleRefresh"
           size="small"
-        >刷新</el-button>
+          :disabled="loading"
+        >{{ loading ? '分析中...' : '刷新' }}</el-button>
       </div>
     </template>
     
     <div v-if="loading" class="loading-container">
-      <el-skeleton :rows="5" animated />
+      <div class="loading-content">
+        <el-icon class="loading-icon" :size="48"><Loading /></el-icon>
+        <div class="loading-text">
+          <p class="main-text">AI正在分析数据并生成建议...</p>
+          <p class="sub-text">预计需要1-2分钟，您可以继续进行其他操作</p>
+          <p class="timer-text" v-if="elapsedTime > 0">已等待 {{ formatElapsedTime(elapsedTime) }}</p>
+        </div>
+      </div>
+      <el-skeleton :rows="3" animated style="margin-top: 20px;" />
     </div>
     
     <div v-else-if="suggestion" class="suggestion-content">
       <div class="suggestion-text" v-html="formatSuggestion(suggestion)"></div>
     </div>
     
-    <el-empty v-else description="暂无AI建议" :image-size="80" />
+    <el-empty v-else description="暂无AI建议，点击刷新按钮获取" :image-size="80" />
   </el-card>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import { MagicStick, Refresh } from '@element-plus/icons-vue'
+import { ref, watch, onUnmounted } from 'vue'
+import { ElMessage, ElNotification } from 'element-plus'
+import { MagicStick, Refresh, Loading } from '@element-plus/icons-vue'
 import { AgricultureDecisionService } from '@/api/agriculture/decisionApi'
 
 const props = defineProps<{
@@ -43,6 +52,34 @@ const props = defineProps<{
 
 const loading = ref(false)
 const suggestion = ref<string>('')
+const elapsedTime = ref(0)
+let timerInterval: ReturnType<typeof setInterval> | null = null
+
+// 启动计时器
+const startTimer = () => {
+  elapsedTime.value = 0
+  timerInterval = setInterval(() => {
+    elapsedTime.value++
+  }, 1000)
+}
+
+// 停止计时器
+const stopTimer = () => {
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
+}
+
+// 格式化已用时间
+const formatElapsedTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  if (mins > 0) {
+    return `${mins}分${secs}秒`
+  }
+  return `${secs}秒`
+}
 
 // 加载建议
 const loadSuggestion = async () => {
@@ -52,6 +89,16 @@ const loadSuggestion = async () => {
   }
   
   loading.value = true
+  startTimer()
+  
+  // 显示通知提示用户可以进行其他操作
+  ElNotification({
+    title: 'AI分析已开始',
+    message: '正在调用DeepSeek AI生成建议，预计需要1-2分钟。您可以继续进行其他操作，分析完成后会自动显示结果。',
+    type: 'success',
+    duration: 5000
+  })
+  
   try {
     let res
     switch (props.type) {
@@ -76,21 +123,39 @@ const loadSuggestion = async () => {
     
     if (res.code === 200 && res.data) {
       suggestion.value = res.data
+      ElNotification({
+        title: 'AI分析完成',
+        message: '智能建议已生成，请查看结果。',
+        type: 'success',
+        duration: 3000
+      })
     } else {
       ElMessage.error(res.msg || '获取AI建议失败')
     }
   } catch (error: any) {
     console.error('获取AI建议失败:', error)
-    ElMessage.error(error.message || '获取AI建议失败')
+    // 区分超时错误和其他错误
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      ElMessage.error('AI分析超时，请稍后重试')
+    } else {
+      ElMessage.error(error.message || '获取AI建议失败')
+    }
   } finally {
     loading.value = false
+    stopTimer()
   }
 }
 
 // 刷新建议
 const handleRefresh = () => {
+  if (loading.value) return
   loadSuggestion()
 }
+
+// 组件卸载时清理计时器
+onUnmounted(() => {
+  stopTimer()
+})
 
 // 格式化建议文本（将换行符转换为HTML）
 const formatSuggestion = (text: string) => {
@@ -111,6 +176,11 @@ watch(
   },
   { immediate: true }
 )
+
+// 暴露 loadSuggestion 方法供父组件调用
+defineExpose({
+  loadSuggestion
+})
 </script>
 
 <style lang="scss" scoped>
@@ -133,6 +203,46 @@ watch(
 
   .loading-container {
     padding: 20px;
+
+    .loading-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border-radius: 12px;
+      border: 1px dashed var(--el-color-primary-light-5);
+
+      .loading-icon {
+        color: var(--el-color-primary);
+        animation: spin 1.5s linear infinite;
+        margin-bottom: 16px;
+      }
+
+      .loading-text {
+        text-align: center;
+
+        .main-text {
+          font-size: 16px;
+          font-weight: 500;
+          color: var(--el-text-color-primary);
+          margin: 0 0 8px 0;
+        }
+
+        .sub-text {
+          font-size: 14px;
+          color: var(--el-text-color-secondary);
+          margin: 0 0 8px 0;
+        }
+
+        .timer-text {
+          font-size: 13px;
+          color: var(--el-color-primary);
+          margin: 0;
+          font-weight: 500;
+        }
+      }
+    }
   }
 
   .suggestion-content {
@@ -155,6 +265,15 @@ watch(
         font-style: italic;
       }
     }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

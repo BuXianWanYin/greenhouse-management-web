@@ -113,8 +113,8 @@
       </template>
     </art-table>
 
-    <!-- AI种植计划建议对话框 -->
-    <el-dialog title="AI种植计划建议" v-model="showAISuggestionDialog" width="800px" append-to-body>
+    <!-- AI计划建议对话框 -->
+    <el-dialog title="AI种植建议" v-model="showAISuggestionDialog" width="1050px" append-to-body>
       <el-form :inline="true" style="margin-bottom: 20px">
         <el-form-item label="选择批次">
           <el-select
@@ -131,15 +131,11 @@
             />
         </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="loadAISuggestion">获取建议</el-button>
-        </el-form-item>
       </el-form>
-      <AIDecisionPanel
+      <AIBatchSuggestionPanel
+        ref="aiBatchSuggestionPanelRef"
         v-if="selectedBatchIdForAI"
-        type="plan"
-        :target-id="selectedBatchIdForAI"
-        :auto-load="false"
+        :batch-id="selectedBatchIdForAI"
       />
     </el-dialog>
 
@@ -298,7 +294,7 @@ import { AgricultureCropBatchResult } from '@/types/agriculture/batch'
 import { downloadExcel } from '@/utils/utils'
 import { useRouter } from 'vue-router'
 import { parseTime } from '@/utils/utils'
-import AIDecisionPanel from '@/components/AIDecisionPanel/index.vue'
+import AIBatchSuggestionPanel from '@/components/AIBatchSuggestionPanel/index.vue'
 
 const router = useRouter()
 const batchList = ref<AgricultureCropBatchResult[]>([])
@@ -357,13 +353,7 @@ const rotationPlanDetail = ref<any>(null)
 // AI决策建议相关
 const showAISuggestionDialog = ref(false)
 const selectedBatchIdForAI = ref<number | string | null>(null)
-
-const loadAISuggestion = () => {
-  if (!selectedBatchIdForAI.value) {
-    ElMessage.warning('请先选择批次')
-    return
-  }
-}
+const aiBatchSuggestionPanelRef = ref<InstanceType<typeof AIBatchSuggestionPanel> | null>(null)
 
 const columns = reactive([
   { name: '批次ID', show: true },
