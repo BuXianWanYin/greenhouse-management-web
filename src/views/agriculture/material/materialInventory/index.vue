@@ -29,6 +29,9 @@
       <template #bottom>
         <el-button @click="handleAdd" v-hasPermi="['agriculture:resourceinventory:add']" v-ripple>新增</el-button>
         <el-button @click="handleExport" v-hasPermi="['agriculture:resourceinventory:export']" v-ripple>导出</el-button>
+        <el-button type="success" @click="showAISuggestionDialog = true" v-hasPermi="['agriculture:decision:resource']" v-ripple>
+          <el-icon><MagicStick /></el-icon>AI采购建议
+        </el-button>
       </template>
     </table-bar>
 
@@ -223,11 +226,43 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- AI资源采购建议对话框 -->
+    <el-dialog title="AI资源采购建议" v-model="showAISuggestionDialog" width="800px" append-to-body>
+      <el-form :inline="true" style="margin-bottom: 20px">
+        <el-form-item label="选择资源（可选）">
+          <el-select
+            v-model="selectedResourceIdForAI"
+            placeholder="留空表示分析所有资源"
+            clearable
+            filterable
+            style="width: 300px"
+          >
+            <el-option
+              v-for="resource in resourceList"
+              :key="resource.resourceId"
+              :label="resource.resourceName"
+              :value="resource.resourceId"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="loadAISuggestion">获取建议</el-button>
+        </el-form-item>
+      </el-form>
+      <AIDecisionPanel
+        v-if="showAISuggestionContent"
+        type="resource"
+        :target-id="selectedResourceIdForAI || undefined"
+        :auto-load="false"
+      />
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { EditPen, Delete, Plus } from '@element-plus/icons-vue'
+import { EditPen, Delete, Plus, MagicStick } from '@element-plus/icons-vue'
+import AIDecisionPanel from '@/components/AIDecisionPanel/index.vue'
 import { ref, reactive, onMounted, computed } from 'vue'
 import { resetForm } from '@/utils/utils'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -272,6 +307,15 @@ const searchFormRef = ref<FormInstance>()
 const inventoryRef = ref<FormInstance>()
 const stockInRef = ref<FormInstance>()
 const userStore = useUserStore()
+
+// AI决策建议相关
+const showAISuggestionDialog = ref(false)
+const selectedResourceIdForAI = ref<number | string | null>(null)
+const showAISuggestionContent = ref(false)
+
+const loadAISuggestion = () => {
+  showAISuggestionContent.value = true
+}
 
 const columns = reactive([
   { name: '库存ID', show: false },

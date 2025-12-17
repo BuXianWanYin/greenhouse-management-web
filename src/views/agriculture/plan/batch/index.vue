@@ -29,6 +29,9 @@
       <template #bottom>
         <el-button @click="handleAdd" v-hasPermi="['agriculture:batch:add']" v-ripple>新增</el-button>
         <el-button @click="handleExport" v-hasPermi="['agriculture:batch:export']" v-ripple>导出</el-button>
+        <el-button type="success" @click="showAISuggestionDialog = true" v-hasPermi="['agriculture:decision:plan']" v-ripple>
+          <el-icon><MagicStick /></el-icon>AI种植建议
+        </el-button>
       </template>
     </table-bar>
 
@@ -109,6 +112,36 @@
         </el-table-column>
       </template>
     </art-table>
+
+    <!-- AI种植计划建议对话框 -->
+    <el-dialog title="AI种植计划建议" v-model="showAISuggestionDialog" width="800px" append-to-body>
+      <el-form :inline="true" style="margin-bottom: 20px">
+        <el-form-item label="选择批次">
+          <el-select
+            v-model="selectedBatchIdForAI"
+            placeholder="请选择批次"
+            filterable
+            style="width: 300px"
+          >
+            <el-option
+              v-for="batch in batchList"
+              :key="batch.batchId"
+              :label="batch.batchName"
+              :value="batch.batchId"
+            />
+        </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="loadAISuggestion">获取建议</el-button>
+        </el-form-item>
+      </el-form>
+      <AIDecisionPanel
+        v-if="selectedBatchIdForAI"
+        type="plan"
+        :target-id="selectedBatchIdForAI"
+        :auto-load="false"
+      />
+    </el-dialog>
 
     <!-- 添加或修改批次对话框 -->
     <el-dialog :title="title" v-model="open" width="700px" append-to-body>
@@ -250,7 +283,7 @@
 </template>
 
 <script setup lang="ts">
-import { Search, Refresh, Plus, Download, Document, EditPen, Delete, View } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Download, Document, EditPen, Delete, View, MagicStick } from '@element-plus/icons-vue'
 import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
 import { AgricultureClassService } from '@/api/agriculture/classApi'
 import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
@@ -265,6 +298,7 @@ import { AgricultureCropBatchResult } from '@/types/agriculture/batch'
 import { downloadExcel } from '@/utils/utils'
 import { useRouter } from 'vue-router'
 import { parseTime } from '@/utils/utils'
+import AIDecisionPanel from '@/components/AIDecisionPanel/index.vue'
 
 const router = useRouter()
 const batchList = ref<AgricultureCropBatchResult[]>([])
@@ -319,6 +353,17 @@ const planDateRange = ref<{
 
 // 轮作计划明细信息（用于获取时间范围）
 const rotationPlanDetail = ref<any>(null)
+
+// AI决策建议相关
+const showAISuggestionDialog = ref(false)
+const selectedBatchIdForAI = ref<number | string | null>(null)
+
+const loadAISuggestion = () => {
+  if (!selectedBatchIdForAI.value) {
+    ElMessage.warning('请先选择批次')
+    return
+  }
+}
 
 const columns = reactive([
   { name: '批次ID', show: true },

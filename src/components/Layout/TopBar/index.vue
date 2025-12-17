@@ -66,6 +66,14 @@
             <i class="iconfont-sys">{{ isFullscreen ? '&#xe62d;' : '&#xe8ce;' }}</i>
           </div>
         </div>
+        <!-- 预警中心 -->
+        <div class="btn-box alert-btn" @click="visibleAlertCenter">
+          <div class="btn alert-button">
+            <el-badge :value="alertCount" :max="99" :hidden="alertCount === 0">
+              <el-icon :size="20"><Bell /></el-icon>
+            </el-badge>
+          </div>
+        </div>
         <!-- 通知 -->
         <div class="btn-box notice-btn" @click="visibleNotice">
           <div class="btn notice-button">
@@ -175,6 +183,7 @@
     <slot></slot>
 
     <Notice v-model:value="showNotice" ref="notice" />
+    <AlertCenter v-model:value="showAlertCenter" />
   </div>
 </template>
 
@@ -182,7 +191,10 @@
   import defaultAvatar from '@/assets/img/avatar/default-avatar.png'
   import Breadcrumb from '../Breadcrumb/index.vue'
   import Notice from '../Notice/index.vue'
+  import AlertCenter from '../AlertCenter/index.vue'
   import MixedMenu from '../MixedMenu/index.vue'
+  import { Bell } from '@element-plus/icons-vue'
+  import { AgricultureAlertService } from '@/api/agriculture/alertApi'
   import { LanguageEnum, MenuTypeEnum, MenuWidth } from '@/enums/appEnum'
   import { useSettingStore } from '@/store/modules/setting'
   import { useUserStore } from '@/store/modules/user'
@@ -210,6 +222,8 @@
   const language = computed(() => userStore.language)
   const showNotice = ref(false)
   const notice = ref(null)
+  const showAlertCenter = ref(false)
+  const alertCount = ref(0)
   const systemThemeColor = computed(() => settingStore.systemThemeColor)
   const showSettingGuide = computed(() => settingStore.showSettingGuide)
   const userMenuPopover = ref()
@@ -235,6 +249,11 @@
 
   onMounted(() => {
     initLanguage()
+    loadAlertCount()
+    // 每30秒刷新一次预警数量
+    setInterval(() => {
+      loadAlertCount()
+    }, 30000)
     document.addEventListener('click', bodyCloseNotice)
   })
 
@@ -341,6 +360,22 @@
 
   const visibleNotice = () => {
     showNotice.value = !showNotice.value
+  }
+
+  const visibleAlertCenter = () => {
+    showAlertCenter.value = !showAlertCenter.value
+  }
+
+  // 加载预警数量
+  const loadAlertCount = async () => {
+    try {
+      const res = await AgricultureAlertService.getUnhandledCount()
+      if (res.code === 200 && res.data) {
+        alertCount.value = res.data.all || 0
+      }
+    } catch (error) {
+      console.error('加载预警数量失败:', error)
+    }
   }
 
   const openChat = () => {

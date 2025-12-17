@@ -96,6 +96,14 @@
                             </div>
                         </div>
 
+                        <!-- AI人员推荐建议 -->
+                        <div class="mt-20" v-if="props.taskId">
+                            <AIDecisionPanel
+                                type="personnel"
+                                :target-id="props.taskId"
+                                :auto-load="true"
+                            />
+                        </div>
 
                     </el-tab-pane>
                     <el-tab-pane name="costEmployee">
@@ -192,6 +200,7 @@ import { DictDataService } from '@/api/system/dict/dataApi'
 import { AgricultureTaskLogService } from '@/api/agriculture/logApi'
 import { AgricultureCostEmployeeService } from '@/api/agriculture/costEmployeeApi'
 import { UserService } from '@/api/system/userApi'
+import AIDecisionPanel from '@/components/AIDecisionPanel/index.vue'
 
 // Props 定义
 const props = defineProps({

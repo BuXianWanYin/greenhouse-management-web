@@ -7,6 +7,9 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AIDecisionPanel: typeof import('./../components/AIDecisionPanel/index.vue')['default']
+    AlertCenter: typeof import('./../components/Layout/AlertCenter/index.vue')['default']
+    AlertList: typeof import('./../components/Layout/AlertCenter/AlertList.vue')['default']
     AlertNotification: typeof import('./../components/AlertNotification/index.vue')['default']
     ArtTable: typeof import('./../components/Table/ArtTable.vue')['default']
     BackToTop: typeof import('./../components/Widgets/BackToTop.vue')['default']
@@ -31,6 +34,7 @@ declare module 'vue' {
     DualBarCompareChart: typeof import('./../components/Widgets/Charts/DualBarCompareChart.vue')['default']
     Editor: typeof import('./../components/Form/Editor.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
+    ElBadge: typeof import('element-plus/es')['ElBadge']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElButtonGroup: typeof import('element-plus/es')['ElButtonGroup']
     ElCard: typeof import('element-plus/es')['ElCard']
@@ -73,6 +77,7 @@ declare module 'vue' {
     ElRow: typeof import('element-plus/es')['ElRow']
     ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
     ElSelect: typeof import('element-plus/es')['ElSelect']
+    ElSkeleton: typeof import('element-plus/es')['ElSkeleton']
     ElSlider: typeof import('element-plus/es')['ElSlider']
     ElStep: typeof import('element-plus/es')['ElStep']
     ElSteps: typeof import('element-plus/es')['ElSteps']

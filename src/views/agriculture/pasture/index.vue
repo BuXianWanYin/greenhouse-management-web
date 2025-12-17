@@ -66,6 +66,9 @@
             <el-button class="card-action-btn edit" size="small" @click="handleUpdate(pasture)">
               <el-icon><Edit /></el-icon>编辑
             </el-button>
+            <el-button class="card-action-btn ai" size="small" @click="showAISuggestion(pasture.id)" v-hasPermi="['agriculture:decision:environment']">
+              <el-icon><MagicStick /></el-icon>AI建议
+            </el-button>
             <el-button class="card-action-btn delete" size="small" @click="handleDelete(pasture)">
               <el-icon><Delete /></el-icon>删除
             </el-button>
@@ -127,7 +130,8 @@
   import {ElMessage, ElMessageBox} from 'element-plus'
   import {FormInstance} from 'element-plus'
   import {AgriculturePastureResult} from '@/types/agriculture/pasture'
-  import { Location, DataLine, EditPen } from '@element-plus/icons-vue' // 导入图标组件
+  import { Location, DataLine, EditPen, MagicStick } from '@element-plus/icons-vue' // 导入图标组件
+  import AIDecisionPanel from '@/components/AIDecisionPanel/index.vue'
   // 导入图片
   import pastureImage from '@/assets/img/pasture/ycgs.jpeg'
   import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
@@ -141,6 +145,8 @@
   const title = ref("");
   const queryRef = ref<FormInstance>() // 明确 queryRef 的类型
   const pastureRef = ref<FormInstance>()
+  const showAISuggestionDialog = ref(false);
+  const selectedPastureIdForAI = ref<number | string | null>(null);
   // 定义初始表单状态
   const initialFormState = {
     id: null,

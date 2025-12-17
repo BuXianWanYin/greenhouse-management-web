@@ -254,14 +254,15 @@
     </el-dialog>
 
     <!-- 新增采摘记录弹窗 -->
-    <el-dialog title="新增" v-model="addDialogVisible" width="600px">
-      <el-form :model="addForm" :rules="addFormRules" ref="addFormRef" label-width="100px">
+    <el-dialog title="新增" v-model="addDialogVisible" width="700px" append-to-body>
+      <el-form :model="addForm" :rules="addFormRules" ref="addFormRef" label-width="120px">
         <el-form-item label="种质" prop="classId">
           <el-select 
             size="small"
             v-model="addForm.classId"
             placeholder="请选择种质"
             :disabled="classIdOptions.length === 1"
+            style="width: 100%"
           >
             <el-option 
               v-for="opt in classIdOptions" 
@@ -272,8 +273,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="采摘重量" prop="weight">
-          <el-input v-model="addForm.weight" type="number" style="width: 80%" />
-          <span style="margin-left: 8px">kg</span>
+          <el-input-number
+            v-model="addForm.weight"
+            :min="0"
+            :precision="2"
+            style="width: 100%"
+            placeholder="请输入采摘重量（公斤）"
+          />
         </el-form-item>
         <el-form-item label="采摘日期" prop="date">
           <el-date-picker
@@ -281,7 +287,57 @@
             type="datetime"
             placeholder="选择日期时间"
             style="width: 100%"
+            value-format="YYYY-MM-DD HH:mm:ss"
           />
+        </el-form-item>
+        <el-form-item label="采收面积">
+          <el-input-number
+            v-model="addForm.area"
+            :min="0"
+            :precision="2"
+            style="width: 100%"
+            placeholder="请输入采收面积（亩）"
+          />
+        </el-form-item>
+        <el-form-item label="采收数量">
+          <el-input-number
+            v-model="addForm.quantity"
+            :min="0"
+            style="width: 100%"
+            placeholder="请输入采收数量（株/个）"
+          />
+        </el-form-item>
+        <el-form-item label="质量等级">
+          <el-select v-model="addForm.qualityLevel" placeholder="请选择质量等级" style="width: 100%">
+            <el-option label="优" value="A" />
+            <el-option label="良" value="B" />
+            <el-option label="合格" value="C" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="采收人员">
+          <el-select
+            v-model="addForm.harvestPersonId"
+            placeholder="请选择采收人员"
+            filterable
+            clearable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="user in userList"
+              :key="user.userId"
+              :label="user.nickName || user.userName"
+              :value="user.userId"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="存储位置">
+          <el-input
+            v-model="addForm.storageLocation"
+            placeholder="请输入存储位置"
+          />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="addForm.remark" type="textarea" :rows="3" placeholder="请输入备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -372,7 +428,13 @@
     classId: undefined as number | undefined,
     weight: undefined as number | undefined,
     date: '',
-    iaPartitionId: ''
+    iaPartitionId: '',
+    area: undefined as number | undefined,
+    quantity: undefined as number | undefined,
+    qualityLevel: '',
+    harvestPersonId: undefined as number | undefined,
+    storageLocation: '',
+    remark: ''
   })
   // 种质可选项
   const classIdOptions = ref<Array<{classId: number, className: string}>>([])
@@ -426,7 +488,13 @@
       classId: options.length === 1 ? options[0].classId : undefined,
       weight: undefined,
       date: '',
-      iaPartitionId: iaPartitionId ? String(iaPartitionId) : ''
+      iaPartitionId: iaPartitionId ? String(iaPartitionId) : '',
+      area: undefined,
+      quantity: undefined,
+      qualityLevel: '',
+      harvestPersonId: undefined,
+      storageLocation: '',
+      remark: ''
     })
     addDialogVisible.value = true
   }
@@ -436,11 +504,31 @@
     addFormRef.value.validateField(fields, async (valid: boolean) => {
       if (!valid) return
       try {
-        const formData = {
+        const formData: any = {
           iaPartitionId: addForm.iaPartitionId,
           classId: addForm.classId,
           weight: Number(addForm.weight),
           date: formatDateTime(addForm.date)
+        }
+        
+        // 添加新增的字段（如果后端支持）
+        if (addForm.area !== undefined && addForm.area !== null) {
+          formData.area = Number(addForm.area)
+        }
+        if (addForm.quantity !== undefined && addForm.quantity !== null) {
+          formData.quantity = Number(addForm.quantity)
+        }
+        if (addForm.qualityLevel) {
+          formData.qualityLevel = addForm.qualityLevel
+        }
+        if (addForm.harvestPersonId) {
+          formData.harvestPersonId = addForm.harvestPersonId
+        }
+        if (addForm.storageLocation) {
+          formData.storageLocation = addForm.storageLocation
+        }
+        if (addForm.remark) {
+          formData.remark = addForm.remark
         }
 
         // 保存采摘记录
