@@ -119,12 +119,12 @@
         <el-form-item label="选择批次">
           <el-select
             v-model="selectedBatchIdForAI"
-            placeholder="请选择批次"
+            placeholder="请选择进行中的批次"
             filterable
             style="width: 300px"
           >
             <el-option
-              v-for="batch in batchList"
+              v-for="batch in inProgressBatchList"
               :key="batch.batchId"
               :label="batch.batchName"
               :value="batch.batchId"
@@ -286,7 +286,7 @@ import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
 import { AgricultureRotationPlanService } from '@/api/agriculture/plantingPlanApi'
 import { AgricultureRotationDetailService } from '@/api/agriculture/planDetailApi'
 import { UserService } from '@/api/system/userApi'
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, nextTick, computed } from 'vue'
 import { resetForm } from '@/utils/utils'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { FormInstance } from 'element-plus'
@@ -352,8 +352,13 @@ const rotationPlanDetail = ref<any>(null)
 
 // AI决策建议相关
 const showAISuggestionDialog = ref(false)
-const selectedBatchIdForAI = ref<number | string | null>(null)
+const selectedBatchIdForAI = ref<number | string>()
 const aiBatchSuggestionPanelRef = ref<InstanceType<typeof AIBatchSuggestionPanel> | null>(null)
+
+// 只获取进行中的批次（状态=1）
+const inProgressBatchList = computed(() => {
+  return batchList.value.filter(batch => String(batch.status) === '1')
+})
 
 const columns = reactive([
   { name: '批次ID', show: true },

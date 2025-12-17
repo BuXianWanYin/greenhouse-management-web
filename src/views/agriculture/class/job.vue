@@ -26,17 +26,17 @@
     <el-card style="margin-top: 20px">
       <el-table v-loading="loading" :data="jobList">
         <el-table-column label="作业名称" align="center" prop="jobName" />
-        <el-table-column label="起始" align="center" prop="jobStart">
+        <el-table-column label="起始天" align="center" prop="jobStart">
           <template #default="{ row }">
             <span class="font-size-20 font-style-italic font-color-primary font-weight-bold">
-              第{{ row.jobStart }}<dict-tag style="display:inline;margin-left:2px;" :options="agricultureCycleType" type="notag" :value="row.cycleUnit" />
+              第{{ row.jobStart }}天
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="结束周" align="center" prop="jobFinish">
+        <el-table-column label="结束天" align="center" prop="jobFinish">
           <template #default="{ row }">
             <span class="font-size-20 font-style-italic font-color-primary font-weight-bold">
-              第{{ row.jobFinish }}<dict-tag style="display:inline;margin-left:2px;" :options="agricultureCycleType" type="notag" :value="row.cycleUnit" />
+              第{{ row.jobFinish }}天
             </span>
           </template>
         </el-table-column>
@@ -67,29 +67,23 @@
         <el-form-item label="名称" prop="jobName">
           <el-input v-model="form.jobName" placeholder="请输入作业名称" />
         </el-form-item>
-        <el-form-item label="周期单位" prop="cycleUnit">
-          <el-select v-model="form.cycleUnit" clearable placeholder="请选择作业周期单位" style="width: 100%">
-            <el-option label="周" value="0" />
-            <el-option label="天" value="1" />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="startLabel" prop="jobStart">
+        <el-form-item label="起始天" prop="jobStart">
           <el-input-number
             v-model="form.jobStart"
             controls-position="right"
-            :min="0"
+            :min="1"
             :precision="0"
-            :placeholder="`请输入${startLabel}`"
+            placeholder="请输入起始天数"
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item :label="endLabel" prop="jobFinish">
+        <el-form-item label="结束天" prop="jobFinish">
           <el-input-number
             v-model="form.jobFinish"
             controls-position="right"
-            :min="0"
+            :min="1"
             :precision="0"
-            :placeholder="`请输入${endLabel}`"
+            placeholder="请输入结束天数"
             style="width: 100%"
           />
         </el-form-item>
@@ -105,7 +99,7 @@
 </template>
 <script setup lang="ts">
   import { AgricultureJobService } from '@/api/agriculture/jobApi'
-  import { ref, reactive, computed } from 'vue'
+  import { ref, reactive } from 'vue'
   import { resetForm } from '@/utils/utils'
   import { ElMessage, ElMessageBox } from 'element-plus'
   import { FormInstance } from 'element-plus'
@@ -136,9 +130,8 @@
     jobId: null,
     classId: prop.classId,
     jobName: '', // 作业任务名称
-    cycleUnit: '0', // 作业周期单位（0代表周 1代表天），默认选择周
-    jobStart: null as number | null, // 起始周/天
-    jobFinish: null as number | null, // 结束周/天
+    jobStart: null as number | null, // 起始天
+    jobFinish: null as number | null, // 结束天
     status: null,
     createBy: null,
     createTime: null,
@@ -147,15 +140,6 @@
     remark: null
   }
   const form = reactive({ ...initialFormState })
-  
-  // 根据周期单位动态生成标签
-  const startLabel = computed(() => {
-    return form.cycleUnit === '1' ? '起始天' : form.cycleUnit === '0' ? '起始周' : '起始周/天'
-  })
-  
-  const endLabel = computed(() => {
-    return form.cycleUnit === '1' ? '结束天' : form.cycleUnit === '0' ? '结束周' : '结束周/天'
-  })
   
   const queryParams = reactive({
     pageNum: 1,
@@ -171,25 +155,17 @@
         trigger: 'blur'
       }
     ],
-    cycleUnit: [
-      {
-        required: true,
-        message: '作业周期单位不能为空',
-        trigger: 'change'
-      }
-    ],
     jobStart: [
       {
         required: true,
         validator: (rule: any, value: any, callback: any) => {
-          const unitText = form.cycleUnit === '1' ? '天' : form.cycleUnit === '0' ? '周' : '周/天'
           if (value === null || value === undefined || value === '') {
-            callback(new Error(`起始${unitText}不能为空`))
+            callback(new Error('起始天不能为空'))
             return
           }
           const numValue = Number(value)
-          if (isNaN(numValue) || numValue < 0) {
-            callback(new Error(`起始${unitText}必须大于等于0`))
+          if (isNaN(numValue) || numValue < 1) {
+            callback(new Error('起始天必须大于等于1'))
           } else {
             callback()
           }
@@ -201,19 +177,18 @@
       {
         required: true,
         validator: (rule: any, value: any, callback: any) => {
-          const unitText = form.cycleUnit === '1' ? '天' : form.cycleUnit === '0' ? '周' : '周/天'
           if (value === null || value === undefined || value === '') {
-            callback(new Error(`结束${unitText}不能为空`))
+            callback(new Error('结束天不能为空'))
             return
           }
           const numValue = Number(value)
-          if (isNaN(numValue) || numValue < 0) {
-            callback(new Error(`结束${unitText}必须大于等于0`))
+          if (isNaN(numValue) || numValue < 1) {
+            callback(new Error('结束天必须大于等于1'))
             return
           }
           if (form.jobStart !== null && form.jobStart !== undefined) {
             if (numValue < Number(form.jobStart)) {
-              callback(new Error(`结束${unitText}不能小于起始${unitText}`))
+              callback(new Error('结束天不能小于起始天'))
             } else {
               callback()
             }
@@ -332,12 +307,6 @@
     }
   }
 
-  import { useDict, DictType } from '@/utils/dict'
-  const agricultureCycleType = ref<DictType[]>([]) // 周期类型字典数据
-  const getuseDict = async () => {
-    const { agriculture_cycle_type } = await useDict('agriculture_cycle_type')
-    agricultureCycleType.value = agriculture_cycle_type
-  }
 
   import { downloadExcel } from '@/utils/utils'
 
@@ -378,7 +347,6 @@
   // 初始化
   onMounted(() => {
     getList()
-    getuseDict()
     getWebSocket()
   })
 </script>

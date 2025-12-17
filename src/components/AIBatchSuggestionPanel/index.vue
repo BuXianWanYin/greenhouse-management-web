@@ -48,7 +48,11 @@
         <el-col :span="8">
           <div class="info-card">
             <div class="info-label">当前状态</div>
-            <div class="info-value">{{ suggestion.currentStatus || '-' }}</div>
+            <div class="info-value">
+              <el-tag :type="getStatusTagType(suggestion.currentStatus)" size="small">
+                {{ formatStatus(suggestion.currentStatus) }}
+              </el-tag>
+            </div>
           </div>
         </el-col>
       </el-row>
@@ -169,12 +173,15 @@
             <span>种植密度建议</span>
           </div>
         </template>
-        <el-row :gutter="16">
+        <el-row :gutter="16" align="middle">
           <el-col :span="8">
             <div class="density-item">
               <div class="density-label">当前密度</div>
               <div class="density-value">{{ suggestion.densityCurrent || '-' }}</div>
             </div>
+          </el-col>
+          <el-col :span="2" class="density-arrow">
+            <el-icon :size="20"><Right /></el-icon>
           </el-col>
           <el-col :span="8">
             <div class="density-item suggested">
@@ -182,12 +189,11 @@
               <div class="density-value">{{ suggestion.densitySuggested || '-' }}</div>
             </div>
           </el-col>
-          <el-col :span="8">
-            <div class="density-reason" v-if="suggestion.densityReason">
-              {{ suggestion.densityReason }}
-            </div>
-          </el-col>
         </el-row>
+        <div class="density-reason-box" v-if="suggestion.densityReason">
+          <el-icon><InfoFilled /></el-icon>
+          <span>{{ suggestion.densityReason }}</span>
+        </div>
       </el-card>
       
       <!-- 产量预估 -->
@@ -327,7 +333,7 @@ import { ElMessage, ElNotification } from 'element-plus'
 import { 
   Loading, MagicStick, Refresh, Sunny, Place, Grid, 
   TrendCharts, Right, Top, List, WarningFilled, Calendar, 
-  Document, Warning
+  Document, Warning, InfoFilled
 } from '@element-plus/icons-vue'
 import { AgricultureDecisionService } from '@/api/agriculture/decisionApi'
 import type { 
@@ -393,6 +399,30 @@ const getStatusClass = (text: string | null | undefined) => {
     return 'status-success'
   }
   return ''
+}
+
+// 状态映射
+const statusMap: Record<string, string> = {
+  '0': '未开始',
+  '1': '进行中',
+  '2': '已完成',
+  '3': '已取消'
+}
+
+// 格式化状态显示
+const formatStatus = (status: string | null | undefined) => {
+  if (!status) return '-'
+  return statusMap[String(status)] || status
+}
+
+// 获取状态标签类型
+const getStatusTagType = (status: string | null | undefined) => {
+  const s = String(status)
+  if (s === '0') return 'info'
+  if (s === '1') return 'success'
+  if (s === '2') return 'primary'
+  if (s === '3') return 'danger'
+  return 'info'
 }
 
 // 计时器
@@ -678,11 +708,27 @@ defineExpose({
   }
 }
 
-.density-reason {
-  display: flex;
-  align-items: center;
+.density-arrow {
+  text-align: center;
   color: var(--el-text-color-secondary);
+}
+
+.density-reason-box {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--el-color-info-light-9);
+  border-radius: 6px;
+  color: var(--el-text-color-regular);
   font-size: 13px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  
+  .el-icon {
+    color: var(--el-color-info);
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
 }
 
 .yield-card {
