@@ -75,13 +75,12 @@
     </el-card>
 
     <!-- AI决策建议面板（选中预警时显示） -->
-    <el-card v-if="selectedAlert" class="card-margin-bottom">
-      <AIDecisionPanel
-        type="alert"
-        :target-id="selectedAlert.alertId"
-        :auto-load="true"
+    <el-dialog title="AI预警处理建议" v-model="showAISuggestionDialog" width="900px" append-to-body>
+      <AIAlertSuggestionPanel
+        v-if="selectedAlert"
+        :alert-id="selectedAlert.alertId"
       />
-    </el-card>
+    </el-dialog>
 
     <!-- 表格 -->
     <el-card>
@@ -174,7 +173,7 @@ import { FormInstance } from 'element-plus'
 import { AgricultureAlertService } from '@/api/agriculture/alertApi'
 import { AgricultureAlertResult } from '@/types/agriculture/alert'
 import { downloadExcel } from '@/utils/utils'
-import AIDecisionPanel from '@/components/AIDecisionPanel/index.vue'
+import AIAlertSuggestionPanel from '@/components/AIAlertSuggestionPanel/index.vue'
 
 const loading = ref(false)
 const alertList = ref<AgricultureAlertResult[]>([])
@@ -183,6 +182,7 @@ const total = ref(0)
 const ids = ref<number[]>([])
 const queryFormRef = ref<FormInstance>()
 const selectedAlert = ref<AgricultureAlertResult | null>(null)
+const showAISuggestionDialog = ref(false)
 
 const queryParams = reactive({
   pageNum: 1,
@@ -281,9 +281,10 @@ const handleExport = () => {
   downloadExcel(AgricultureAlertService.exportAlert(queryParams))
 }
 
-/** 行点击事件 */
+/** 行点击打开AI建议 */
 const handleRowClick = (row: AgricultureAlertResult) => {
   selectedAlert.value = row
+  showAISuggestionDialog.value = true
 }
 
 onMounted(() => {

@@ -122,11 +122,10 @@
     </el-dialog>
 
     <!-- AI环境调控建议对话框 -->
-    <el-dialog title="AI环境调控建议" v-model="showAISuggestionDialog" width="800px" append-to-body>
-      <AIDecisionPanel
+    <el-dialog title="AI环境调控建议" v-model="showAISuggestionDialog" width="900px" append-to-body>
+      <AIEnvironmentSuggestionPanel
         v-if="selectedPastureIdForAI"
-        type="environment"
-        :target-id="selectedPastureIdForAI"
+        :pasture-id="selectedPastureIdForAI"
         :auto-load="true"
       />
     </el-dialog>
@@ -141,7 +140,7 @@
   import {FormInstance} from 'element-plus'
   import {AgriculturePastureResult} from '@/types/agriculture/pasture'
   import { Location, DataLine, EditPen, MagicStick } from '@element-plus/icons-vue' // 导入图标组件
-  import AIDecisionPanel from '@/components/AIDecisionPanel/index.vue'
+  import AIEnvironmentSuggestionPanel from '@/components/AIEnvironmentSuggestionPanel/index.vue'
   // 导入图片
   import pastureImage from '@/assets/img/pasture/ycgs.jpeg'
   import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'

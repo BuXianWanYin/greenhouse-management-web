@@ -1,6 +1,9 @@
 import request from '@/utils/http'
 import { BaseResult } from '@/types/axios'
 import { AgricultureBatchAiSuggestionInfoResult } from '@/types/agriculture/batchAiSuggestion'
+import { AgricultureEnvironmentAiSuggestionInfoResult } from '@/types/agriculture/environmentAiSuggestion'
+import { AgricultureResourceAiSuggestionInfoResult } from '@/types/agriculture/resourceAiSuggestion'
+import { AgricultureAlertAiSuggestionInfoResult } from '@/types/agriculture/alertAiSuggestion'
 
 /**
  * AI决策API超时时间（2分钟）
@@ -22,44 +25,68 @@ export class AgricultureDecisionService {
     })
   }
 
+  // ==================== 环境调控建议 ====================
+
   /**
-   * 生成人员推荐建议
+   * 触发异步生成环境调控建议
    */
-  static recommendEmployees(taskId: number | string) {
-    return request.get<BaseResult<string>>({
-      url: `/agriculture/decision/personnel/${taskId}`,
+  static triggerGenerateEnvironmentSuggestion(pastureId: number | string) {
+    return request.post<BaseResult<string>>({
+      url: `/agriculture/decision/environment/generate/${pastureId}`,
       timeout: AI_DECISION_TIMEOUT
     })
   }
 
   /**
-   * 生成环境调控建议
+   * 获取温室最新的环境调控AI建议
    */
-  static generateEnvironmentSuggestions(pastureId: number | string) {
-    return request.get<BaseResult<string>>({
-      url: `/agriculture/decision/environment/${pastureId}`,
-      timeout: AI_DECISION_TIMEOUT
+  static getLatestEnvironmentSuggestion(pastureId: number | string) {
+    return request.get<AgricultureEnvironmentAiSuggestionInfoResult>({
+      url: `/agriculture/decision/environment/latest/${pastureId}`
     })
   }
 
+  // ==================== 资源采购建议 ====================
+
   /**
-   * 生成资源采购建议
+   * 触发异步生成资源采购建议
    */
-  static generateResourceSuggestions(resourceId?: number | string) {
-    return request.get<BaseResult<string>>({
-      url: '/agriculture/decision/resource',
+  static triggerGenerateResourceSuggestion(resourceId?: number | string) {
+    return request.post<BaseResult<string>>({
+      url: '/agriculture/decision/resource/generate',
       params: resourceId ? { resourceId } : {},
       timeout: AI_DECISION_TIMEOUT
     })
   }
 
   /**
-   * 生成预警处理建议
+   * 获取农资最新的采购AI建议
    */
-  static generateAlertHandlingSuggestions(alertId: number | string) {
-    return request.get<BaseResult<string>>({
-      url: `/agriculture/decision/alert/${alertId}`,
+  static getLatestResourceSuggestion(resourceId?: number | string) {
+    return request.get<AgricultureResourceAiSuggestionInfoResult>({
+      url: '/agriculture/decision/resource/latest',
+      params: resourceId ? { resourceId } : {}
+    })
+  }
+
+  // ==================== 预警处理建议 ====================
+
+  /**
+   * 触发异步生成预警处理建议
+   */
+  static triggerGenerateAlertSuggestion(alertId: number | string) {
+    return request.post<BaseResult<string>>({
+      url: `/agriculture/decision/alert/generate/${alertId}`,
       timeout: AI_DECISION_TIMEOUT
+    })
+  }
+
+  /**
+   * 获取预警最新的处理AI建议
+   */
+  static getLatestAlertSuggestion(alertId: number | string) {
+    return request.get<AgricultureAlertAiSuggestionInfoResult>({
+      url: `/agriculture/decision/alert/latest/${alertId}`
     })
   }
 

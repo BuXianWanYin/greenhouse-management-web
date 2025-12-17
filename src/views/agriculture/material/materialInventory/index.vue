@@ -246,15 +246,10 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="loadAISuggestion">获取建议</el-button>
-        </el-form-item>
       </el-form>
-      <AIDecisionPanel
-        v-if="showAISuggestionContent"
-        type="resource"
-        :target-id="selectedResourceIdForAI || undefined"
-        :auto-load="false"
+      <AIResourceSuggestionPanel
+        ref="aiResourcePanelRef"
+        :resource-id="selectedResourceIdForAI"
       />
     </el-dialog>
   </div>
@@ -262,7 +257,7 @@
 
 <script setup lang="ts">
 import { EditPen, Delete, Plus, MagicStick } from '@element-plus/icons-vue'
-import AIDecisionPanel from '@/components/AIDecisionPanel/index.vue'
+import AIResourceSuggestionPanel from '@/components/AIResourceSuggestionPanel/index.vue'
 import { ref, reactive, onMounted, computed } from 'vue'
 import { resetForm } from '@/utils/utils'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -311,11 +306,7 @@ const userStore = useUserStore()
 // AI决策建议相关
 const showAISuggestionDialog = ref(false)
 const selectedResourceIdForAI = ref<number | string | null>(null)
-const showAISuggestionContent = ref(false)
-
-const loadAISuggestion = () => {
-  showAISuggestionContent.value = true
-}
+const aiResourcePanelRef = ref<InstanceType<typeof AIResourceSuggestionPanel> | null>(null)
 
 const columns = reactive([
   { name: '库存ID', show: false },
