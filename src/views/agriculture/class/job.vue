@@ -101,7 +101,7 @@
   import { AgricultureJobService } from '@/api/agriculture/jobApi'
   import { ref, reactive } from 'vue'
   import { resetForm } from '@/utils/utils'
-  import { ElMessage, ElMessageBox } from 'element-plus'
+  import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
   import { FormInstance } from 'element-plus'
   import { AgricultureJobResult } from '@/types/agriculture/job'
   const jobList = ref<AgricultureJobResult[]>([])
@@ -303,7 +303,12 @@
       classType: prop.classType
     })
     if (res.code === 200) {
-      ElMessage.success(res.msg)
+      ElNotification({
+        title: 'AI分析已开始',
+        message: '正在调用DeepSeek AI生成建议，预计需要1-2分钟',
+        type: 'success',
+        duration: 5000
+      })
     }
   }
 

@@ -317,7 +317,12 @@ const handleAiAdd = async () => {
       classType: props.classType
     })
     if (res.code === 200) {
-      ElMessage.success('操作成功 请耐心等待报告生成 预估时间30s')
+      ElNotification({
+        title: 'AI分析已开始',
+        message: '正在调用DeepSeek AI生成建议，预计需要1-2分钟',
+        type: 'success',
+        duration: 5000
+      })
     }
   } catch (error) {
     console.error('智能分析失败:', error)

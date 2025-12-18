@@ -279,7 +279,7 @@ const handleGenerate = async () => {
     if (res.code === 200) {
       ElNotification({
         title: 'AI分析已开始',
-        message: '正在分析预警信息，请稍后刷新查看',
+        message: '正在调用DeepSeek AI生成建议，预计需要1-2分钟',
         type: 'success',
         duration: 5000
       })
