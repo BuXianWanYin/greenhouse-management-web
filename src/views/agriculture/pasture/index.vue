@@ -66,9 +66,6 @@
             <el-button class="card-action-btn edit" size="small" @click="handleUpdate(pasture)">
               <el-icon><Edit /></el-icon>编辑
             </el-button>
-            <el-button class="card-action-btn ai" size="small" @click="showAISuggestion(pasture.id)" v-hasPermi="['agriculture:decision:environment']">
-              <el-icon><MagicStick /></el-icon>AI建议
-            </el-button>
             <el-button class="card-action-btn delete" size="small" @click="handleDelete(pasture)">
               <el-icon><Delete /></el-icon>删除
             </el-button>
@@ -121,26 +118,17 @@
       </template>
     </el-dialog>
 
-    <!-- AI环境调控建议对话框 -->
-    <el-dialog title="AI环境调控建议" v-model="showAISuggestionDialog" width="900px" append-to-body>
-      <AIEnvironmentSuggestionPanel
-        v-if="selectedPastureIdForAI"
-        :pasture-id="selectedPastureIdForAI"
-        :auto-load="true"
-      />
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
   import {AgriculturePastureService} from "@/api/agriculture/pastureApi";
-  import {ref, reactive, onMounted} from 'vue' // 导入 onMounted
+  import {ref, reactive, onMounted} from 'vue'
   import {resetForm} from '@/utils/utils'
   import {ElMessage, ElMessageBox} from 'element-plus'
   import {FormInstance} from 'element-plus'
   import {AgriculturePastureResult} from '@/types/agriculture/pasture'
-  import { Location, DataLine, EditPen, MagicStick } from '@element-plus/icons-vue' // 导入图标组件
-  import AIEnvironmentSuggestionPanel from '@/components/AIEnvironmentSuggestionPanel/index.vue'
+  import { Location, DataLine, EditPen } from '@element-plus/icons-vue'
   // 导入图片
   import pastureImage from '@/assets/img/pasture/ycgs.jpeg'
   import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
@@ -152,16 +140,8 @@
   const multiple = ref(true);
   const total = ref(0);
   const title = ref("");
-  const queryRef = ref<FormInstance>() // 明确 queryRef 的类型
+  const queryRef = ref<FormInstance>()
   const pastureRef = ref<FormInstance>()
-  const showAISuggestionDialog = ref(false);
-  const selectedPastureIdForAI = ref<number | string | null>(null);
-
-  // 打开AI建议对话框
-  const showAISuggestion = (pastureId: number | string) => {
-    selectedPastureIdForAI.value = pastureId;
-    showAISuggestionDialog.value = true;
-  }
 
   // 定义初始表单状态
   const initialFormState = {
