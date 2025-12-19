@@ -23,6 +23,7 @@ import { useSettingStore } from '@/store/modules/setting'
 import { AuroraDia } from '@/utils/aurora-dia'
 import { useUserStore } from '@/store/modules/user'
 import chat from './chat.vue'
+import mittBus from '@/utils/mittBus'
 
 const settingStore = useSettingStore()
 const userStore = useUserStore()
@@ -63,6 +64,10 @@ const cssVariables = computed(() => {
 
 onMounted(() => {
     initializeBot()
+    // 监听来自 TopBar 的打开聊天窗口事件
+    mittBus.on('toggleBotChat', () => {
+        showChat.value = true
+    })
 })
 </script>
 

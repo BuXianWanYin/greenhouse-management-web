@@ -146,11 +146,7 @@
   })
 
   const msgList: any = [
-    {
-      title: '阿俊 关注了你',
-      time: '2021-2-26 23:50',
-      avatar: avatar
-    }
+    
   ]
 
   const changeBar = (index: number) => {

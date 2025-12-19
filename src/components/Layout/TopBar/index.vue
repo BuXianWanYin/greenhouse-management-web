@@ -66,48 +66,12 @@
             <i class="iconfont-sys">{{ isFullscreen ? '&#xe62d;' : '&#xe8ce;' }}</i>
           </div>
         </div>
-        <!-- 预警中心 -->
-        <div class="btn-box alert-btn" @click="visibleAlertCenter">
-          <div class="btn alert-button">
-            <el-badge :value="alertCount" :max="99" :hidden="alertCount === 0">
-              <el-icon :size="20"><Bell /></el-icon>
-            </el-badge>
-          </div>
-        </div>
         <!-- 通知 -->
         <div class="btn-box notice-btn" @click="visibleNotice">
           <div class="btn notice-button">
             <i class="iconfont-sys notice-btn">&#xe6c2;</i>
             <span class="count notice-btn"></span>
           </div>
-        </div>
-        <!-- 聊天 -->
-        <div class="btn-box chat-btn" @click="openChat">
-          <div class="btn chat-button">
-            <i class="iconfont-sys">&#xe89a;</i>
-            <span class="dot"></span>
-          </div>
-        </div>
-        <!-- 语言 -->
-        <div class="btn-box" v-if="showLanguage">
-          <el-dropdown @command="changeLanguage" popper-class="langDropDownStyle">
-            <div class="btn language-btn">
-              <i class="iconfont-sys">&#xe611;</i>
-            </div>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <div v-for="item in languageOptions" :key="item.value" class="lang-btn-item">
-                  <el-dropdown-item
-                    :command="item.value"
-                    :class="{ 'is-selected': locale === item.value }"
-                  >
-                    <span class="menu-txt">{{ item.label }}</span>
-                    <i v-if="locale === item.value" class="iconfont-sys">&#xe621;</i>
-                  </el-dropdown-item>
-                </div>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
         </div>
         <!-- 设置 -->
         <div class="btn-box" @click="openSetting">
@@ -119,17 +83,10 @@
             </template>
             <template #default>
               <p
-                >点击这里查看<span :style="{ color: systemThemeColor }"> 主题风格 </span>、
-                <span :style="{ color: systemThemeColor }"> 开启顶栏菜单 </span>等更多配置
+                >点击这里查看<span :style="{ color: systemThemeColor }"> 开启顶栏菜单 </span>等更多配置
               </p>
             </template>
           </el-popover>
-        </div>
-        <!-- 切换主题 -->
-        <div class="btn-box" @click="themeAnimation">
-          <div class="btn theme-btn">
-            <i class="iconfont-sys">{{ isDark ? '&#xe6b5;' : '&#xe725;' }}</i>
-          </div>
         </div>
 
         <!-- 用户头像、菜单 -->
@@ -183,7 +140,6 @@
     <slot></slot>
 
     <Notice v-model:value="showNotice" ref="notice" />
-    <AlertCenter v-model:value="showAlertCenter" />
   </div>
 </template>
 
@@ -191,11 +147,8 @@
   import defaultAvatar from '@/assets/img/avatar/default-avatar.png'
   import Breadcrumb from '../Breadcrumb/index.vue'
   import Notice from '../Notice/index.vue'
-  import AlertCenter from '../AlertCenter/index.vue'
   import MixedMenu from '../MixedMenu/index.vue'
-  import { Bell } from '@element-plus/icons-vue'
-  import { AgricultureAlertService } from '@/api/agriculture/alertApi'
-  import { LanguageEnum, MenuTypeEnum, MenuWidth } from '@/enums/appEnum'
+  import { MenuTypeEnum, MenuWidth } from '@/enums/appEnum'
   import { useSettingStore } from '@/store/modules/setting'
   import { useUserStore } from '@/store/modules/user'
   import { useFullscreen } from '@vueuse/core'
@@ -205,9 +158,7 @@
   import mittBus from '@/utils/mittBus'
   import { useMenuStore } from '@/store/modules/menu'
   import AppConfig from '@/config'
-  import { languageOptions } from '@/language'
   const isWindows = navigator.userAgent.includes('Windows')
-  const { locale } = useI18n()
 
   const settingStore = useSettingStore()
   const userStore = useUserStore()
@@ -215,15 +166,11 @@
 
   const showMenuButton = computed(() => settingStore.showMenuButton)
   const showRefreshButton = computed(() => settingStore.showRefreshButton)
-  const showLanguage = computed(() => settingStore.showLanguage)
   const menuOpen = computed(() => settingStore.menuOpen)
   const showCrumbs = computed(() => settingStore.showCrumbs)
   const userInfo = computed(() => userStore.getUserInfo)
-  const language = computed(() => userStore.language)
   const showNotice = ref(false)
   const notice = ref(null)
-  const showAlertCenter = ref(false)
-  const alertCount = ref(0)
   const systemThemeColor = computed(() => settingStore.systemThemeColor)
   const showSettingGuide = computed(() => settingStore.showSettingGuide)
   const userMenuPopover = ref()
@@ -233,11 +180,9 @@
   const isDualMenu = computed(() => menuType.value === MenuTypeEnum.DUAL_MENU)
   const isTopMenu = computed(() => menuType.value === MenuTypeEnum.TOP)
   const isTopLeftMenu = computed(() => menuType.value === MenuTypeEnum.TOP_LEFT)
-  const isDark = computed(() => settingStore.isDark)
   const tabStyle = computed(() => settingStore.tabStyle)
   import { useCommon } from '@/composables/useCommon'
   import { WEB_LINKS } from '@/utils/links'
-  import { themeAnimation } from '@/utils/theme/animation'
 
   const { t } = useI18n()
 
@@ -248,12 +193,6 @@
   })
 
   onMounted(() => {
-    initLanguage()
-    loadAlertCount()
-    // 每30秒刷新一次预警数量
-    setInterval(() => {
-      loadAlertCount()
-    }, 30000)
     document.addEventListener('click', bodyCloseNotice)
   })
 
@@ -292,7 +231,7 @@
   }
 
   const toGithub = () => {
-    window.open(WEB_LINKS.GITHUB)
+    window.open(WEB_LINKS.GITHUB_HOME)
   }
 
   const toHome = () => {
@@ -316,17 +255,6 @@
     setTimeout(() => {
       useCommon().refresh()
     }, time)
-  }
-
-  const initLanguage = () => {
-    locale.value = language.value
-  }
-
-  const changeLanguage = (lang: LanguageEnum) => {
-    if (locale.value === lang) return
-    locale.value = lang
-    userStore.setLanguage(lang)
-    reload(50)
   }
 
   const openSetting = () => {
@@ -360,26 +288,6 @@
 
   const visibleNotice = () => {
     showNotice.value = !showNotice.value
-  }
-
-  const visibleAlertCenter = () => {
-    showAlertCenter.value = !showAlertCenter.value
-  }
-
-  // 加载预警数量
-  const loadAlertCount = async () => {
-    try {
-      const res = await AgricultureAlertService.getUnhandledCount()
-      if (res.code === 200 && res.data) {
-        alertCount.value = res.data.all || 0
-      }
-    } catch (error) {
-      console.error('加载预警数量失败:', error)
-    }
-  }
-
-  const openChat = () => {
-    mittBus.emit('openChat')
   }
 
   const lockScreen = () => {
