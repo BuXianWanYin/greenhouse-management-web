@@ -458,10 +458,13 @@
       closeOnClickModal: false,
       inputPattern: /^.{5,20}$/,
       inputErrorMessage: '用户密码长度必须介于 5 和 20 之间'
-    }).then((value: any) => {
-      UserService.resetUserPwd({ userId: row.userId, password: value }).then((response) =>
+    }).then(({ value }: { value: string }) => {
+      UserService.resetUserPwd({ userId: row.userId, password: value }).then((response) => {
         ElMessage.success(response.msg)
-      )
+        getList()
+      })
+    }).catch(() => {
+      // 用户取消操作
     })
   }
 

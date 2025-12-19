@@ -1,19 +1,25 @@
 <template>
-  <div class="app-container-sm">
+  <div class="page-content">
     <!-- 工具栏 -->
-    <el-card class="card-margin-bottom">
-      <div class="toolbar">
-        <div class="toolbar-left">
-          <el-form :model="queryParams" ref="queryFormRef" :inline="true" label-width="80px">
-            <el-form-item label="用户姓名" prop="userName">
+    <table-bar
+      :showTop="false"
+      @search="handleQuery"
+      @reset="resetForm(queryFormRef)"
+      @changeColumn="changeColumn"
+      :columns="columns"
+    >
+      <template #top>
+        <el-form :model="queryParams" ref="queryFormRef" label-width="82px">
+          <el-row :gutter="20">
+            <el-col :xs="24" :sm="12" :lg="6">
+              <el-form-item label="用户姓名" prop="userId">
               <el-select
                 v-model="queryParams.userId"
                 placeholder="请选择用户"
                 clearable
                 filterable
-                size="small"
-                style="width: 200px"
-                @change="handleQuery"
+                  style="width: 100%"
+                  @keyup.enter="handleQuery"
               >
                 <el-option
                   v-for="user in userList"
@@ -23,14 +29,15 @@
                 />
               </el-select>
             </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :lg="6">
             <el-form-item label="温室" prop="pastureId">
               <el-select
                 v-model="queryParams.pastureId"
                 placeholder="请选择温室"
                 clearable
-                size="small"
-                style="width: 200px"
-                @change="handleQuery"
+                  style="width: 100%"
+                  @keyup.enter="handleQuery"
               >
                 <el-option
                   v-for="pasture in pastureList"
@@ -40,34 +47,39 @@
                 />
               </el-select>
             </el-form-item>
-            <el-form-item>
-              <el-button type="primary" :icon="Search" size="small" @click="handleQuery">搜索</el-button>
-              <el-button :icon="Refresh" size="small" @click="resetQuery">重置</el-button>
-            </el-form-item>
+            </el-col>
+          </el-row>
           </el-form>
-        </div>
-        <div class="toolbar-right">
-          <el-radio-group v-model="viewMode" size="small" @change="handleViewChange">
-            <el-radio-button label="calendar">日历视图</el-radio-button>
-            <el-radio-button label="table">表格视图</el-radio-button>
-          </el-radio-group>
-          <el-button
-            type="primary"
-            :icon="Plus"
-            size="small"
-            @click="handleAdd"
-            v-hasPermi="['agriculture:schedule:add']"
-            style="margin-left: 12px"
-          >新增</el-button>
-          <el-button
-            :icon="Download"
-            size="small"
-            @click="handleExport"
-            v-hasPermi="['agriculture:schedule:export']"
-          >导出</el-button>
-        </div>
-      </div>
-    </el-card>
+      </template>
+      <template #bottom>
+        <el-button
+          :type="viewMode === 'calendar' ? 'primary' : ''"
+          @click="switchToCalendar"
+          v-ripple
+        >日历视图</el-button>
+        <el-button
+          :type="viewMode === 'table' ? 'primary' : ''"
+          @click="switchToTable"
+          v-ripple
+        >表格视图</el-button>
+        <el-button
+          @click="handleAdd"
+          v-hasPermi="['agriculture:schedule:add']"
+          v-ripple
+        >新增</el-button>
+        <el-button
+          @click="handleDelete"
+          :disabled="multiple"
+          v-hasPermi="['agriculture:schedule:remove']"
+          v-ripple
+        >删除</el-button>
+        <el-button
+          @click="handleExport"
+          v-hasPermi="['agriculture:schedule:export']"
+          v-ripple
+        >导出</el-button>
+      </template>
+    </table-bar>
 
     <!-- 日历视图 -->
     <el-card v-if="viewMode === 'calendar'" v-loading="loading">
@@ -147,33 +159,38 @@
     </el-card>
 
     <!-- 表格视图 -->
-    <el-card v-else>
-      <el-table
-        v-loading="loading"
-        :data="scheduleList"
-        @selection-change="handleSelectionChange"
-        stripe
-        style="width: 100%"
-      >
-        <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="排班ID" prop="scheduleId" min-width="100" />
-        <el-table-column label="用户姓名" min-width="120">
+    <art-table
+      v-else
+      v-loading="loading"
+      :data="scheduleList"
+      selection
+      :total="total"
+      :current-page="queryParams.pageNum"
+      :page-size="queryParams.pageSize"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      @selection-change="handleSelectionChange"
+      row-key="scheduleId"
+    >
+      <template #default>
+        <el-table-column label="排班ID" prop="scheduleId" align="center" v-if="columns[0].show" />
+        <el-table-column label="用户姓名" min-width="120" v-if="columns[1].show">
           <template #default="scope">
             {{ scope.row.nickName || scope.row.userName || '未知' }}
           </template>
         </el-table-column>
-        <el-table-column label="温室名称" prop="pastureName" min-width="150" />
-        <el-table-column label="排班日期" prop="scheduleDate" min-width="120" />
-        <el-table-column label="工作开始时间" prop="workStartTime" min-width="160" />
-        <el-table-column label="工作结束时间" prop="workEndTime" min-width="160" />
-        <el-table-column label="工作类型" prop="workType" min-width="100">
+        <el-table-column label="温室名称" prop="pastureName" min-width="150" v-if="columns[2].show" />
+        <el-table-column label="排班日期" prop="scheduleDate" min-width="120" v-if="columns[3].show" />
+        <el-table-column label="工作开始时间" prop="workStartTime" min-width="160" v-if="columns[4].show" />
+        <el-table-column label="工作结束时间" prop="workEndTime" min-width="160" v-if="columns[5].show" />
+        <el-table-column label="工作类型" prop="workType" min-width="100" v-if="columns[6].show">
           <template #default="scope">
             <el-tag v-if="scope.row.workType === 'normal'">正常班</el-tag>
             <el-tag type="warning" v-else-if="scope.row.workType === 'overtime'">加班</el-tag>
             <el-tag type="info" v-else-if="scope.row.workType === 'leave'">请假</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" prop="status" min-width="80">
+        <el-table-column label="状态" prop="status" min-width="80" v-if="columns[7].show">
           <template #default="scope">
             <el-tag :type="scope.row.status === '0' ? 'success' : 'danger'">
               {{ scope.row.status === '0' ? '正常' : '已取消' }}
@@ -198,19 +215,8 @@
             >删除</el-button>
           </template>
         </el-table-column>
-      </el-table>
-
-      <el-pagination
-        v-show="total > 0"
-        :total="total"
-        v-model:current-page="queryParams.pageNum"
-        v-model:page-size="queryParams.pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="getList"
-        @current-change="getList"
-      />
-    </el-card>
+      </template>
+    </art-table>
 
     <!-- 添加或修改对话框 -->
     <el-dialog :title="title" v-model="open" width="600px" append-to-body>
@@ -252,7 +258,31 @@
             placeholder="选择日期"
             style="width: 100%"
             value-format="YYYY-MM-DD"
+            @change="handleDateChange"
           />
+        </el-form-item>
+        <el-form-item label="排班规则" prop="ruleId">
+          <el-select
+            v-model="form.ruleId"
+            placeholder="请选择排班规则（可选）"
+            clearable
+            filterable
+            style="width: 100%"
+            @change="handleRuleChange"
+          >
+            <el-option
+              v-for="rule in ruleList"
+              :key="rule.ruleId"
+              :label="rule.ruleName"
+              :value="rule.ruleId"
+              :disabled="!isRuleApplicable(rule)"
+            >
+              <span>{{ rule.ruleName }}</span>
+              <span style="color: #8492a6; font-size: 12px; margin-left: 10px">
+                {{ formatWorkDays(rule.workDays) }} {{ rule.workStartTime }}-{{ rule.workEndTime }}
+              </span>
+            </el-option>
+          </el-select>
         </el-form-item>
         <el-form-item label="工作开始时间" prop="workStartTime">
           <el-date-picker
@@ -308,7 +338,8 @@ import { AgricultureScheduleService } from '@/api/agriculture/scheduleApi'
 import { AgricultureEmployeeScheduleResult } from '@/types/agriculture/schedule'
 import { UserService } from '@/api/system/userApi'
 import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
-import { downloadExcel } from '@/utils/utils'
+import { AgricultureScheduleRuleService, AgricultureScheduleRuleResult } from '@/api/agriculture/scheduleRuleApi'
+import { downloadExcel, resetForm } from '@/utils/utils'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
@@ -324,8 +355,30 @@ const scheduleRef = ref<FormInstance>()
 const queryFormRef = ref<FormInstance>()
 const userList = ref<any[]>([])
 const pastureList = ref<any[]>([])
+const ruleList = ref<AgricultureScheduleRuleResult[]>([])
 const viewMode = ref<'calendar' | 'table'>('calendar')
 const currentDate = ref(dayjs().format('YYYY-MM'))
+
+// 表格列定义（用于列显示控制）
+const columns = reactive([
+  { name: '排班ID', show: true },
+  { name: '用户姓名', show: true },
+  { name: '温室名称', show: true },
+  { name: '排班日期', show: true },
+  { name: '工作开始时间', show: true },
+  { name: '工作结束时间', show: true },
+  { name: '工作类型', show: true },
+  { name: '状态', show: true }
+])
+
+// 列显示控制
+const changeColumn = (list: any) => {
+  columns.forEach((col, index) => {
+    if (list[index]) {
+      col.show = list[index].show
+    }
+  })
+}
 
 const queryParams = reactive({
   pageNum: 1,
@@ -408,13 +461,16 @@ const getSchedulesForDate = (date: string) => {
   })
 }
 
-// 切换视图
-const handleViewChange = () => {
-  if (viewMode.value === 'table') {
-    getList()
-  } else {
-    loadCalendarData()
-  }
+// 切换到日历视图
+const switchToCalendar = () => {
+  viewMode.value = 'calendar'
+  loadCalendarData()
+}
+
+// 切换到表格视图
+const switchToTable = () => {
+  viewMode.value = 'table'
+  getList()
 }
 
 // 加载日历数据
@@ -587,8 +643,20 @@ const handleQuery = () => {
 
 /** 重置按钮操作 */
 const resetQuery = () => {
-  queryFormRef.value?.resetFields()
+  resetForm(queryFormRef)
   handleQuery()
+}
+
+/** 每页条数改变 */
+const handleSizeChange = (size: number) => {
+  queryParams.pageSize = size
+  getList()
+}
+
+/** 当前页改变 */
+const handleCurrentChange = (page: number) => {
+  queryParams.pageNum = page
+  getList()
 }
 
 /** 多选框选中数据 */
@@ -649,9 +717,15 @@ const submitForm = async () => {
 }
 
 /** 删除按钮操作 */
-const handleDelete = async (row: AgricultureEmployeeScheduleResult) => {
-  const scheduleIds = row.scheduleId || ids.value
-  await ElMessageBox.confirm('是否确认删除排班编号为"' + scheduleIds + '"的数据项？')
+const handleDelete = async (row?: AgricultureEmployeeScheduleResult) => {
+  const scheduleIds = row?.scheduleId || ids.value
+  if (!scheduleIds || (Array.isArray(scheduleIds) && scheduleIds.length === 0)) {
+    ElMessage.warning('请选择要删除的数据')
+    return
+  }
+  await ElMessageBox.confirm('是否确认删除选中的排班数据？', '提示', {
+    type: 'warning'
+  })
   const res = await AgricultureScheduleService.deleteSchedule(scheduleIds)
   if (res.code === 200) {
     if (viewMode.value === 'calendar') {
@@ -731,6 +805,83 @@ const getUserList = async () => {
   }
 }
 
+/** 获取排班规则列表 */
+const getRuleList = async () => {
+  try {
+    const res = await AgricultureScheduleRuleService.listRule({ status: '0', pageNum: 1, pageSize: 1000 })
+    if (res.code === 200) {
+      ruleList.value = res.rows || []
+    }
+  } catch (error) {
+    console.error('获取排班规则列表失败:', error)
+  }
+}
+
+/** 格式化工作日显示 */
+const formatWorkDays = (workDays: string) => {
+  if (!workDays) return ''
+  const dayMap: Record<string, string> = {
+    '1': '周一',
+    '2': '周二',
+    '3': '周三',
+    '4': '周四',
+    '5': '周五',
+    '6': '周六',
+    '7': '周日'
+  }
+  return workDays.split(',').map(d => dayMap[d] || d).join('、')
+}
+
+/** 检查规则是否适用于选中的日期 */
+const isRuleApplicable = (rule: AgricultureScheduleRuleResult) => {
+  if (!form.scheduleDate || !rule.workDays) return true
+  const date = dayjs(form.scheduleDate)
+  const dayOfWeek = date.day() === 0 ? '7' : String(date.day()) // 转换为1-7格式（周一到周日）
+  return rule.workDays.split(',').includes(dayOfWeek)
+}
+
+/** 日期变化时处理 */
+const handleDateChange = () => {
+  // 如果已选择规则，检查规则是否适用，如果不适用则清空规则
+  if (form.ruleId) {
+    const selectedRule = ruleList.value.find(r => r.ruleId === form.ruleId)
+    if (selectedRule && !isRuleApplicable(selectedRule)) {
+      ElMessage.warning('所选规则不适用于该日期，已清空规则选择')
+      form.ruleId = null
+      form.workStartTime = ''
+      form.workEndTime = ''
+    }
+  }
+}
+
+/** 规则选择变化时自动填充时间 */
+const handleRuleChange = (ruleId: number | null) => {
+  if (!ruleId) {
+    // 清空规则时不清空时间，让用户手动修改
+    return
+  }
+  
+  const rule = ruleList.value.find(r => r.ruleId === ruleId)
+  if (!rule) return
+  
+  // 检查规则是否适用于当前日期
+  if (form.scheduleDate && !isRuleApplicable(rule)) {
+    ElMessage.warning('所选规则不适用于该日期')
+    form.ruleId = null
+    return
+  }
+  
+  // 如果有排班日期，自动填充工作开始和结束时间
+  if (form.scheduleDate) {
+    const dateStr = form.scheduleDate
+    form.workStartTime = `${dateStr} ${rule.workStartTime || '08:00:00'}`
+    form.workEndTime = `${dateStr} ${rule.workEndTime || '17:00:00'}`
+  } else {
+    // 如果没有日期，只提示用户先选择日期
+    ElMessage.info('请先选择排班日期，规则时间将自动填充')
+  }
+}
+
 /** 获取温室列表 */
 const getPastureList = async () => {
   try {
@@ -759,6 +910,7 @@ watch(
 onMounted(() => {
   getUserList()
   getPastureList()
+  getRuleList()
   if (viewMode.value === 'calendar') {
     loadCalendarData()
   } else {
@@ -768,23 +920,8 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.card-margin-bottom {
-  margin-bottom: 20px;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  
-  .toolbar-left {
-    flex: 1;
-  }
-  
-  .toolbar-right {
-    display: flex;
-    align-items: center;
-  }
+.page-content {
+  padding: 20px;
 }
 
 .calendar-header {

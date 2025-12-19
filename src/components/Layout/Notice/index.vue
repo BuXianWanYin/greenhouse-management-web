@@ -91,7 +91,6 @@
 </template>
 
 <script setup lang="ts">
-  import avatar from '@/assets/img/avatar/default-avatar.png'
   import AppConfig from '@/config'
   import { useI18n } from 'vue-i18n'
   import type { NoticeResult } from '@/types/system/notice'

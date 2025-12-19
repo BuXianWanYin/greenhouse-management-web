@@ -21,6 +21,7 @@
     <div class="role-card">
       <h4 class="form-header h4">角色信息</h4>
       <art-table
+        ref="roleRef"
         v-loading="loading"
         :data="roles.slice((pageNum - 1) * pageSize, pageNum * pageSize)"
         selection
@@ -49,8 +50,8 @@
 <script setup lang="ts">
   import { UserService } from '@/api/system/userApi'
   import { ElMessage } from 'element-plus'
-  import { useRouter } from 'vue-router'
-  import { ref, nextTick } from 'vue'
+  import { useRouter, useRoute } from 'vue-router'
+  import { ref, nextTick, onMounted, watch } from 'vue'
   import { RoleType } from '@/types/system/user'
 
   const router = useRouter()
@@ -60,7 +61,7 @@
   const total = ref(0)
   const pageNum = ref(1)
   const pageSize = ref(10)
-  const roleIds = ref([])
+  const roleIds = ref<number[]>([])
   const roles = ref<RoleType[]>([])
   const roleRef = ref()
   const form = ref({
@@ -71,7 +72,7 @@
 
   /** 关闭按钮 */
   const close = () => {
-    router.push({ path: '/system/user' })
+    router.back()
   }
 
   /** 每页条数改变 */
@@ -82,11 +83,23 @@
   /** 当前页改变 */
   const handleCurrentChange = (page: number) => {
     pageNum.value = page
+    // 切换页面后重新选中当前页的角色
+    selectAssignedRoles()
   }
 
   // 多选框选中数据
   const handleSelectionChange = (selection: any) => {
-    roleIds.value = selection.map((item: any) => item.roleId)
+    // 获取当前页的角色ID
+    const currentPageRoleIds = selection.map((item: any) => item.roleId)
+    // 获取当前页的所有角色ID（包括未选中的）
+    const currentPageAllRoleIds = roles.value
+      .slice((pageNum.value - 1) * pageSize.value, pageNum.value * pageSize.value)
+      .map((r: RoleType) => r.roleId)
+    
+    // 从 roleIds 中移除当前页的所有角色ID
+    const otherPageRoleIds = roleIds.value.filter((id: number) => !currentPageAllRoleIds.includes(id))
+    // 合并其他页的选中角色和当前页的选中角色
+    roleIds.value = [...otherPageRoleIds, ...currentPageRoleIds]
   }
 
   /** 提交按钮 */
@@ -100,26 +113,74 @@
     }
   }
 
-  ;(async () => {
+  // 自动选中已有角色的函数
+  const selectAssignedRoles = async () => {
+    if (!roleRef.value || !roles.value.length) {
+      return
+    }
+    
+    // 等待表格完全渲染
+    await nextTick()
+    // 再等待一小段时间确保表格DOM完全更新
+    setTimeout(() => {
+      if (roleRef.value) {
+        // 获取当前页显示的角色
+        const currentPageRoles = roles.value.slice((pageNum.value - 1) * pageSize.value, pageNum.value * pageSize.value)
+        currentPageRoles.forEach((row: RoleType) => {
+          if (row.flag) {
+            roleRef.value.toggleRowSelection(row, true)
+          }
+        })
+        // 更新已选中的角色ID列表（包含所有页面的已选角色）
+        const selectedRoles = roles.value.filter((r: RoleType) => r.flag)
+        roleIds.value = selectedRoles.map((r: RoleType) => r.roleId)
+      }
+    }, 100)
+  }
+
+  // 监听 roles 数据变化，自动选中已有角色
+  watch(
+    () => roles.value,
+    () => {
+      if (roles.value.length > 0 && !loading.value) {
+        selectAssignedRoles()
+      }
+    },
+    { deep: true }
+  )
+
+  // 监听 loading 状态，当加载完成时选中角色
+  watch(
+    () => loading.value,
+    (newVal) => {
+      if (!newVal && roles.value.length > 0) {
+        selectAssignedRoles()
+      }
+    }
+  )
+
+  onMounted(async () => {
     const userId = route.params && route.params.userId
     if (userId) {
       loading.value = true
-      const res = await UserService.getAuthRole(userId)
-      if (res.code === 200) {
-        form.value = res.user
-        roles.value = res.roles
-        total.value = roles.value.length
-        nextTick(() => {
-          roles.value.forEach((row) => {
-            if (row.flag) {
-              roleRef.value.toggleRowSelection(row)
-            }
-          })
-        })
+      try {
+        const res = await UserService.getAuthRole(userId)
+        if (res.code === 200) {
+          form.value = res.user
+          roles.value = res.roles || []
+          total.value = roles.value.length
+          
+          // 初始化已选中的角色ID列表
+          const selectedRoles = roles.value.filter((r: RoleType) => r.flag)
+          roleIds.value = selectedRoles.map((r: RoleType) => r.roleId)
+        }
+      } catch (error) {
+        console.error('获取角色信息失败:', error)
+      } finally {
         loading.value = false
       }
     }
-  })()
+  })
 </script>
 
 <style scoped>

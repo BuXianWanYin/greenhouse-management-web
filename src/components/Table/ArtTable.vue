@@ -2,6 +2,7 @@
 <template>
   <div class="art-table" :class="{ 'header-background': showHeaderBackground }">
     <el-table
+      ref="tableRef"
       v-loading="loading"
       :data="tableData"
       :row-key="rowKey"
@@ -168,6 +169,25 @@
   const handleCurrentChange = (val: number) => {
     emit('current-change', val)
   }
+
+  // 暴露 el-table 的方法
+  const tableRef = ref()
+  defineExpose({
+    toggleRowSelection: (row: any, selected?: boolean) => {
+      tableRef.value?.toggleRowSelection(row, selected)
+    },
+    clearSelection: () => {
+      tableRef.value?.clearSelection()
+    },
+    toggleAllSelection: () => {
+      tableRef.value?.toggleAllSelection()
+    },
+    setSelection: (rows: any[], selected: boolean) => {
+      rows.forEach(row => {
+        tableRef.value?.toggleRowSelection(row, selected)
+      })
+    }
+  })
 </script>
 
 <style lang="scss" scoped>
