@@ -4,9 +4,7 @@ import {
   AgricultureQualityInspectionListPageResult,
   AgricultureQualityInspectionListResult,
   AgricultureQualityInspectionInfoResult,
-  AgricultureQualityInspectionResult,
-  AgricultureTraceInfoResult,
-  TraceDetailVO
+  AgricultureQualityInspectionResult
 } from '@/types/agriculture/quality'
 
 // 质量追溯管理
@@ -58,27 +56,6 @@ export class AgricultureQualityService {
       },
       responseType: 'blob',
       data
-    })
-  }
-  
-  // 生成溯源信息
-  static generateTrace(batchId: number | string) {
-    return request.post<AgricultureTraceInfoResult>({
-      url: `/agriculture/quality/trace/generate/${batchId}`
-    })
-  }
-  
-  // 查询溯源详情
-  static getTraceDetail(traceCode: string) {
-    return request.get<TraceDetailVO>({
-      url: `/agriculture/quality/trace/${traceCode}`
-    })
-  }
-  
-  // 构建全生命周期追溯数据
-  static buildTraceData(batchId: number | string) {
-    return request.get<TraceDetailVO>({
-      url: `/agriculture/quality/trace/build/${batchId}`
     })
   }
 }

@@ -22,7 +22,7 @@ export const useMqttStore = defineStore('mqtt', () => {
    * 预警主题配置
    */
   const ALERT_TOPICS = {
-    ALERTS: 'fish-dish/alerts' // 预警主题
+    ALERTS: 'dishfish-/alerts' // 预警主题
   }
 
   // 初始化MQTT客户端和消息处理器

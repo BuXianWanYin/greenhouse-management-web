@@ -5,11 +5,7 @@ import {
   AgricultureAlertListResult,
   AgricultureAlertInfoResult,
   AgricultureAlertResult,
-  AlertCountInfoResult,
-  AgricultureAlertThresholdListPageResult,
-  AgricultureAlertThresholdListResult,
-  AgricultureAlertThresholdInfoResult,
-  AgricultureAlertThresholdResult
+  AlertCountInfoResult
 } from '@/types/agriculture/alert'
 
 // 统一预警管理
@@ -84,67 +80,6 @@ export class AgricultureAlertService {
   static exportAlert(data: any) {
     return request.post({
       url: '/agriculture/alert/export',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      responseType: 'blob',
-      data
-    })
-  }
-}
-
-// 预警阈值配置管理
-export class AgricultureAlertThresholdService {
-  // 查询阈值配置列表
-  static listThreshold(query: any) {
-    return request.get<AgricultureAlertThresholdListPageResult>({
-      url: '/agriculture/alert/threshold/list',
-      params: query
-    })
-  }
-  
-  // 查询阈值配置详情
-  static getThreshold(thresholdId: number | string) {
-    return request.get<AgricultureAlertThresholdInfoResult>({
-      url: `/agriculture/alert/threshold/${thresholdId}`
-    })
-  }
-  
-  // 新增阈值配置
-  static addThreshold(data: AgricultureAlertThresholdResult) {
-    return request.post<CodeMsgResult>({
-      url: '/agriculture/alert/threshold',
-      data
-    })
-  }
-  
-  // 修改阈值配置
-  static updateThreshold(data: AgricultureAlertThresholdResult) {
-    return request.put<CodeMsgResult>({
-      url: '/agriculture/alert/threshold',
-      data
-    })
-  }
-  
-  // 删除阈值配置
-  static deleteThreshold(thresholdIds: (number | string)[]) {
-    return request.del<CodeMsgResult>({
-      url: `/agriculture/alert/threshold/${thresholdIds.join(',')}`
-    })
-  }
-  
-  // 启用/禁用阈值配置
-  static toggleThreshold(thresholdId: number | string, enabled: string) {
-    return request.post<CodeMsgResult>({
-      url: `/agriculture/alert/threshold/toggle/${thresholdId}`,
-      data: enabled
-    })
-  }
-  
-  // 导出阈值配置列表
-  static exportThreshold(data: any) {
-    return request.post({
-      url: '/agriculture/alert/threshold/export',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },

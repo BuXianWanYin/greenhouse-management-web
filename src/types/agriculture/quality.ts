@@ -17,29 +17,6 @@ export interface AgricultureQualityInspectionResult {
   createTime?: string
 }
 
-export interface AgricultureTraceInfoResult {
-  traceId: number | string
-  batchId: number | string
-  traceCode: string
-  traceType: string // batch=批次,product=产品
-  traceData?: any // JSON格式的溯源数据
-  qrCodeUrl?: string
-  createBy?: string
-  createTime?: string
-}
-
-export interface TraceDetailVO {
-  traceCode: string
-  batchName?: string
-  className?: string
-  pastureName?: string
-  plantingInfo?: Record<string, any>
-  environmentData?: Record<string, any>[]
-  taskRecords?: Record<string, any>[]
-  qualityInspections?: Record<string, any>[]
-  harvestInfo?: Record<string, any>
-}
-
 export type AgricultureQualityInspectionListPageResult = BasePageResult<AgricultureQualityInspectionResult>
 export type AgricultureQualityInspectionListResult = BaseArrayResult<AgricultureQualityInspectionResult>
 export type AgricultureQualityInspectionInfoResult = BaseObjectResult<AgricultureQualityInspectionResult>

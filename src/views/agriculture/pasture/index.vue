@@ -41,8 +41,6 @@
 
     <div v-loading="loading" class="pasture-card-container">
       <div class="pasture-card" v-for="pasture in pastureList" :key="pasture.id">
-        <!-- 使用本地图片路径 -->
-        <img :src="pastureImage" alt="牧场图片" class="pasture-image"/>
         <div class="card-header">
           <h3 class="card-title">{{ pasture.name }}</h3>
         </div>
@@ -129,8 +127,6 @@
   import {FormInstance} from 'element-plus'
   import {AgriculturePastureResult} from '@/types/agriculture/pasture'
   import { Location, DataLine, EditPen } from '@element-plus/icons-vue'
-  // 导入图片
-  import pastureImage from '@/assets/img/pasture/ycgs.jpeg'
   import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
 
   const pastureList = ref<AgriculturePastureResult[]>([])
@@ -400,20 +396,6 @@
   box-shadow: 0 12px 20px rgba(0, 0, 0, 0.12); /* 增加阴影 */
 }
 
-.pasture-image {
-  display: none; /* 或者完全移除这个元素 */
-}
-
-.pasture-placeholder-icon {
-  font-size: 60px;
-  color: #409eff;
-  opacity: 0.8;
-  position: absolute; /* 占位符图标也需要定位 */
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1; /* 确保在图片之上 */
-}
 
 .card-header {
   height: auto;

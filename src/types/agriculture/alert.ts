@@ -36,31 +36,3 @@ export type AgricultureAlertListResult = BaseArrayResult<AgricultureAlertResult>
 export type AgricultureAlertInfoResult = BaseObjectResult<AgricultureAlertResult>
 export type AlertCountInfoResult = BaseObjectResult<AlertCountResult>
 
-// 预警阈值配置
-export interface AgricultureAlertThresholdResult {
-  thresholdId?: number | string
-  alertCategory: string // device=设备,task=任务,resource=资源,quality=质量,schedule=排班
-  alertType: string
-  thresholdName: string
-  minValue?: number
-  maxValue?: number
-  warningMin?: number
-  warningMax?: number
-  criticalMin?: number
-  criticalMax?: number
-  unit?: string
-  pastureId?: number | string
-  pastureName?: string
-  classId?: number | string
-  className?: string
-  enabled: string // 0=禁用 1=启用
-  checkInterval?: number
-  remark?: string
-  createTime?: string
-  updateTime?: string
-}
-
-export type AgricultureAlertThresholdListPageResult = BasePageResult<AgricultureAlertThresholdResult>
-export type AgricultureAlertThresholdListResult = BaseArrayResult<AgricultureAlertThresholdResult>
-export type AgricultureAlertThresholdInfoResult = BaseObjectResult<AgricultureAlertThresholdResult>
-
