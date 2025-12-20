@@ -2,7 +2,6 @@ import request from '@/utils/http'
 import { BaseResult } from '@/types/axios'
 import { AgricultureBatchAiSuggestionInfoResult } from '@/types/agriculture/batchAiSuggestion'
 import { AgricultureResourceAiSuggestionInfoResult } from '@/types/agriculture/resourceAiSuggestion'
-import { AgricultureAlertAiSuggestionInfoResult } from '@/types/agriculture/alertAiSuggestion'
 
 /**
  * AI决策API超时时间（2分钟）
@@ -34,27 +33,6 @@ export class AgricultureDecisionService {
     return request.get<AgricultureResourceAiSuggestionInfoResult>({
       url: '/agriculture/decision/resource/latest',
       params: resourceId ? { resourceId } : {}
-    })
-  }
-
-  // ==================== 预警处理建议 ====================
-
-  /**
-   * 触发异步生成预警处理建议
-   */
-  static triggerGenerateAlertSuggestion(alertId: number | string) {
-    return request.post<BaseResult<string>>({
-      url: `/agriculture/decision/alert/generate/${alertId}`,
-      timeout: AI_DECISION_TIMEOUT
-    })
-  }
-
-  /**
-   * 获取预警最新的处理AI建议
-   */
-  static getLatestAlertSuggestion(alertId: number | string) {
-    return request.get<AgricultureAlertAiSuggestionInfoResult>({
-      url: `/agriculture/decision/alert/latest/${alertId}`
     })
   }
 

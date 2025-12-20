@@ -52,7 +52,7 @@
           </el-form>
       </template>
       <template #bottom>
-        <el-button
+          <el-button
           :type="viewMode === 'calendar' ? 'primary' : ''"
           @click="switchToCalendar"
           v-ripple
@@ -63,21 +63,21 @@
           v-ripple
         >表格视图</el-button>
         <el-button
-          @click="handleAdd"
-          v-hasPermi="['agriculture:schedule:add']"
+            @click="handleAdd"
+            v-hasPermi="['agriculture:schedule:add']"
           v-ripple
-        >新增</el-button>
-        <el-button
+          >新增</el-button>
+          <el-button
           @click="handleDelete"
           :disabled="multiple"
           v-hasPermi="['agriculture:schedule:remove']"
           v-ripple
         >删除</el-button>
         <el-button
-          @click="handleExport"
-          v-hasPermi="['agriculture:schedule:export']"
+            @click="handleExport"
+            v-hasPermi="['agriculture:schedule:export']"
           v-ripple
-        >导出</el-button>
+          >导出</el-button>
       </template>
     </table-bar>
 
@@ -161,17 +161,17 @@
     <!-- 表格视图 -->
     <art-table
       v-else
-      v-loading="loading"
-      :data="scheduleList"
+        v-loading="loading"
+        :data="scheduleList"
       selection
       :total="total"
       :current-page="queryParams.pageNum"
       :page-size="queryParams.pageSize"
       @size-change="handleSizeChange"
       @current-change="handleCurrentChange"
-      @selection-change="handleSelectionChange"
+        @selection-change="handleSelectionChange"
       row-key="scheduleId"
-    >
+      >
       <template #default>
         <el-table-column label="排班ID" prop="scheduleId" align="center" v-if="columns[0].show" />
         <el-table-column label="用户姓名" min-width="120" v-if="columns[1].show">
@@ -464,8 +464,8 @@ const getSchedulesForDate = (date: string) => {
 // 切换到日历视图
 const switchToCalendar = () => {
   viewMode.value = 'calendar'
-  loadCalendarData()
-}
+    loadCalendarData()
+  }
 
 // 切换到表格视图
 const switchToTable = () => {
