@@ -66,5 +66,17 @@ export class AgricultureScheduleService {
       data
     })
   }
+  
+  // 导出网格排班视图
+  static exportGridExcel(startDate: string, endDate: string) {
+    return request.post({
+      url: '/agriculture/schedule/exportGrid',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      responseType: 'blob',
+      params: { startDate, endDate }
+    })
+  }
 }
 

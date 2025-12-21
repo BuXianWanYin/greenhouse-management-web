@@ -52,14 +52,9 @@
       <template #default>
         <el-table-column label="规则ID" prop="ruleId" align="center" v-if="columns[0].show" />
         <el-table-column label="规则名称" prop="ruleName" align="center" v-if="columns[1].show" />
-        <el-table-column label="工作日" prop="workDays" align="center" v-if="columns[2].show">
-          <template #default="scope">
-            {{ formatWorkDays(scope.row.workDays) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="工作开始时间" prop="workStartTime" align="center" v-if="columns[3].show" />
-        <el-table-column label="工作结束时间" prop="workEndTime" align="center" v-if="columns[4].show" />
-        <el-table-column label="休息时间" align="center" v-if="columns[5].show">
+        <el-table-column label="工作开始时间" prop="workStartTime" align="center" v-if="columns[2].show" />
+        <el-table-column label="工作结束时间" prop="workEndTime" align="center" v-if="columns[3].show" />
+        <el-table-column label="休息时间" align="center" v-if="columns[4].show">
           <template #default="scope">
             <span v-if="scope.row.breakStartTime && scope.row.breakEndTime">
               {{ scope.row.breakStartTime }}-{{ scope.row.breakEndTime }}
@@ -67,11 +62,13 @@
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column label="每日最大工作小时" prop="maxWorkHoursPerDay" align="center" v-if="columns[6].show" />
-        <el-table-column label="每周最大工作天数" prop="maxWorkDaysPerWeek" align="center" v-if="columns[7].show" />
-        <el-table-column label="状态" prop="status" align="center" v-if="columns[8].show">
+        <el-table-column label="每日最大工作小时" prop="maxWorkHoursPerDay" align="center" v-if="columns[5].show" />
+        <el-table-column label="每周最大工作天数" prop="maxWorkDaysPerWeek" align="center" v-if="columns[6].show" />
+        <el-table-column label="状态" prop="status" align="center" v-if="columns[7].show">
           <template #default="scope">
-            <dict-tag :options="statusOptions" :value="scope.row.status" />
+            <el-tag v-if="scope.row.status === '0'" type="success">正常</el-tag>
+            <el-tag v-else-if="scope.row.status === '1'" type="danger">停用</el-tag>
+            <span v-else>{{ scope.row.status }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" align="center" width="180" fixed="right">
@@ -100,17 +97,6 @@
       <el-form ref="ruleRef" :model="form" :rules="rules" label-width="140px">
         <el-form-item label="规则名称" prop="ruleName">
           <el-input v-model="form.ruleName" placeholder="请输入规则名称" />
-        </el-form-item>
-        <el-form-item label="工作日" prop="workDays">
-          <el-checkbox-group v-model="selectedDays">
-            <el-checkbox label="1">周一</el-checkbox>
-            <el-checkbox label="2">周二</el-checkbox>
-            <el-checkbox label="3">周三</el-checkbox>
-            <el-checkbox label="4">周四</el-checkbox>
-            <el-checkbox label="5">周五</el-checkbox>
-            <el-checkbox label="6">周六</el-checkbox>
-            <el-checkbox label="7">周日</el-checkbox>
-          </el-checkbox-group>
         </el-form-item>
         <el-form-item label="工作开始时间" prop="workStartTime">
           <el-time-picker
@@ -209,7 +195,6 @@ const single = ref(true)
 const multiple = ref(true)
 const ruleRef = ref<FormInstance>()
 const queryRef = ref<FormInstance>()
-const selectedDays = ref<string[]>([])
 
 const queryParams = reactive({
   pageNum: 1,
@@ -221,7 +206,6 @@ const queryParams = reactive({
 const columns = reactive([
   { name: '规则ID', show: true },
   { name: '规则名称', show: true },
-  { name: '工作日', show: true },
   { name: '工作开始时间', show: true },
   { name: '工作结束时间', show: true },
   { name: '休息时间', show: true },
@@ -241,7 +225,6 @@ const changeColumn = (list: any) => {
 const initialFormState = {
   ruleId: null,
   ruleName: '',
-  workDays: '',
   workStartTime: '',
   workEndTime: '',
   breakStartTime: '',
@@ -256,25 +239,9 @@ const form = reactive({ ...initialFormState })
 
 const rules = reactive({
   ruleName: [{ required: true, message: '规则名称不能为空', trigger: 'blur' }],
-  workDays: [{ required: true, message: '请选择工作日', trigger: 'change' }],
   workStartTime: [{ required: true, message: '工作开始时间不能为空', trigger: 'change' }],
   workEndTime: [{ required: true, message: '工作结束时间不能为空', trigger: 'change' }]
 })
-
-// 格式化工作日显示
-const formatWorkDays = (workDays: string) => {
-  if (!workDays) return '-'
-  const dayMap: Record<string, string> = {
-    '1': '周一',
-    '2': '周二',
-    '3': '周三',
-    '4': '周四',
-    '5': '周五',
-    '6': '周六',
-    '7': '周日'
-  }
-  return workDays.split(',').map(d => dayMap[d] || d).join('、')
-}
 
 /** 查询排班规则列表 */
 const getList = async () => {
@@ -338,7 +305,6 @@ const handleUpdate = async (row: AgricultureScheduleRuleResult) => {
   const res = await AgricultureScheduleRuleService.getRule(row.ruleId!)
   if (res.code === 200) {
     Object.assign(form, res.data)
-    selectedDays.value = res.data.workDays ? res.data.workDays.split(',') : []
   }
 }
 
@@ -347,7 +313,6 @@ const submitForm = async () => {
   if (!ruleRef.value) return
   await ruleRef.value.validate(async (valid: boolean) => {
     if (valid) {
-      form.workDays = selectedDays.value.join(',')
       if (form.ruleId) {
         const res = await AgricultureScheduleRuleService.updateRule(form)
         if (res.code === 200) {
@@ -404,7 +369,6 @@ const cancel = () => {
 // 表单重置
 const reset = () => {
   Object.assign(form, initialFormState)
-  selectedDays.value = []
   if (ruleRef.value) {
     ruleRef.value.resetFields()
   }

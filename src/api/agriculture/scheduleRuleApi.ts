@@ -4,7 +4,6 @@ import { CodeMsgResult, BaseObjectResult, BasePageResult } from '@/types/axios'
 export interface AgricultureScheduleRuleResult {
   ruleId?: number
   ruleName: string
-  workDays: string
   workStartTime: string
   workEndTime: string
   breakStartTime?: string
