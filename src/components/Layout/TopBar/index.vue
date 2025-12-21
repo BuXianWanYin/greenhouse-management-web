@@ -66,41 +66,6 @@
             <i class="iconfont-sys">{{ isFullscreen ? '&#xe62d;' : '&#xe8ce;' }}</i>
           </div>
         </div>
-        <!-- 通知 -->
-        <div class="btn-box notice-btn" @click="visibleNotice">
-          <div class="btn notice-button">
-            <i class="iconfont-sys notice-btn">&#xe6c2;</i>
-            <span class="count notice-btn"></span>
-          </div>
-        </div>
-        <!-- 聊天 -->
-        <div class="btn-box chat-btn" @click="openChat">
-          <div class="btn chat-button">
-            <i class="iconfont-sys">&#xe89a;</i>
-            <span class="dot"></span>
-          </div>
-        </div>
-        <!-- 语言 -->
-        <div class="btn-box" v-if="showLanguage">
-          <el-dropdown @command="changeLanguage" popper-class="langDropDownStyle">
-            <div class="btn language-btn">
-              <i class="iconfont-sys">&#xe611;</i>
-            </div>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <div v-for="item in languageOptions" :key="item.value" class="lang-btn-item">
-                  <el-dropdown-item
-                    :command="item.value"
-                    :class="{ 'is-selected': locale === item.value }"
-                  >
-                    <span class="menu-txt">{{ item.label }}</span>
-                    <i v-if="locale === item.value" class="iconfont-sys">&#xe621;</i>
-                  </el-dropdown-item>
-                </div>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
         <!-- 设置 -->
         <div class="btn-box" @click="openSetting">
           <el-popover :visible="showSettingGuide" placement="bottom-start" :width="190" :offset="0">
@@ -116,12 +81,6 @@
               </p>
             </template>
           </el-popover>
-        </div>
-        <!-- 切换主题 -->
-        <div class="btn-box" @click="themeAnimation">
-          <div class="btn theme-btn">
-            <i class="iconfont-sys">{{ isDark ? '&#xe6b5;' : '&#xe725;' }}</i>
-          </div>
         </div>
 
         <!-- 用户头像、菜单 -->
@@ -157,10 +116,6 @@
                     <i class="menu-icon iconfont-sys">&#xe817;</i>
                     <span class="menu-txt">{{ $t('topBar.user.lockScreen') }}</span>
                   </li>
-                  <li @click="toGithub()">
-                    <i class="menu-icon iconfont-sys">&#xe8d6;</i>
-                    <span class="menu-txt">{{ $t('topBar.user.github') }}</span>
-                  </li>
                   <div class="line"></div>
                   <div class="logout-btn" @click="loginOut">
                     {{ $t('topBar.user.logout') }}
@@ -173,17 +128,14 @@
       </div>
     </div>
     <slot></slot>
-
-    <Notice v-model:value="showNotice" ref="notice" />
   </div>
 </template>
 
 <script setup lang="ts">
   import defaultAvatar from '@/assets/img/avatar/default-avatar.png'
   import Breadcrumb from '../Breadcrumb/index.vue'
-  import Notice from '../Notice/index.vue'
   import MixedMenu from '../MixedMenu/index.vue'
-  import { LanguageEnum, MenuTypeEnum, MenuWidth } from '@/enums/appEnum'
+  import { MenuTypeEnum, MenuWidth } from '@/enums/appEnum'
   import { useSettingStore } from '@/store/modules/setting'
   import { useUserStore } from '@/store/modules/user'
   import { useFullscreen } from '@vueuse/core'
@@ -193,7 +145,6 @@
   import mittBus from '@/utils/mittBus'
   import { useMenuStore } from '@/store/modules/menu'
   import AppConfig from '@/config'
-  import { languageOptions } from '@/language'
   const isWindows = navigator.userAgent.includes('Windows')
   const { locale } = useI18n()
 
@@ -203,13 +154,9 @@
 
   const showMenuButton = computed(() => settingStore.showMenuButton)
   const showRefreshButton = computed(() => settingStore.showRefreshButton)
-  const showLanguage = computed(() => settingStore.showLanguage)
   const menuOpen = computed(() => settingStore.menuOpen)
   const showCrumbs = computed(() => settingStore.showCrumbs)
   const userInfo = computed(() => userStore.getUserInfo)
-  const language = computed(() => userStore.language)
-  const showNotice = ref(false)
-  const notice = ref(null)
   const systemThemeColor = computed(() => settingStore.systemThemeColor)
   const showSettingGuide = computed(() => settingStore.showSettingGuide)
   const userMenuPopover = ref()
@@ -219,11 +166,8 @@
   const isDualMenu = computed(() => menuType.value === MenuTypeEnum.DUAL_MENU)
   const isTopMenu = computed(() => menuType.value === MenuTypeEnum.TOP)
   const isTopLeftMenu = computed(() => menuType.value === MenuTypeEnum.TOP_LEFT)
-  const isDark = computed(() => settingStore.isDark)
   const tabStyle = computed(() => settingStore.tabStyle)
   import { useCommon } from '@/composables/useCommon'
-  import { WEB_LINKS } from '@/utils/links'
-  import { themeAnimation } from '@/utils/theme/animation'
 
   const { t } = useI18n()
 
@@ -234,12 +178,9 @@
   })
 
   onMounted(() => {
-    initLanguage()
-    document.addEventListener('click', bodyCloseNotice)
-  })
-
-  onUnmounted(() => {
-    document.removeEventListener('click', bodyCloseNotice)
+    // 初始化语言设置
+    const language = computed(() => userStore.language)
+    locale.value = language.value
   })
 
   const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
@@ -272,10 +213,6 @@
     router.push(path)
   }
 
-  const toGithub = () => {
-    window.open(WEB_LINKS.GITHUB_HOME)
-  }
-
   const toHome = () => {
     router.push(HOME_PAGE)
   }
@@ -299,17 +236,6 @@
     }, time)
   }
 
-  const initLanguage = () => {
-    locale.value = language.value
-  }
-
-  const changeLanguage = (lang: LanguageEnum) => {
-    if (locale.value === lang) return
-    locale.value = lang
-    userStore.setLanguage(lang)
-    reload(50)
-  }
-
   const openSetting = () => {
     mittBus.emit('openSetting')
 
@@ -325,26 +251,9 @@
     mittBus.emit('openSearchDialog')
   }
 
-  const bodyCloseNotice = (e: any) => {
-    let { className } = e.target
-
-    if (showNotice.value) {
-      if (typeof className === 'object') {
-        showNotice.value = false
-        return
-      }
-      if (className.indexOf('notice-btn') === -1) {
-        showNotice.value = false
-      }
-    }
-  }
-
-  const visibleNotice = () => {
-    showNotice.value = !showNotice.value
-  }
-
+  // 聊天功能逻辑保留（机器人聊天依赖）
   const openChat = () => {
-    mittBus.emit('openChat')
+    mittBus.emit('toggleBotChat')
   }
 
   const lockScreen = () => {

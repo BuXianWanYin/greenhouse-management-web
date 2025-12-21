@@ -113,8 +113,19 @@
                     </div>
                 </el-card>
 
-                <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-                    v-model:limit="queryParams.pageSize" @pagination="getList" />
+                <!-- 分页组件 -->
+                <div class="pagination-wrapper" v-show="total > 0">
+                    <el-pagination
+                        v-model:current-page="queryParams.pageNum"
+                        v-model:page-size="queryParams.pageSize"
+                        :page-sizes="[10, 20, 30, 50]"
+                        :total="total"
+                        :background="true"
+                        layout="total, sizes, prev, pager, next, jumper"
+                        @size-change="handleSizeChange"
+                        @current-change="handleCurrentChange"
+                    />
+                </div>
             </div>
         </div>
 
@@ -342,6 +353,19 @@ const resetQuery = () => {
     queryParams.taskName = null
     queryParams.psr = []
     handleQuery()
+}
+
+// 每页条数改变
+const handleSizeChange = (size: number) => {
+    queryParams.pageSize = size
+    queryParams.pageNum = 1
+    getList()
+}
+
+// 当前页改变
+const handleCurrentChange = (page: number) => {
+    queryParams.pageNum = page
+    getList()
 }
 
 // 表单重置
@@ -612,6 +636,13 @@ const onTaskUpdated = () => {
   font-size: 13px;
   padding: 0 20px;
   box-sizing: border-box;
+}
+
+.pagination-wrapper {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
 }
 </style>
 
