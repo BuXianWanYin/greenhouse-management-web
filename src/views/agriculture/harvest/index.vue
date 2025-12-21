@@ -166,15 +166,17 @@
           <el-col :span="24" v-for="item in processData" :key="item.id">
             <el-card class="harvest-card" shadow="hover">
               <div class="harvest-card-content">
-                <!-- 左侧二维码 -->
+                <!-- 左侧ID显示 -->
                 <div class="qr-code-section">
                   <div class="qr-code">
-                    <img v-if="item.barcode" :src="item.barcode" alt="二维码" />
-                    <div v-else style="width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; color: #909399;">
-                      暂无二维码
+                    <div style="width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; color: #909399; border-radius: 8px;">
+                      <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #409eff;">采收记录</div>
+                        <div style="font-size: 14px; color: #909399; margin-top: 8px;">ID: {{ item.harvestId || item.id }}</div>
+                      </div>
                     </div>
                   </div>
-                  <div class="id-code">ID: {{ item.id }}</div>
+                  <div class="id-code">采收ID: {{ item.harvestId || item.id }}</div>
                 </div>
                 <!-- 中间信息区域 -->
                 <div class="info-section">
@@ -185,25 +187,37 @@
                     <div class="info-row">
                       <div class="info-item">
                         <i class="el-icon-date"></i>
-                        <span class="label">采摘日期:</span>
-                        <span>{{ item.date }}</span>
+                        <span class="label">采收日期:</span>
+                        <span>{{ item.date || item.harvestTime || item.harvestDate }}</span>
                       </div>
                       <div class="info-item">
                         <i class="el-icon-shopping-cart-full"></i>
-                        <span class="label">采摘重量:</span>
-                        <span>{{ item.weight }}kg</span>
+                        <span class="label">采收重量:</span>
+                        <span>{{ item.weight || item.harvestWeight }}kg</span>
                       </div>
                     </div>
                     <div class="info-row">
                       <div class="info-item">
                         <i class="el-icon-location"></i>
                         <span class="label">批次 ID:</span>
-                        <span>{{ item.iaPartitionId }}</span>
+                        <span>{{ item.batchId || item.iaPartitionId }}</span>
                       </div>
                       <div class="info-item">
                         <i class="el-icon-menu"></i>
                         <span class="label">种质 ID:</span>
                         <span>{{ item.classId }}</span>
+                      </div>
+                    </div>
+                    <div class="info-row" v-if="item.area || item.harvestArea">
+                      <div class="info-item">
+                        <i class="el-icon-full-screen"></i>
+                        <span class="label">采收面积:</span>
+                        <span>{{ item.area || item.harvestArea }}亩</span>
+                      </div>
+                      <div class="info-item" v-if="item.qualityLevel">
+                        <i class="el-icon-star-on"></i>
+                        <span class="label">质量等级:</span>
+                        <span>{{ item.qualityLevel === 'A' ? '优' : item.qualityLevel === 'B' ? '良' : item.qualityLevel === 'C' ? '合格' : item.qualityLevel }}</span>
                       </div>
                     </div>
                   </div>
@@ -321,7 +335,7 @@
   import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
   import { UserService } from '@/api/system/userApi'
   import Task from '../plan/batchTask/TaskList.vue'
-  import { partitionFoodService } from '@/api/agriculture/partitionFoodApi'
+  import { AgricultureHarvestService } from '@/api/agriculture/harvestApi'
   import { AgricultureCropBatchTaskService } from '@/api/agriculture/cropBatchTaskApi'
   import {
     Search,
@@ -508,8 +522,19 @@
           formData.remark = addForm.remark
         }
 
-        // 保存采摘记录
-        await partitionFoodService.addFood(formData)
+        // 保存采摘记录（直接保存为采收记录）
+        await AgricultureHarvestService.addHarvest({
+          batchId: Number(addForm.iaPartitionId),
+          harvestDate: formatDateTime(addForm.date).split(' ')[0], // 只取日期部分
+          harvestTime: formatDateTime(addForm.date),
+          harvestWeight: Number(addForm.weight),
+          harvestArea: addForm.area ? Number(addForm.area) : null,
+          harvestQuantity: addForm.quantity ? Number(addForm.quantity) : null,
+          qualityLevel: addForm.qualityLevel || null,
+          harvestPersonId: addForm.harvestPersonId ? Number(addForm.harvestPersonId) : null,
+          storageLocation: addForm.storageLocation || null,
+          remark: addForm.remark || null
+        })
         ElMessage.success('新增成功')
         addDialogVisible.value = false
         if (currentBatchId.value) {
@@ -589,7 +614,7 @@
       }
       batch.displayClassName = displayClassName
       
-      const res = await partitionFoodService.listFood({iaPartitionId: batch.batchId})
+      const res = await AgricultureHarvestService.listHarvest({batchId: batch.batchId})
       batch.hasHarvestRecord = res.rows && res.rows.length > 0
     }
 
@@ -696,13 +721,28 @@
 
   async function fetchProcessData(batchId: string | number) {
     if (!batchId) return
-    const res = await partitionFoodService.listFood({
-      partitionId: batchId,
+    const res = await AgricultureHarvestService.listHarvest({
+      batchId: batchId,
       pageNum: 1,
       pageSize: 100
     })
-    console.log('采摘分页返回', res)
-    processData.value = res.rows || []
+    console.log('采收记录返回', res)
+    // 转换数据格式以适配前端显示
+    processData.value = (res.rows || []).map((item: any) => ({
+      id: item.harvestId,
+      harvestId: item.harvestId,
+      batchId: item.batchId,
+      iaPartitionId: item.batchId, // 兼容旧字段名
+      classId: item.classId, // 从批次表关联查询得到
+      date: item.harvestTime || item.harvestDate, // 使用采收时间
+      weight: item.harvestWeight,
+      area: item.harvestArea,
+      quantity: item.harvestQuantity,
+      qualityLevel: item.qualityLevel,
+      harvestPersonId: item.harvestPersonId,
+      storageLocation: item.storageLocation,
+      remark: item.remark
+    }))
   }
 
   async function getPastureList() {
