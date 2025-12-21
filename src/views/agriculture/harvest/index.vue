@@ -255,7 +255,7 @@
             value-format="YYYY-MM-DD HH:mm:ss"
           />
         </el-form-item>
-        <el-form-item label="采收面积">
+        <el-form-item label="采收面积" prop="area">
           <el-input-number
             v-model="addForm.area"
             :min="0"
@@ -414,7 +414,11 @@
   const addFormRules: any = {
     classId: [{ required: true, message: '请选择种质', trigger: ['blur', 'change'] }],
     weight: [{ required: true, message: '请输入采摘重量', trigger: ['blur', 'change'] }],
-    date: [{ required: true, message: '请选择采摘日期', trigger: ['blur', 'change'] }]
+    date: [{ required: true, message: '请选择采摘日期', trigger: ['blur', 'change'] }],
+    area: [
+      { required: true, message: '请输入采收面积', trigger: ['blur', 'change'] },
+      { type: 'number', min: 0, message: '采收面积必须大于0', trigger: ['blur', 'change'] }
+    ]
   }
   const addFormRef = ref()
   const currentBatchId = ref<string | number | null>(null)
@@ -473,7 +477,7 @@
   }
 
   const handleAddSave = () => {
-    const fields = ['classId', 'weight', 'date']
+    const fields = ['classId', 'weight', 'date', 'area']
     addFormRef.value.validateField(fields, async (valid: boolean) => {
       if (!valid) return
       try {

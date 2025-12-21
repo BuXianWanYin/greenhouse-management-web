@@ -1632,18 +1632,19 @@ const handleAddFromRotationDetail = async (params: any) => {
 
 .germplasm-cell {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 4px 0;
 
   .germplasm-image {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     border-radius: 6px;
     border: 1px solid var(--el-border-color-light);
     cursor: pointer;
     transition: transform 0.2s;
+    flex-shrink: 0;
 
     &:hover {
       transform: scale(1.1);
@@ -1651,8 +1652,8 @@ const handleAddFromRotationDetail = async (params: any) => {
   }
 
   .germplasm-image-placeholder {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     border-radius: 6px;
     border: 1px solid var(--el-border-color-light);
     background-color: var(--el-fill-color-light);
@@ -1660,18 +1661,19 @@ const handleAddFromRotationDetail = async (params: any) => {
     align-items: center;
     justify-content: center;
     color: var(--el-text-color-placeholder);
+    flex-shrink: 0;
 
     .el-icon {
-      font-size: 24px;
+      font-size: 20px;
     }
   }
 
   .germplasm-name {
     font-size: 13px;
     color: var(--el-text-color-primary);
-    text-align: center;
+    text-align: left;
     line-height: 1.4;
-    max-width: 100px;
+    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

@@ -7,7 +7,6 @@ export interface AgricultureThresholdConfigResult {
                 paramType: string,
                 thresholdMin: string,
                 thresholdMax: string,
-                notifyType: string,
                 isEnabled: string,
                 createBy: string,
                 createTime: string,

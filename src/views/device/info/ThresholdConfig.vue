@@ -46,16 +46,6 @@
                   </span>
                 </template>
               </el-table-column>
-              <el-table-column prop="notifyType" label="通知方式" width="140">
-                <template #default="{ row }">
-                  <el-select v-model="row.notifyType" placeholder="请选择" style="width: 120px" class="notify-select">
-                    <el-option label="系统通知" value="system" />
-                    <el-option label="邮箱提醒" value="email" />
-                    <el-option label="短信" value="sms" />
-                  </el-select>
-                </template>
-              </el-table-column>
-
               <el-table-column label="告警开关" width="100">
                 <template #default="{ row }">
                   <el-switch v-model="row.enabled" />
@@ -109,13 +99,6 @@
                         placeholder="最大值" />
                     </el-form-item>
                   </el-col>
-                </el-form-item>
-                <el-form-item label="通知方式" prop="notifyType">
-                  <el-select v-model="newThreshold.notifyType" placeholder="请选择通知方式">
-                    <el-option label="系统通知" value="system" />
-                    <el-option label="邮箱提醒" value="email" />
-                    <el-option label="短信" value="sms" />
-                  </el-select>
                 </el-form-item>
                 <el-form-item label="是否启用" prop="isEnabled">
                   <el-switch v-model="newThreshold.isEnabled" />
@@ -274,11 +257,6 @@ const paramTypeOptions = ref<any[]>([])
 // 参数类型完整数据（包含unit等信息）
 const paramTypeDictData = ref<any[]>([])
 
-const notifyTypeMap: Record<string, string> = {
-  system: '系统通知',
-  email: '邮箱提醒',
-  sms: '短信'
-}
 // 判断是否为气象传感器
 function isWeatherSensor(deviceTypeName?: string): boolean {
   if (!deviceTypeName) return false
@@ -425,8 +403,7 @@ function addNewThreshold() {
     max: 100,
     unit: '',
     enabled: true,
-    editing: true,
-    notifyType: []
+    editing: true
   }
   thresholds.value.push(newThreshold)
 }
@@ -465,7 +442,6 @@ async function saveSelected() {
         thresholdMax: row.max,
         isEnabled: row.enabled ? 1 : 0,
         unit: row.unit,
-        notifyType: Array.isArray(row.notifyType) ? row.notifyType.join(',') : row.notifyType,
         remark: row.remark
       }
       if (row.id) {
@@ -493,7 +469,6 @@ async function saveAll() {
         thresholdMax: row.max,
         isEnabled: row.enabled ? 1 : 0,
         unit: row.unit,
-        notifyType: Array.isArray(row.notifyType) ? row.notifyType.join(',') : row.notifyType,
         remark: row.remark
       }
       if (row.id) {
@@ -517,7 +492,6 @@ const newThreshold = reactive({
   unit: '',
   thresholdMin: undefined as number | undefined,
   thresholdMax: undefined as number | undefined,
-  notifyType: [],
   isEnabled: true,
   remark: ''
 })
@@ -526,8 +500,7 @@ const rules = reactive<FormRules>({
   paramType: [{ required: true, message: '请输入参数类型', trigger: 'blur' }],
   unit: [{ required: true, message: '请输入单位', trigger: 'blur' }],
   thresholdMin: [{ required: true, message: '请输入最小值', trigger: 'blur' }],
-  thresholdMax: [{ required: true, message: '请输入最大值', trigger: 'blur' }],
-  notifyType: [{ required: true, message: '请选择通知方式', trigger: 'change' }]
+  thresholdMax: [{ required: true, message: '请输入最大值', trigger: 'blur' }]
 })
 
 // 打开新增阈值对话框时，重置表单并拉取参数类型
@@ -540,8 +513,7 @@ function showAddDialog() {
     thresholdMin: undefined,
     thresholdMax: undefined,
     isEnabled: true,
-    remark: '',
-    notifyType: []
+    remark: ''
   })
   fetchParamTypeOptions()
 }
@@ -558,7 +530,6 @@ async function submitNewThreshold() {
           unit: newThreshold.unit,
           thresholdMin: newThreshold.thresholdMin,
           thresholdMax: newThreshold.thresholdMax,
-          notifyType: Array.isArray(newThreshold.notifyType) ? newThreshold.notifyType.join(',') : newThreshold.notifyType,
           isEnabled: newThreshold.isEnabled ? 1 : 0,
           remark: newThreshold.remark
         }
@@ -631,7 +602,6 @@ async function fetchThresholds() {
       min: t.thresholdMin,
       max: t.thresholdMax,
       enabled: t.isEnabled === 1,
-      notifyType: t.notifyType || '',
       remark: t.remark,
       unit: t.unit
     }))
@@ -1024,24 +994,6 @@ function getParamTypeEnByName(name: string) {
 }
 
 /* 修复通知方式下拉框的样式问题 */
-.notify-select {
-  margin-right: 8px;
-}
-
-.notify-select :deep(.el-select__wrapper) {
-  border-radius: 4px;
-}
-
-.notify-select :deep(.el-select__caret) {
-  color: #c0c4cc;
-  font-size: 12px;
-  transition: transform 0.3s;
-}
-
-.notify-select :deep(.el-select__caret.is-reverse) {
-  transform: rotateZ(180deg);
-}
-
 /* 防止指令配置标签换行 */
 :deep(.el-form-item__label) {
   white-space: nowrap;
