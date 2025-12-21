@@ -181,7 +181,6 @@
             </el-form>
           </div>
         </el-tab-pane>
-      </template>
     </el-tabs>
     
     <!-- 底部按钮区域 -->

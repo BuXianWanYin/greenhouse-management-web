@@ -47,35 +47,51 @@
         </div>
 
         <div class="card-body">
-          <div :class="['card-content', { 'mobile-content': isMobile }]">
-            <div class="info-row">
-              <span class="label"><el-icon>
-                  <HomeFilled />
-                </el-icon> 温室：</span>
-              <span class="value">{{ device.pastureName || device.pastureId || '未绑定' }}</span>
-            </div>
-            <div class="info-row sensor-command">
-              <span class="label"><el-icon>
-                  <Operation />
-                </el-icon> 传感器指令：</span>
-              <span class="value">{{ device.sensorCommand || '无' }}</span>
-            </div>
-            <div class="info-row">
-              <span class="label"><el-icon>
+          <div class="card-body-content">
+            <!-- 左侧：设备图片 -->
+            <div class="device-image-container">
+              <img 
+                v-if="device.deviceImage" 
+                :src="device.deviceImage" 
+                :alt="device.deviceName"
+                class="device-image"
+              />
+              <div v-else class="device-image-placeholder">
+                <el-icon class="placeholder-icon">
                   <Cpu />
-                  </el-icon> 设备类型：</span>
-              <span class="value">{{ device.deviceTypeName || device.deviceTypeId || '未知' }}</span>
+                </el-icon>
+                <span class="placeholder-text">暂无图片</span>
+              </div>
             </div>
-            <div class="info-row" v-if="device.lastOnlineTime !== null && device.lastOnlineTime !== undefined">
-              <span class="label"><el-icon>
-                    <Clock />
-                  </el-icon> 最后在线：</span>
-              <span class="value">{{ formatDate(device.lastOnlineTime) }}</span>
+            
+            <!-- 右侧：设备信息 -->
+            <div class="device-info-container">
+              <div class="info-row">
+                <span class="label"><el-icon>
+                    <HomeFilled />
+                  </el-icon> 温室：</span>
+                <span class="value">{{ device.pastureName || device.pastureId || '未绑定' }}</span>
+              </div>
+              <div class="info-row sensor-command">
+                <span class="label"><el-icon>
+                    <Operation />
+                  </el-icon> 传感器指令：</span>
+                <span class="value">{{ device.sensorCommand || '无' }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label"><el-icon>
+                    <Cpu />
+                    </el-icon> 设备类型：</span>
+                <span class="value">{{ device.deviceTypeName || device.deviceTypeId || '未知' }}</span>
+              </div>
+              <div class="info-row" v-if="device.lastOnlineTime !== null && device.lastOnlineTime !== undefined">
+                <span class="label"><el-icon>
+                      <Clock />
+                    </el-icon> 最后在线：</span>
+                <span class="value">{{ formatDate(device.lastOnlineTime) }}</span>
+              </div>
             </div>
           </div>
-          
-          <!-- 占位区域，确保卡片高度一致 -->
-          <div class="card-spacer" v-if="!isMobile"></div>
         </div>
 
         <div class="card-footer">
@@ -768,6 +784,17 @@ const fetchPastureOptions = async () => {
     padding: 16px;
   }
   
+  .card-body-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .device-image-container {
+    width: 100%;
+    height: 180px;
+    align-self: center;
+  }
+  
   .info-row {
     font-size: 14px;
     margin-bottom: 12px;
@@ -809,6 +836,16 @@ const fetchPastureOptions = async () => {
   
   .card-body {
     padding: 12px;
+  }
+  
+  .card-body-content {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .device-image-container {
+    width: 100%;
+    height: 160px;
   }
   
   .info-row {
@@ -885,10 +922,65 @@ const fetchPastureOptions = async () => {
 }
 
 .card-body {
-  padding: 20px 20px;
+  padding: 20px;
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+}
+
+.card-body-content {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+  align-items: flex-start;
+}
+
+/* 设备图片容器 */
+.device-image-container {
+  flex-shrink: 0;
+  width: 140px;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f5f7fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.device-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.device-image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #909399;
+}
+
+.placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  color: #c0c4cc;
+}
+
+.placeholder-text {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 设备信息容器 */
+.device-info-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* 防止内容溢出 */
 }
 
 .card-content {
