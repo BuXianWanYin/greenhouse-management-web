@@ -208,6 +208,8 @@ const handleSubmit = async () => {
             userStore.setUserInfo({
               id: userRes.user.userId.toString(),
               name: userRes.user.userName,
+              nickName: userRes.user.nickName,
+              userName: userRes.user.userName,
               avatar: userRes.user.avatar,
               roles: userRes.roles,
               permissions: userRes.permissions

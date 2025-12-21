@@ -394,7 +394,7 @@ const addTaskLog = async (des) => {
     await AgricultureTaskLogService.addLog({
         taskId: props.taskId,
         operDes: des,
-        operName: userStore.info.name,
+        operName: userStore.info.nickName || userStore.info.userName || userStore.info.name || '',
         operId: userStore.info.id,
         createBy: userStore.info.id,
         updateBy: userStore.info.id
@@ -536,7 +536,7 @@ watch([() => form.actualStart, () => form.actualFinish], (newVal, oldVal) => {
 const userStore = useUserStore()
 const currentUser = {
     userId: userStore.info.id,
-    userName: userStore.info.name
+    userName: userStore.info.nickName || userStore.info.userName || userStore.info.name || ''
 }
 let { accessToken } = userStore
 // 传递 token

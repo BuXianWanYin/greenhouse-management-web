@@ -4,6 +4,8 @@ import { MenuThemeEnum, SystemThemeEnum } from '@/enums/appEnum'
 export interface UserInfo {
   id: string
   name: string
+  nickName?: string // 昵称
+  userName?: string // 用户名
   avatar: string
   roles: string[]
   permissions: string[]

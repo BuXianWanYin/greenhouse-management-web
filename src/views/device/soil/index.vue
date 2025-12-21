@@ -728,7 +728,7 @@ const onHandleWarning = (row) => {
     status: row.status,
     remark: row.remark || '',
     updateTime: formatDateTime(new Date()),
-    updateBy: currentUser.value?.name || '未知',
+    updateBy: currentUser.value?.nickName || currentUser.value?.userName || currentUser.value?.name || '未知',
     alertMessage: row.alertMessage || '',
     deviceName: row.deviceName || ''
   }
@@ -792,12 +792,12 @@ const markAllAsHandled = async () => {
   }
   try {
     await Promise.all(toHandle.map(item =>
-      AgricultureDeviceSensorAlertService.updateAlertIot({
+      AgricultureDeviceSensorAlertService.updateAlert({
         id: item.id,
         status: 1,
         remark: item.remark,
         updateTime: formatDateTime(new Date()),
-        updateBy: currentUser.value?.name || '未知'
+        updateBy: currentUser.value?.nickName || currentUser.value?.userName || '未知'
       })
     ))
     ElMessage.success('全部标记为已处理')

@@ -472,7 +472,7 @@ const handleAdd = async () => {
   open.value = true
   title.value = '添加农资库存'
   form.operationType = 'inventory' // 默认选择新增库存
-  form.operator = userStore.info.name || ''
+  form.operator = userStore.info.nickName || userStore.info.userName || userStore.info.name || ''
   form.usageDate = new Date().toISOString().split('T')[0]
 }
 
@@ -619,7 +619,7 @@ const handleStockIn = () => {
   resetStockIn()
   getResourceList()
   stockInOpen.value = true
-  stockInForm.operator = userStore.info.name || ''
+  stockInForm.operator = userStore.info.nickName || userStore.info.userName || userStore.info.name || ''
   stockInForm.usageDate = new Date().toISOString().split('T')[0]
 }
 
@@ -634,7 +634,7 @@ const handleStockInByRow = async (row: any) => {
     stockInForm.measureUnit = resource.measureUnit
   }
   stockInOpen.value = true
-  stockInForm.operator = userStore.info.name || ''
+  stockInForm.operator = userStore.info.nickName || userStore.info.userName || userStore.info.name || ''
   stockInForm.usageDate = new Date().toISOString().split('T')[0]
 }
 
@@ -675,7 +675,7 @@ const cancelStockIn = () => {
 /** 重置入库表单 */
 const resetStockIn = () => {
   Object.assign(stockInForm, initialStockInFormState)
-  stockInForm.operator = userStore.info.name || ''
+  stockInForm.operator = userStore.info.nickName || userStore.info.userName || userStore.info.name || ''
   stockInForm.usageDate = new Date().toISOString().split('T')[0]
   stockInRef.value?.resetFields()
 }
@@ -691,7 +691,7 @@ const reset = () => {
   Object.assign(form, {
     ...initialFormState,
     operationType: 'inventory',
-    operator: userStore.info.name || '',
+    operator: userStore.info.nickName || userStore.info.userName || userStore.info.name || '',
     usageDate: new Date().toISOString().split('T')[0],
     inventoryIdForStockIn: null
   })
