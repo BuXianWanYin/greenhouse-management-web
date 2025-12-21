@@ -49,7 +49,25 @@
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="批次ID" prop="batchId" width="100" v-if="columns[0].show" />
         <el-table-column label="批次名称" prop="batchName" min-width="150" show-overflow-tooltip v-if="columns[1].show" />
-        <el-table-column label="种质" prop="className" width="120" align="center" v-if="columns[2].show" />
+        <el-table-column label="种质" prop="className" width="150" align="center" v-if="columns[2].show">
+          <template #default="scope">
+            <div class="germplasm-cell">
+              <el-image
+                v-if="scope.row.classImage"
+                :src="getImageUrl(scope.row.classImage)"
+                :alt="scope.row.className || '种质图片'"
+                class="germplasm-image"
+                fit="cover"
+                :preview-src-list="[getImageUrl(scope.row.classImage)]"
+                preview-teleported
+              />
+              <div v-else class="germplasm-image-placeholder">
+                <el-icon><Picture /></el-icon>
+              </div>
+              <span class="germplasm-name">{{ scope.row.className || '--' }}</span>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column label="所属温室" prop="pastureId" width="150" align="center" v-if="columns[3].show">
           <template #default="scope">
             {{ getPastureName(scope.row.pastureId) }}
@@ -279,7 +297,7 @@
 </template>
 
 <script setup lang="ts">
-import { Search, Refresh, Plus, Download, Document, EditPen, Delete, View, MagicStick } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Download, Document, EditPen, Delete, View, MagicStick, Picture } from '@element-plus/icons-vue'
 import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
 import { AgricultureClassService } from '@/api/agriculture/classApi'
 import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
@@ -287,7 +305,7 @@ import { AgricultureRotationPlanService } from '@/api/agriculture/plantingPlanAp
 import { AgricultureRotationDetailService } from '@/api/agriculture/planDetailApi'
 import { UserService } from '@/api/system/userApi'
 import { ref, reactive, onMounted, nextTick, computed } from 'vue'
-import { resetForm } from '@/utils/utils'
+import { resetForm, AvatarImga } from '@/utils/utils'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { FormInstance } from 'element-plus'
 import { AgricultureCropBatchResult } from '@/types/agriculture/batch'
@@ -759,6 +777,11 @@ const handleUpdate = async (row: AgricultureCropBatchResult) => {
     await nextTick()
     updatePlanDateRange()
   }
+}
+
+/** 获取图片URL */
+const getImageUrl = (url: string | undefined) => {
+  return AvatarImga(url) || ''
 }
 
 /** 根据温室ID获取温室名称 */
@@ -1605,6 +1628,54 @@ const handleAddFromRotationDetail = async (params: any) => {
 <style lang="scss" scoped>
 .page-content {
   padding: 20px;
+}
+
+.germplasm-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+
+  .germplasm-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 6px;
+    border: 1px solid var(--el-border-color-light);
+    cursor: pointer;
+    transition: transform 0.2s;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+
+  .germplasm-image-placeholder {
+    width: 50px;
+    height: 50px;
+    border-radius: 6px;
+    border: 1px solid var(--el-border-color-light);
+    background-color: var(--el-fill-color-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--el-text-color-placeholder);
+
+    .el-icon {
+      font-size: 24px;
+    }
+  }
+
+  .germplasm-name {
+    font-size: 13px;
+    color: var(--el-text-color-primary);
+    text-align: center;
+    line-height: 1.4;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 </style>
 

@@ -34,14 +34,6 @@ export class AgricultureDeviceSensorAlertService {
             data: data
         })
     }
-
-        // 修改传感器预警信息
-    static updateAlertIot(data: any) {
-         return request.put<CodeMsgResult>({
-            url: 'http://192.168.31.120:8081/device/iot/alert',
-            data: data
-        })
-    }
     // 删除传感器预警信息
     static deleteAlert(id: any) {
         return request.del<CodeMsgResult>({

@@ -1,72 +1,37 @@
 <template>
-  <div class="app-container-sm">
-    <!-- 查询表单 -->
-    <el-card class="card-margin-bottom">
-      <el-form
-        :model="queryParams"
-        ref="queryFormRef"
-        :inline="true"
-        v-show="showSearch"
-        label-width="68px"
-        class="form-minus-bottom"
-      >
-        <el-form-item prop="batchName">
-          <template #label>
-            <b class="form-label-strong">批次名称</b>
-          </template>
-          <el-input
-            v-model="queryParams.batchName"
-            placeholder="请输入批次名称"
-            clearable
-            size="small"
-            @keyup.enter="handleQuery"
-            style="width: 200px"
-            class="form-input-large"
-          />
-        </el-form-item>
-        <el-form-item prop="germplasmId">
-          <template #label>
-            <b class="form-label-strong">种质</b>
-          </template>
-          <el-select
-            v-model="queryParams.germplasmId"
-            size="small"
-            placeholder="请选择种质"
-            clearable
-            style="width: 200px"
-            class="form-input-large"
-          >
-            <el-option
-              v-for="germplasm in germplasmList"
-              :key="germplasm.classId"
-              :label="germplasm.className"
-              :value="germplasm.classId"
+  <div class="page-content">
+    <!-- 收获管理 -->
+    <table-bar
+      :showTop="false"
+      @search="handleQuery"
+      @reset="resetForm(queryFormRef)"
+      :columns="[]"
+    >
+      <template #top>
+        <el-form :model="queryParams" ref="queryFormRef" label-width="82px">
+          <el-row :gutter="20">
+            <form-input
+              label="批次名称"
+              prop="batchName"
+              @keyup.enter="handleQuery"
+              v-model="queryParams.batchName"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button
-            :icon="Search"
-            size="small"
-            @click="handleQuery"
-            class="form-btn-large search-btn"
-            >搜索</el-button
-          >
-          <el-button :icon="Refresh" size="small" @click="resetQuery" class="form-btn-large"
-            >重置</el-button
-          >
-        </el-form-item>
-        <el-form-item class="fr">
-          <el-button
-            :icon="Download"
-            size="small"
-            @click="handleExport"
-            class="form-btn-large export-btn"
-            >导出</el-button
-          >
-        </el-form-item>
-      </el-form>
+            <form-select
+              label="种质"
+              prop="germplasmId"
+              v-model="queryParams.germplasmId"
+              :options="germplasmOptions"
+            />
+          </el-row>
+        </el-form>
+      </template>
+      <template #bottom>
+        <el-button @click="handleExport" v-ripple>导出</el-button>
+      </template>
+    </table-bar>
+
     <!-- 批次卡片列表 -->
+    <el-card class="card-margin-bottom">
       <div class="batch-card-grid">
         <el-row :gutter="24">
           <el-col :span="8" v-for="item in batchList" :key="item.batchId">
@@ -351,6 +316,7 @@
 <script setup lang="ts">
   import { ref, reactive, onMounted, watch, computed } from 'vue'
   import { ElMessage } from 'element-plus'
+  import { resetForm } from '@/utils/utils'
   import { AgricultureClassService } from '@/api/agriculture/classApi'
   import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
   import { UserService } from '@/api/system/userApi'
@@ -395,11 +361,18 @@
   }
 
   const queryFormRef = ref()
-  const showSearch = ref(true)
   const batchList = ref<any[]>([])
   const germplasmList = ref<any[]>([])
   const userList = ref<any[]>([])
   const pastureList = ref<any[]>([])
+
+  // 种质选项，用于form-select组件
+  const germplasmOptions = computed(() => {
+    return germplasmList.value.map(item => ({
+      label: item.className,
+      value: item.classId
+    }))
+  })
 
   const image = reactive({
     baseUrl: window.location.origin + import.meta.env.VITE_APP_BASE_API,
@@ -652,7 +625,7 @@
 
   // 重置
   function resetQuery() {
-    if (queryFormRef.value) queryFormRef.value.resetFields()
+    resetForm(queryFormRef.value)
     handleQuery()
   }
 
@@ -1214,6 +1187,10 @@
       border-color: #dcdfe6 !important;
       color: #606266 !important;
     }
+  }
+
+  .page-content {
+    padding: 20px;
   }
 
   .app-container-sm {

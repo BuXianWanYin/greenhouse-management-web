@@ -1,40 +1,6 @@
 <template>
   <el-dialog :title="device.deviceName + ' 配置'" v-model="visible" :width="dialogWidth" append-to-body>
     <el-tabs v-model="activeTab">
-      <template v-if="props.device.deviceTypeId === '5'">
-        <el-tab-pane label="摄像头参数" name="camera">
-          <div style="display: flex; justify-content: center;">
-            <el-form :model="cameraForm" :rules="cameraRules" ref="cameraFormRef" label-width="80px"
-              style="width: 540px;">
-              <!-- 表单项 -->
-              <el-form-item label="用户名" prop="username">
-                <el-input v-model="cameraForm.username" autocomplete="new-username" placeholder="请输入用户名" />
-              </el-form-item>
-              <el-form-item label="密码" prop="password">
-                <el-input v-model="cameraForm.password" type="password" autocomplete="new-password"
-                  placeholder="请输入密码" />
-              </el-form-item>
-              <el-form-item label="IP" prop="ip">
-                <el-input v-model="cameraForm.ip" autocomplete="off" placeholder="如：192.168.31.198" />
-              </el-form-item>
-              <el-form-item label="端口" prop="port">
-                <el-input v-model="cameraForm.port" autocomplete="off" placeholder="如：8000" />
-              </el-form-item>
-              <el-form-item label="通道" prop="channel">
-                <el-input v-model="cameraForm.channel" autocomplete="off" placeholder="如：1" />
-              </el-form-item>
-              <el-form-item label="码流类型" prop="subtype">
-                <el-select v-model="cameraForm.subtype" placeholder="请选择码流类型">
-                  <el-option label="主码流" :value="0" />
-                  <el-option label="子码流" :value="1" />
-                </el-select>
-              </el-form-item>
-
-            </el-form>
-          </div>
-        </el-tab-pane>
-      </template>
-      <template v-else>
         <el-tab-pane label="阈值配置" name="threshold">
           <div>
             <div class="dialog-header">
@@ -220,7 +186,6 @@
     
     <!-- 底部按钮区域 -->
     <div class="dialog-footer" style="display:flex;justify-content:center;gap:12px;margin-top:24px;flex-wrap:wrap;">
-      <el-button v-if="activeTab === 'camera'" type="primary" @click="saveCameraParams">保存</el-button>
       <el-button v-if="activeTab === 'mqtt'" type="primary" @click="onSaveMqtt">保存</el-button>
       <el-button v-if="activeTab === 'mqtt'" @click="onResetMqtt">重置</el-button>
       <el-button v-if="activeTab === 'sensor'" type="primary" @click="onSaveSensorConfig">保存</el-button>
@@ -264,7 +229,6 @@ import { ElMessage } from 'element-plus'
 import { cloneDeep, isEqual } from 'lodash-es'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { ParamTypeDictService } from '@/api/device/typedictApi'
-import { AgricultureCameraService } from '@/api/device/cameraApi'
 import { AgricultureDeviceTypeService } from '@/api/device/devicetypeApi'
 
 const props = defineProps<{
@@ -275,44 +239,6 @@ const props = defineProps<{
   sensorCommand?: string
 }>()
 
-const CAMERA_TYPE_ID = '5'
-const cameraForm = reactive({
-  id: '',
-  username: '',
-  password: '',
-  ip: '',
-  port: '',
-  channel: '',
-  subtype: 0
-})
-const cameraFormRef = ref<FormInstance>()
-const cameraRules = reactive({
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-  ip: [{ required: true, message: '请输入IP', trigger: 'blur' }],
-  port: [{ required: true, message: '请输入端口', trigger: 'blur' }],
-  channel: [{ required: true, message: '请输入通道', trigger: 'blur' }],
-  subtype: [{ required: true, message: '请选择码流类型', trigger: 'change' }]
-})
-
-async function saveCameraParams() {
-  if (!cameraFormRef.value) return
-  cameraFormRef.value.validate(async (valid: boolean) => {
-    if (!valid) return
-    let res
-    const data = { ...cameraForm, deviceId: props.device.id }
-    if (cameraForm.id) {
-      res = await AgricultureCameraService.updateCamera(data)
-    } else {
-      res = await AgricultureCameraService.addCamera(data)
-    }
-    if (res && res.code === 200) {
-      ElMessage.success('保存成功')
-    } else {
-      ElMessage.error(res.msg || '保存失败')
-    }
-  })
-}
 const emit = defineEmits(['update:modelValue'])
 
 const visible = ref(props.modelValue)
@@ -325,11 +251,7 @@ watch(visible, v => {
     // 弹窗打开时先清空表单，再获取数据
     Object.assign(heartbeatForm.value, { ...heartbeatFormInitial })
     // 弹窗打开时自动选中第一个tab
-    if (props.device?.deviceTypeId === CAMERA_TYPE_ID) {
-      activeTab.value = 'camera'
-    } else {
-      activeTab.value = 'threshold'
-    }
+    activeTab.value = 'threshold'
     // 根据设备类型获取参数类型选项（会过滤）
     fetchParamTypeOptions()
     fetchMqttConfig()
@@ -1047,27 +969,6 @@ function getParamTypeEnByName(name: string) {
   return found ? found.value : name // 如果找不到就返回原值
 }
 
-watch(
-  () => props.device,
-  async (device) => {
-    if (device && device.deviceTypeId === CAMERA_TYPE_ID && device.id) {
-      // 查询摄像头参数
-      const res = await AgricultureCameraService.getCameraByDeviceId(device.id)
-      if (res && res.code === 200 && res.data) {
-        Object.assign(cameraForm, res.data)
-      } else {
-        cameraForm.id = ''
-        cameraForm.username = ''
-        cameraForm.password = ''
-        cameraForm.ip = ''
-        cameraForm.port = ''
-        cameraForm.channel = ''
-        cameraForm.subtype = 0
-      }
-    }
-  },
-  { immediate: true }
-)
 
 </script>
 

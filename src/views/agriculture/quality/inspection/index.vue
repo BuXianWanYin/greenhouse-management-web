@@ -1,142 +1,98 @@
 <template>
-  <div class="app-container-sm">
-    <!-- 查询表单 -->
-    <el-card class="card-margin-bottom">
-      <el-form
-        :model="queryParams"
-        ref="queryFormRef"
-        :inline="true"
-        v-show="showSearch"
-        label-width="100px"
-        class="form-minus-bottom"
-      >
-        <el-form-item label="批次名称" prop="batchName">
-          <el-input
-            v-model="queryParams.batchName"
-            placeholder="请输入批次名称"
-            clearable
-            size="small"
-            @keyup.enter="handleQuery"
-            style="width: 200px"
-          />
-        </el-form-item>
-        <el-form-item label="检测类型" prop="inspectionType">
-          <el-select
-            v-model="queryParams.inspectionType"
-            placeholder="请选择检测类型"
-            clearable
-            size="small"
-            style="width: 200px"
-          >
-            <el-option label="生长期" value="growth" />
-            <el-option label="采收期" value="harvest" />
-            <el-option label="存储期" value="storage" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="检测日期" prop="inspectionDate">
-          <el-date-picker
-            v-model="queryParams.inspectionDate"
-            type="date"
-            placeholder="选择日期"
-            size="small"
-            style="width: 200px"
-            value-format="YYYY-MM-DD"
-          />
-        </el-form-item>
-        <el-form-item label="是否合格" prop="qualified">
-          <el-select
-            v-model="queryParams.qualified"
-            placeholder="请选择"
-            clearable
-            size="small"
-            style="width: 200px"
-          >
-            <el-option label="合格" value="1" />
-            <el-option label="不合格" value="0" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" size="small" @click="handleQuery">搜索</el-button>
-          <el-button :icon="Refresh" size="small" @click="resetQuery">重置</el-button>
-        </el-form-item>
-        <el-form-item class="fr">
-          <el-button
-            type="primary"
-            :icon="Plus"
-            size="small"
-            @click="handleAdd"
-            v-hasPermi="['agriculture:quality:inspection:add']"
-          >新增</el-button>
-          <el-button
-            :icon="Download"
-            size="small"
-            @click="handleExport"
-            v-hasPermi="['agriculture:quality:inspection:export']"
-          >导出</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+  <div class="page-content">
+    <!-- 质量检测记录 -->
+    <table-bar
+      :showTop="false"
+      @search="search"
+      @reset="resetForm(queryFormRef)"
+      @changeColumn="changeColumn"
+      :columns="columns"
+    >
+      <template #top>
+        <el-form :model="queryParams" ref="queryFormRef" label-width="82px">
+          <el-row :gutter="20">
+            <form-input
+              label="批次名称"
+              prop="batchName"
+              @keyup.enter="search"
+              v-model="queryParams.batchName"
+            />
+            <form-select
+              label="检测类型"
+              prop="inspectionType"
+              v-model="queryParams.inspectionType"
+              :options="inspectionTypeOptions"
+            />
+            <form-select
+              label="是否合格"
+              prop="qualified"
+              v-model="queryParams.qualified"
+              :options="qualifiedOptions"
+            />
+            <el-col :xs="24" :sm="12" :lg="6">
+              <el-form-item label="检测日期" prop="inspectionDate">
+                <el-date-picker
+                  v-model="queryParams.inspectionDate"
+                  type="date"
+                  placeholder="选择日期"
+                  style="width: 100%"
+                  value-format="YYYY-MM-DD"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+      </template>
+      <template #bottom>
+        <el-button @click="handleAdd" v-hasPermi="['agriculture:quality:inspection:add']" v-ripple>新增</el-button>
+        <el-button @click="handleExport" v-hasPermi="['agriculture:quality:inspection:export']" v-ripple>导出</el-button>
+      </template>
+    </table-bar>
 
-    <!-- 表格 -->
-    <el-card>
-      <el-table
-        v-loading="loading"
-        :data="inspectionList"
-        @selection-change="handleSelectionChange"
-        style="width: 100%"
-      >
+    <!-- 质量检测记录列表 -->
+    <art-table
+      :data="inspectionList"
+      :total="total"
+      :current-page="queryParams.pageNum"
+      :page-size="queryParams.pageSize"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      v-loading="loading"
+    >
+      <template #default>
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="检测ID" prop="inspectionId" min-width="100" />
-        <el-table-column label="批次名称" prop="batchName" min-width="150" />
-        <el-table-column label="检测类型" prop="inspectionType" min-width="100">
+        <el-table-column label="检测ID" prop="inspectionId" min-width="100" v-if="columns[0].show" />
+        <el-table-column label="批次名称" prop="batchName" min-width="150" show-overflow-tooltip v-if="columns[1].show" />
+        <el-table-column label="检测类型" prop="inspectionType" min-width="100" align="center" v-if="columns[2].show">
           <template #default="scope">
             <el-tag v-if="scope.row.inspectionType === 'growth'">生长期</el-tag>
             <el-tag type="warning" v-else-if="scope.row.inspectionType === 'harvest'">采收期</el-tag>
             <el-tag type="info" v-else-if="scope.row.inspectionType === 'storage'">存储期</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="检测日期" prop="inspectionDate" min-width="120" />
-        <el-table-column label="检测项目" prop="inspectionItem" min-width="150" />
-        <el-table-column label="检测结果" prop="inspectionResult" min-width="200" show-overflow-tooltip />
-        <el-table-column label="是否合格" prop="qualified" min-width="100">
+        <el-table-column label="检测日期" prop="inspectionDate" min-width="120" align="center" v-if="columns[3].show" />
+        <el-table-column label="检测项目" prop="inspectionItem" min-width="150" show-overflow-tooltip v-if="columns[4].show" />
+        <el-table-column label="检测结果" prop="inspectionResult" min-width="200" show-overflow-tooltip v-if="columns[5].show" />
+        <el-table-column label="是否合格" prop="qualified" min-width="100" align="center" v-if="columns[6].show">
           <template #default="scope">
             <el-tag :type="scope.row.qualified === '1' ? 'success' : 'danger'">
               {{ scope.row.qualified === '1' ? '合格' : '不合格' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="检测人员" prop="inspectorName" min-width="120" />
-        <el-table-column label="操作" align="center" width="180" fixed="right">
+        <el-table-column label="检测人员" prop="inspectorName" min-width="120" align="center" v-if="columns[7].show" />
+        <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="scope">
-            <el-button
-              link
-              type="primary"
-              :icon="Edit"
-              @click="handleUpdate(scope.row)"
-              v-hasPermi="['agriculture:quality:inspection:edit']"
-            >修改</el-button>
-            <el-button
-              link
-              type="danger"
-              :icon="Delete"
-              @click="handleDelete(scope.row)"
-              v-hasPermi="['agriculture:quality:inspection:remove']"
-            >删除</el-button>
+            <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['agriculture:quality:inspection:edit']">
+              <el-icon><EditPen /></el-icon>修改
+            </el-button>
+            <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['agriculture:quality:inspection:remove']">
+              <el-icon><Delete /></el-icon>删除
+            </el-button>
           </template>
         </el-table-column>
-      </el-table>
-
-      <el-pagination
-        v-show="total > 0"
-        :total="total"
-        v-model:current-page="queryParams.pageNum"
-        v-model:page-size="queryParams.pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="getList"
-        @current-change="getList"
-      />
-    </el-card>
+      </template>
+    </art-table>
 
     <!-- 添加或修改对话框 -->
     <el-dialog :title="title" v-model="open" width="700px" append-to-body>
@@ -229,9 +185,10 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Search, Refresh, Plus, Download, Edit, Delete } from '@element-plus/icons-vue'
+import { EditPen, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { FormInstance } from 'element-plus'
+import { resetForm } from '@/utils/utils'
 import { AgricultureQualityService } from '@/api/agriculture/qualityApi'
 import { AgricultureQualityInspectionResult } from '@/types/agriculture/quality'
 import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
@@ -241,7 +198,6 @@ import { downloadExcel } from '@/utils/utils'
 const loading = ref(false)
 const inspectionList = ref<AgricultureQualityInspectionResult[]>([])
 const open = ref(false)
-const showSearch = ref(true)
 const title = ref('')
 const total = ref(0)
 const ids = ref<number[]>([])
@@ -251,6 +207,36 @@ const inspectionRef = ref<FormInstance>()
 const queryFormRef = ref<FormInstance>()
 const batchList = ref<any[]>([])
 const userList = ref<any[]>([])
+
+const columns = reactive([
+  { name: '检测ID', show: true },
+  { name: '批次名称', show: true },
+  { name: '检测类型', show: true },
+  { name: '检测日期', show: true },
+  { name: '检测项目', show: true },
+  { name: '检测结果', show: true },
+  { name: '是否合格', show: true },
+  { name: '检测人员', show: true }
+])
+
+const inspectionTypeOptions = ref([
+  { label: '生长期', value: 'growth' },
+  { label: '采收期', value: 'harvest' },
+  { label: '存储期', value: 'storage' }
+])
+
+const qualifiedOptions = ref([
+  { label: '合格', value: '1' },
+  { label: '不合格', value: '0' }
+])
+
+const changeColumn = (list: any) => {
+  columns.forEach((col, index) => {
+    if (list[index]) {
+      col.show = list[index].show
+    }
+  })
+}
 
 const queryParams = reactive({
   pageNum: 1,
@@ -298,15 +284,30 @@ const getList = async () => {
 }
 
 /** 搜索按钮操作 */
-const handleQuery = () => {
+const search = () => {
   queryParams.pageNum = 1
   getList()
 }
 
+const handleQuery = search
+
 /** 重置按钮操作 */
 const resetQuery = () => {
-  queryFormRef.value?.resetFields()
-  handleQuery()
+  resetForm(queryFormRef.value)
+  search()
+}
+
+/** 每页条数改变 */
+const handleSizeChange = (size: number) => {
+  queryParams.pageSize = size
+  queryParams.pageNum = 1
+  getList()
+}
+
+/** 当前页改变 */
+const handleCurrentChange = (page: number) => {
+  queryParams.pageNum = page
+  getList()
 }
 
 /** 多选框选中数据 */
@@ -443,8 +444,8 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.card-margin-bottom {
-  margin-bottom: 20px;
+.page-content {
+  padding: 20px;
 }
 </style>
 

@@ -58,47 +58,6 @@
       </el-card>
     </div>
 
-    <el-card class="box-card" style="flex: 1;">
-          <template #header>
-            <div class="card-header">
-              <span>预警规则设置</span>
-          
-            </div>
-          </template>
-          <el-table :data="alarmRules" style="width: 100%">
-            <el-table-column prop="parameter" label="监测参数" width="400">
-              <template #default="scope">
-                {{ paramTypeDict[scope.row.parameter] || scope.row.parameter }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="threshold" label="阈值范围" width="400" />
-            <el-table-column prop="notify" label="通知方式">
-              <template #default="scope">
-                <el-tag
-                  :type="getNotifyTagType(scope.row.notify)"
-                  size="small"
-                >
-                  {{ scope.row.notify }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" label="状态" width="150">
-              <template #default="scope">
-                <el-switch
-                  v-model="scope.row.status"
-                  @change="onAlarmRuleStatusChange(scope.row)"
-                />
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="200">
-              <template #default="scope">
-                <el-button link size="small" @click="onEditAlarmRule(scope.row)">编辑</el-button>
-                <el-button link size="small" @click="onDeleteAlarmRule(scope.row)">删除</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-
        <!-- 气象异常报警列表 -->
        <div class="warning-list">
       <el-card class="box-card">
@@ -172,35 +131,11 @@
     </div>
     
 
-    <!-- 编辑预警规则弹窗 -->
-    <el-dialog v-model="editDialogVisible" title="编辑预警规则" width="500px">
-      <el-form :model="editForm" label-width="100px">
-        <el-form-item label="监测参数">
-          <el-input :value="paramTypeDict[editForm.parameter] || editForm.parameter" disabled />
-        </el-form-item>
-        <el-form-item label="阈值范围">
-          <el-input v-model="editForm.threshold" disabled />
-        </el-form-item>
-        <el-form-item label="通知方式">
-          <el-select v-model="editForm.notify" placeholder="请选择">
-            <el-option label="系统通知" value="系统通知" />
-            <el-option label="邮箱提醒" value="邮箱提醒" />
-            <el-option label="短信" value="短信" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="editForm.description" type="textarea" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button type="primary" @click="onEditAlarmRuleSave">保存</el-button>
-        <el-button @click="editDialogVisible = false">取消</el-button>
-
-      </template>
-    </el-dialog>
-
     <!-- 处理预警弹窗 -->
-    <el-dialog v-model="handleDialogVisible" :title="isDetailMode ? '预警详情' : '处理预警'" width="500px">
+    <el-dialog v-model="handleDialogVisible" width="500px">
+      <template #header>
+        <span>{{ isDetailMode ? '预警详情' : '处理预警' }}</span>
+      </template>
       <el-form :model="handleForm" label-width="100px">
         <el-form-item v-if="isDetailMode" label="异常详细">
           <el-input v-model="handleForm.alertMessage" disabled />
@@ -240,12 +175,13 @@ import { ColdDrink, IceDrink, Compass, Flag, Sunny } from '@element-plus/icons-v
 import { ElMessage, ElMessageBox } from 'element-plus' // Element Plus 消息弹窗
 import { useMqttStore } from '@/store/modules/mqttStore' // MQTT 状态管理
 import { storeToRefs } from 'pinia' // Pinia store 工具
-import { AgricultureThresholdConfigService } from '@/api/device/thresholdConfig' // 阈值配置 API
 import { ParamTypeDictService } from '@/api/device/typedictApi' // 参数字典 API
 import { AgricultureDeviceSensorAlertService } from '@/api/sensor/alertApi'// 报警信息API
 import { AgricultureDeviceMqttConfigService } from '@/api/device/deviceConfigApi' // 设备MQTT配置 API
+import { AgricultureThresholdConfigService } from '@/api/device/thresholdConfig' // 阈值配置 API
 import { useUserStore } from '@/store/modules/user'//获取用户API
 import { AgricultureAirDataService } from '@/api/sensor/airdataApi' // 气象数据API
+import mittBus from '@/utils/mittBus' // 事件总线
 
 // 2. 父组件传递的参数 props
 const props = defineProps({
@@ -281,8 +217,7 @@ const isDetailMode = ref(false)
 const paramUnitMap = computed(() => {
   return paramUnitDict.value || {}
 })
-// --- 报警规则相关 ---
-const alarmRules = ref([]) // 报警规则列表
+// --- 预警相关 ---
 let updateTimeTimer = null //定时器
 const warningList = ref([])
 const warningLoading = ref(false)
@@ -305,7 +240,7 @@ const fetchWarningList = async () => {
     
     const params = {
       pastureId: pastureId,
-      deviceType:'weather',
+      deviceType:'air',  // 气象设备类型为 air
       pageNum: warningQueryParams.value.pageNum,
       pageSize: warningQueryParams.value.pageSize
     }
@@ -344,8 +279,6 @@ const analysisDrawer = ref(false) // 数据分析抽屉显示状态
 const analysisTab = ref('trend') // 当前分析 tab
 const warningLevel = ref('') // 预警等级筛选 '' | 'warning' | 'danger'
 const warningStatus = ref('') // 预警状态筛选 '' | 0 | 1
-const editDialogVisible = ref(false) // 编辑报警规则弹窗显示状态
-const editForm = ref({}) // 编辑报警规则表单
 const currentPage = ref(1) // 当前页码
 const pageSize = ref(10) // 每页条数
 const dateRange = ref([]) // 检测记录日期范围
@@ -519,6 +452,57 @@ const currentPastureIdRef = computed(() => {
   }
 })
 
+// ========== 图表相关 ==========
+/**
+ * 请求气象趋势数据
+ */
+const fetchWeatherTrendData = async () => {
+  trendChartLoading.value = true
+  try {
+    const pastureId = currentPastureIdRef.value
+    if (pastureId) {
+      const res = await AgricultureAirDataService.getTrendData(
+        pastureId,
+        chartTimeRange.value
+      )
+      if (res && res.code === 200 && res.data) {
+        // 处理API返回的数据格式，将xaxis转换为xAxis
+        const processedData = {
+          xAxis: res.data.xaxis || res.data.xAxis || [],
+          temperature: res.data.temperature || [],
+          humidity: res.data.humidity || [],
+          windSpeed: res.data.windSpeed || [],
+          lightIntensity: res.data.lightIntensity || []
+        }
+        updateTrendChart(processedData)
+      } else {
+        // 如果API返回失败或没有数据，使用空数据
+        const emptyData = {
+          xAxis: [],
+          temperature: [],
+          humidity: [],
+          windSpeed: [],
+          lightIntensity: []
+        }
+        updateTrendChart(emptyData)
+      }
+    }
+  } catch (error) {
+    console.error('请求气象趋势数据失败:', error)
+    // 错误时使用空数据
+    const emptyData = {
+      xAxis: [],
+      temperature: [],
+      humidity: [],
+      windSpeed: [],
+      lightIntensity: []
+    }
+    updateTrendChart(emptyData)
+  } finally {
+    trendChartLoading.value = false
+  }
+}
+
 /**
  * 侦听 pastureId、deviceList 的变化
  * 1. 设备列表变化时加载阈值和订阅
@@ -565,11 +549,10 @@ watch(
           mqttStore.subscribeAllDeviceTopics(newDeviceList)
         }
       }
-      // 2. id变化时刷新报警规则、读取缓存
+      // 2. id变化时读取缓存
       if (newPastureId !== oldPastureId && newPastureId) {
         // 先读取缓存，保证 deviceDataMap 有数据
         readDeviceDataMapCache()
-        loadAlarmRules(newPastureId) // 刷新报警规则
         fetchWarningList() // <<=== 加载气象异常预警数据
       }
       // 3. 每次变化都请求气象趋势数据
@@ -662,11 +645,6 @@ watch([warningLevel, warningStatus], () => {
       fetchWeatherTrendData()
     }
   })
-  // 加载报警规则
-  const pastureId = currentPastureIdRef.value
-  if (pastureId) {
-    loadAlarmRules(pastureId)
-  }
   // 加载参数类型字典
   loadParamTypeDict()
   // 加载气象异常预警数据
@@ -676,6 +654,7 @@ watch([warningLevel, warningStatus], () => {
 /**
  * 组件卸载前执行
  * 1. 销毁 ECharts 实例，释放内存
+ * 2. 移除事件监听
  */
 onBeforeUnmount(() => {
   if (chartInstance) {
@@ -687,128 +666,58 @@ onBeforeUnmount(() => {
     clearInterval(updateTimeTimer)
     updateTimeTimer = null
   }
+  // 移除事件监听
+  mittBus.off('navigateToAlertDetail', handleNavigateToAlertDetail)
 })
+
+/**
+ * 处理预警详情跳转事件
+ * 当从MQTT通知点击跳转时，自动打开对应的预警详情弹窗
+ */
+const handleNavigateToAlertDetail = async (data) => {
+  try {
+    const { alertId, deviceType, pastureId } = data
+    
+    // 只处理气象设备（air）的预警
+    if (deviceType !== 'air') {
+      return
+    }
+    
+    // 如果指定了pastureId，检查是否匹配当前温室
+    if (pastureId && pastureId !== currentPastureIdRef.value) {
+      return
+    }
+    
+    // 刷新预警列表，确保数据最新
+    await fetchWarningList()
+    
+    // 在预警列表中查找对应的预警
+    const alert = warningList.value.find((item) => item.id === alertId)
+    
+    if (alert) {
+      // 打开详情弹窗
+      onDetailWarning(alert)
+    } else {
+      // 如果列表中没有找到，可能是分页问题，尝试查询详情
+      try {
+        const res = await AgricultureDeviceSensorAlertService.getAlert(alertId)
+        if (res && res.code === 200 && res.data) {
+          onDetailWarning(res.data)
+        } else {
+          ElMessage.warning('未找到该预警信息')
+        }
+      } catch (e) {
+        console.error('查询预警详情失败:', e)
+        ElMessage.error('查询预警详情失败')
+      }
+    }
+  } catch (error) {
+    console.error('处理预警详情跳转失败:', error)
+  }
+}
 
 
 // 方法
-// ========== 报警规则相关 ==========
-/**
- * 加载报警规则
- * @param {String} pastureId 温室ID
- */
-const loadAlarmRules = async (pastureId) => {
-  // 从设备列表中动态获取气象设备类型ID
-  const weatherDevices = (props.deviceList || []).filter(d => d && (d.deviceTypeId == 1 || d.deviceTypeId == '1'))
-  const deviceType = weatherDevices.length > 0 ? (weatherDevices[0].deviceTypeId == '1' ? 1 : Number(weatherDevices[0].deviceTypeId)) : 1
-  
-  if (!pastureId) {
-    alarmRules.value = []
-    return
-  }
-  try {
-    const res = await AgricultureThresholdConfigService.listByPastureAndBatch(pastureId, null, deviceType)
-    if (res && res.data && Array.isArray(res.data)) {
-      alarmRules.value = res.data.map(item => {
-        let threshold = ''
-        const min = item.thresholdMin
-        const max = item.thresholdMax
-        const unit = item.unit || ''
-        if (min != null && max != null && min !== '' && max !== '') {
-          if (min === max) {
-            threshold = `${min}${unit}`
-          } else {
-            threshold = `${min}${unit} ~ ${max}${unit}`
-          }
-        } else if (min != null && min !== '') {
-          threshold = `大于 ${min}${unit}`
-        } else if (max != null && max !== '') {
-          threshold = `小于 ${max}${unit}`
-        } else {
-          threshold = '--'
-        }
-        return {
-          id: item.id,
-          parameter: item.paramType,
-          threshold,
-          notify: notifyTypeMap[item.notifyType] || item.notifyType || '--',
-          status: item.isEnabled === 1 || item.isEnabled === true || item.isEnabled === '1',
-          description: item.remark || ''
-        }
-      })
-    } else {
-      alarmRules.value = []
-    }
-  } catch (e) {
-    alarmRules.value = []
-  }
-}
-
-/**
- * 编辑报警规则弹窗
- * @param {Object} row 报警规则行数据
- */
-const onEditAlarmRule = (row) => {
-  editForm.value = { ...row }
-  editDialogVisible.value = true
-}
-
-/**
- * 保存报警规则
- */
-const onEditAlarmRuleSave = async () => {
-  try {
-    const notifyTypeMapReverse = { '系统通知': 'system', '邮箱提醒': 'email', '短信': 'sms' }
-    await AgricultureThresholdConfigService.updateConfig({
-      id: editForm.value.id,
-      paramType: editForm.value.parameter,
-      notifyType: notifyTypeMapReverse[editForm.value.notify] || 'system',
-      isEnabled: editForm.value.status ? 1 : 0,
-      remark: editForm.value.description,
-    })
-    ElMessage.success('保存成功')
-    editDialogVisible.value = false
-    const pastureId = currentPastureIdRef.value
-    if (pastureId) {
-      loadAlarmRules(pastureId)
-    }
-  } catch (e) {
-    ElMessage.error('保存失败')
-  }
-}
-
-/**
- * 删除报警规则
- * @param {Object} row 报警规则行数据
- */
-const onDeleteAlarmRule = async (row) => {
-  try {
-    await ElMessageBox.confirm('确定要删除该报警规则吗？', '提示', { type: 'warning' })
-    await AgricultureThresholdConfigService.deleteConfig(row.id)
-    ElMessage.success('删除成功')
-    loadAlarmRules(props.pastureId)
-  } catch (e) {
-    if (e !== 'cancel') ElMessage.error('删除失败')
-  }
-}
-
-/**
- * 报警规则状态改变
- * @param {Object} row 报警规则行数据
- */
-const onAlarmRuleStatusChange = async (row) => {
-  try {
-    await AgricultureThresholdConfigService.updateConfig({
-      ...row,
-      isEnabled: row.status ? 1 : 0
-    })
-    ElMessage.success('状态更新成功')
-    loadAlarmRules(props.pastureId)
-  } catch (e) {
-    ElMessage.error('状态更新失败')
-    // 恢复原状态
-    row.status = !row.status
-  }
-}
 // ========== 预警操作相关 ==========
 //处理按钮
 const onHandleWarning = (row) => {
@@ -828,7 +737,7 @@ const onHandleWarning = (row) => {
 //保存处理按钮
 const onHandleSave = async () => {
   try {
-    await AgricultureDeviceSensorAlertService.updateAlertIot({
+    await AgricultureDeviceSensorAlertService.updateAlert({
       id: handleForm.value.id,
       status: handleForm.value.status,
       remark: handleForm.value.remark,
@@ -883,7 +792,7 @@ const markAllAsHandled = async () => {
   }
   try {
     await Promise.all(toHandle.map(item =>
-      AgricultureDeviceSensorAlertService.updateAlertIot({
+      AgricultureDeviceSensorAlertService.updateAlert({
         id: item.id,
         status: 1,
         remark: item.remark,
@@ -945,58 +854,6 @@ const showControlDetail = (control) => {
       confirmButtonText: '确定'
     }
   )
-}
-
-
-// ========== 图表相关 ==========
-/**
- * 请求气象趋势数据
- */
-const fetchWeatherTrendData = async () => {
-  trendChartLoading.value = true
-  try {
-    const pastureId = currentPastureIdRef.value
-    if (pastureId) {
-      const res = await AgricultureAirDataService.getTrendData(
-        pastureId,
-        chartTimeRange.value
-      )
-      if (res && res.code === 200 && res.data) {
-        // 处理API返回的数据格式，将xaxis转换为xAxis
-        const processedData = {
-          xAxis: res.data.xaxis || res.data.xAxis || [],
-          temperature: res.data.temperature || [],
-          humidity: res.data.humidity || [],
-          windSpeed: res.data.windSpeed || [],
-          lightIntensity: res.data.lightIntensity || []
-        }
-        updateTrendChart(processedData)
-      } else {
-        // 如果API返回失败或没有数据，使用空数据
-        const emptyData = {
-          xAxis: [],
-          temperature: [],
-          humidity: [],
-          windSpeed: [],
-          lightIntensity: []
-        }
-        updateTrendChart(emptyData)
-      }
-    }
-  } catch (error) {
-    console.error('请求气象趋势数据失败:', error)
-    // 错误时使用空数据
-    const emptyData = {
-      xAxis: [],
-      temperature: [],
-      humidity: [],
-      windSpeed: [],
-      lightIntensity: []
-    }
-    updateTrendChart(emptyData)
-  } finally {
-    trendChartLoading.value = false
-  }
 }
 
 /**
@@ -1367,23 +1224,6 @@ const getList = async () => {
   }
 }
 
-/**
- * 获取通知类型的标签样式
- * @param {String} notify 通知类型
- */
-const getNotifyTagType = (notify) => {
-  switch (notify) {
-    case '系统通知':
-      return 'success'
-    case '邮箱提醒':
-      return 'warning'
-    case '短信':
-      return 'success'
-    default:
-      return 'default'
-  }
-}
-
 // 其他工具函数
 /**
  * 计算百分比
@@ -1407,15 +1247,6 @@ const getNotifyTagType = (notify) => {
   const percent = Math.round(((value - min) / (max - min)) * 100)
   // 保证百分比在0~100之间
   return Math.max(0, Math.min(100, percent))
-}
-
-/**
- * 通知类型映射
- */
-const notifyTypeMap = {
-  system: '系统通知',
-  email: '邮箱提醒',
-  sms: '短信'
 }
 
 /**

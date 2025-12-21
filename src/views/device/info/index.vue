@@ -153,46 +153,10 @@
           </el-select>
         </el-form-item>
       </el-form>
-      <el-form v-else ref="cameraRef" :model="cameraForm" :rules="cameraRules" label-width="80px">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="cameraForm.username" autocomplete="new-username" placeholder="请输入用户名" />
-        </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="cameraForm.password" type="password" autocomplete="new-password" placeholder="请输入密码" />
-        </el-form-item>
-        <el-form-item label="IP" prop="ip">
-          <el-input v-model="cameraForm.ip" autocomplete="off" placeholder="如：192.168.31.198" />
-        </el-form-item>
-        <el-form-item label="端口" prop="port">
-          <el-input v-model="cameraForm.port" autocomplete="off" placeholder="如：8000" />
-        </el-form-item>
-        <el-form-item label="通道" prop="channel">
-          <el-input v-model="cameraForm.channel" autocomplete="off" placeholder="如：1" />
-        </el-form-item>
-        <el-form-item label="码流类型" prop="subtype">
-          <el-select v-model="cameraForm.subtype" placeholder="请选择码流类型">
-            <el-option label="主码流" :value="0" />
-            <el-option label="子码流" :value="1" />
-          </el-select>
-        </el-form-item>
-      </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <template v-if="!form.id && form.deviceTypeId === CAMERA_TYPE_ID">
-            <template v-if="step === 1">
-              <el-button type="primary" @click="goToCameraStep" :loading="nextStepLoading">下一步</el-button>
-              <el-button @click="cancel">取消</el-button>
-            </template>
-            <template v-else>
-              <el-button @click="skipCameraParams">暂时跳过</el-button>
-              <el-button type="primary" @click="submitCameraForm">确定</el-button>
-              <el-button @click="cancel">取消</el-button>
-            </template>
-          </template>
-          <template v-else>
-            <el-button type="primary" @click="submitForm">确定</el-button>
-            <el-button @click="cancel">取消</el-button>
-          </template>
+          <el-button type="primary" @click="submitForm">确定</el-button>
+          <el-button @click="cancel">取消</el-button>
         </div>
       </template>
     </el-dialog>
@@ -281,7 +245,6 @@ import {
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useMqttStore } from '@/store/modules/mqttStore'
-import { AgricultureCameraService } from '@/api/device/cameraApi'
 import type { CheckboxValueType } from 'element-plus'
 
 const deviceList = ref<AgricultureDeviceResult[]>([])
@@ -293,7 +256,6 @@ const total = ref(0)
 const title = ref('')
 const queryRef = ref()
 const deviceRef = ref<FormInstance>()
-const cameraRef = ref<FormInstance>()
 const showStatusDialog = ref(false)
 const currentDevice = ref<any>({})
 const showThresholdDialog = ref(false)
@@ -468,11 +430,10 @@ const changeColumn = (list: any) => {
 // 取消按钮
 function cancel() {
   open.value = false
-  step.value = 1
-  resetCameraForm()
   nextTick(() => {
-    console.log('cancel deviceRef', deviceRef.value)
-    console.log('cancel cameraRef', cameraRef.value)
+    if (deviceRef.value) {
+      deviceRef.value.clearValidate()
+    }
   })
 }
 
@@ -482,8 +443,9 @@ const reset = () => {
     ...initialFormState
   })
   nextTick(() => {
-    console.log('reset deviceRef', deviceRef.value)
-    console.log('reset cameraRef', cameraRef.value)
+    if (deviceRef.value) {
+      deviceRef.value.clearValidate()
+    }
   })
 }
 
@@ -516,12 +478,10 @@ const handleAdd = () => {
   reset()
   open.value = true
   title.value = '添加设备信息'
-  step.value = 1
   currentDeviceId.value = null
   nextTick(() => {
     if (deviceRef.value) {
       deviceRef.value.clearValidate()
-      console.log('handleAdd deviceRef', deviceRef.value)
     }
   })
 }
@@ -539,12 +499,10 @@ const handleUpdate = async (row: any) => {
     });
     open.value = true;
     title.value = '修改设备信息';
-    step.value = 1;
     currentDeviceId.value = data.id || null
     nextTick(() => {
       if (deviceRef.value) {
         deviceRef.value.clearValidate();
-        console.log('handleUpdate deviceRef', deviceRef.value)
       }
     });
   }
@@ -700,94 +658,6 @@ const beforeImageUpload = (file: File) => {
 
 // 提供 deviceDataMap 给子组件
 provide('deviceDataMap', computed(() => mqttStore.deviceDataMap))
-
-const step = ref(1)
-const CAMERA_TYPE_ID = '5' // 摄像头类型ID
-const cameraForm = reactive({
-  username: '',
-  password: '',
-  ip: '',
-  port: '',
-  channel: '',
-  subtype: 0
-})
-const nextStepLoading = ref(false)
-
-function goToCameraStep() {
-  if (!deviceRef.value) return
-  nextStepLoading.value = true
-  deviceRef.value.validate(async (valid: boolean) => {
-    if (valid) {
-      // 保存设备
-      const submitData = {
-        ...form
-      }
-      let res
-      if (form.id != null) {
-        res = await AgricultureDeviceService.updateDevice(submitData)
-        currentDeviceId.value = form.id
-      } else {
-        res = await AgricultureDeviceService.addDevice(submitData)
-        currentDeviceId.value = (res as any).data?.id || (res as any).data || null
-      }
-      if (res.code === 200 && currentDeviceId.value) {
-        step.value = 2
-      } else {
-        ElMessage.error(res.msg || '设备保存失败')
-      }
-    }
-    nextStepLoading.value = false
-  })
-}
-
-function resetCameraForm() {
-  cameraForm.username = ''
-  cameraForm.password = ''
-  cameraForm.ip = ''
-  cameraForm.port = ''
-  cameraForm.channel = ''
-  cameraForm.subtype = 0
-}
-
-async function skipCameraParams() {
-  open.value = false
-  step.value = 1
-  resetCameraForm()
-}
-
-async function submitCameraForm() {
-  if (!cameraRef.value) return
-  if (!currentDeviceId.value) {
-    ElMessage.error('设备ID丢失，无法保存摄像头参数')
-    return
-  }
-  cameraRef.value.validate(async (cameraValid: boolean) => {
-    if (!cameraValid) return
-    // 只保存摄像头参数
-    const cameraRes = await AgricultureCameraService.addCamera({
-      deviceId: currentDeviceId.value,
-      ...cameraForm
-    })
-    if (cameraRes.code === 200) {
-      ElMessage.success('保存成功')
-      open.value = false
-      step.value = 1
-      resetCameraForm()
-      getList()
-    } else {
-      ElMessage.error(cameraRes.msg || '摄像头参数保存失败')
-    }
-  })
-}
-
-const cameraRules = reactive({
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-  ip: [{ required: true, message: '请输入IP', trigger: 'blur' }],
-  port: [{ required: true, message: '请输入端口', trigger: 'blur' }],
-  channel: [{ required: true, message: '请输入通道', trigger: 'blur' }],
-  subtype: [{ required: true, message: '请选择码流类型', trigger: 'change' }]
-})
 
 // 一键绑定温室相关
 const openBatchBindDialog = ref(false)

@@ -110,25 +110,21 @@ export const useMqttStore = defineStore('mqtt', () => {
    * 显示预警通知
    */
   function showAlertNotification(alert: any) {
+    // 统一使用警告类型（橙色），保证所有预警通知配色一致
     const levelMap: Record<number, { type: 'success' | 'warning' | 'info' | 'error', title: string }> = {
-      0: { type: 'info', title: '提示' },
-      1: { type: 'warning', title: '警告' },
-      2: { type: 'error', title: '严重' },
-      3: { type: 'error', title: '紧急' }
+      0: { type: 'warning', title: '警告' },  // 警告级别
+      1: { type: 'error', title: '严重' },    // 严重级别
+      2: { type: 'error', title: '紧急' },    // 紧急级别
     }
     
-    const level = levelMap[alert.alertLevel] || levelMap[1]
+    const level = levelMap[alert.alertLevel] || levelMap[0]
     
     ElNotification({
       type: level.type,
-      title: `${level.title} - ${alert.alertTitle || '设备预警'}`,
+      title: `${level.title} - ${alert.paramName || '设备预警'}`,
       message: alert.alertMessage || '设备参数异常',
       duration: 0, // 不自动关闭
-      position: 'top-right',
-      onClick: () => {
-        // TODO: 跳转到预警详情页面
-        // router.push(`/monitor/alert/detail/${alert.alertId}`)
-      }
+      position: 'top-right'
     })
   }
 
