@@ -263,9 +263,9 @@
                   class="schedule-badge"
                   :class="schedule.workType || 'normal'"
                   @click.stop="handleScheduleClick(schedule)"
-                  :title="`${schedule.workStartTime?.substring(11, 16) || ''}-${schedule.workEndTime?.substring(11, 16) || ''}`"
+                  :title="getScheduleTooltip(schedule)"
                 >
-                  {{ schedule.workStartTime?.substring(11, 16) || '' }}-{{ schedule.workEndTime?.substring(11, 16) || '' }}
+                  {{ getScheduleDisplayText(schedule) }}
                 </div>
                 <div v-if="getSchedulesForUserAndDate(user.userId, date).length === 0" class="cell-empty">
                   <span class="empty-hint">点击排班</span>
@@ -359,7 +359,7 @@
             >
               <span>{{ rule.ruleName }}</span>
               <span style="color: #8492a6; font-size: 12px; margin-left: 10px">
-                {{ formatWorkDays(rule.workDays) }} {{ rule.workStartTime }}-{{ rule.workEndTime }}
+                {{ rule.workStartTime }}-{{ rule.workEndTime }}
               </span>
             </el-option>
           </el-select>
@@ -449,8 +449,15 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="排班规则" prop="ruleId">
-          <el-select v-model="batchForm.ruleId" placeholder="请选择排班规则（可选）" clearable filterable style="width: 100%">
+        <el-form-item label="工作类型" prop="workType">
+          <el-select v-model="batchForm.workType" placeholder="请选择工作类型" style="width: 100%">
+            <el-option label="正常班" value="normal" />
+            <el-option label="请假" value="leave" />
+            <el-option label="休息" value="rest" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="排班规则" prop="ruleId" v-if="batchForm.workType === 'normal'">
+          <el-select v-model="batchForm.ruleId" placeholder="请选择排班规则" filterable style="width: 100%">
             <el-option
               v-for="rule in ruleList"
               :key="rule.ruleId"
@@ -459,36 +466,9 @@
             >
               <span>{{ rule.ruleName }}</span>
               <span style="color: #8492a6; font-size: 12px; margin-left: 10px">
-                {{ formatWorkDays(rule.workDays) }} {{ rule.workStartTime }}-{{ rule.workEndTime }}
+                {{ rule.workStartTime }}-{{ rule.workEndTime }}
               </span>
             </el-option>
-          </el-select>
-          <div style="color: #909399; font-size: 12px; margin-top: 5px">
-            选择规则后，将按照规则的工作日和时间段自动生成排班
-          </div>
-        </el-form-item>
-        <el-form-item label="工作开始时间" prop="workStartTime" v-if="!batchForm.ruleId">
-          <el-time-picker
-            v-model="batchForm.workStartTime"
-            format="HH:mm"
-            value-format="HH:mm"
-            placeholder="选择开始时间"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="工作结束时间" prop="workEndTime" v-if="!batchForm.ruleId">
-          <el-time-picker
-            v-model="batchForm.workEndTime"
-            format="HH:mm"
-            value-format="HH:mm"
-            placeholder="选择结束时间"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="工作类型" prop="workType">
-          <el-select v-model="batchForm.workType" placeholder="请选择工作类型" style="width: 100%">
-            <el-option label="正常班" value="normal" />
-            <el-option label="请假" value="leave" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -564,10 +544,9 @@ const batchRules = computed(() => {
     workType: [{ required: true, message: '请选择工作类型', trigger: 'change' }]
   }
   
-  // 如果没有选择规则，则需要手动填写时间
-  if (!batchForm.ruleId) {
-    rules.workStartTime = [{ required: true, message: '请选择工作开始时间', trigger: 'change' }]
-    rules.workEndTime = [{ required: true, message: '请选择工作结束时间', trigger: 'change' }]
+  // 如果是正常班，则必须选择排班规则
+  if (batchForm.workType === 'normal') {
+    rules.ruleId = [{ required: true, message: '请选择排班规则', trigger: 'change' }]
   }
   
   return rules
@@ -758,6 +737,34 @@ const isDateInSelectingRange = (date: string, userId: number) => {
 const getSchedulesForUserAndDate = (userId: number, date: string) => {
   const schedules = gridScheduleMap.value.get(date) || []
   return schedules.filter(s => s.userId === userId && s.status === '0')
+}
+
+// 获取排班显示文本（优先显示班次名称，否则显示工作类型）
+const getScheduleDisplayText = (schedule: AgricultureEmployeeScheduleResult) => {
+  // 如果有绑定排班规则，显示规则名称
+  if (schedule.ruleName) {
+    return schedule.ruleName
+  }
+  // 否则根据工作类型显示
+  const workTypeMap: Record<string, string> = {
+    'normal': '正常班',
+    'leave': '请假',
+    'rest': '休息'
+  }
+  return workTypeMap[schedule.workType || 'normal'] || '正常班'
+}
+
+// 获取排班提示文本
+const getScheduleTooltip = (schedule: AgricultureEmployeeScheduleResult) => {
+  const startTime = schedule.workStartTime?.substring(11, 16) || ''
+  const endTime = schedule.workEndTime?.substring(11, 16) || ''
+  const ruleName = schedule.ruleName || ''
+  if (ruleName && startTime && endTime) {
+    return `${ruleName} (${startTime}-${endTime})`
+  } else if (startTime && endTime) {
+    return `${startTime}-${endTime}`
+  }
+  return ruleName || ''
 }
 
 // 加载网格视图数据
@@ -1484,10 +1491,8 @@ const formatWorkDays = (workDays: string) => {
 
 /** 检查规则是否适用于选中的日期 */
 const isRuleApplicable = (rule: AgricultureScheduleRuleResult) => {
-  if (!form.scheduleDate || !rule.workDays) return true
-  const date = dayjs(form.scheduleDate)
-  const dayOfWeek = date.day() === 0 ? '7' : String(date.day()) // 转换为1-7格式（周一到周日）
-  return rule.workDays.split(',').includes(dayOfWeek)
+  // 排班规则始终可用
+  return true
 }
 
 /** 日期变化时处理 */
@@ -1573,9 +1578,9 @@ const submitBatchForm = async () => {
         return
       }
       
-      // 如果选择了规则，不需要手动时间
-      if (!batchForm.ruleId && (!batchForm.workStartTime || !batchForm.workEndTime)) {
-        ElMessage.warning('请选择排班规则或填写工作时间')
+      // 如果是正常班，必须选择排班规则
+      if (batchForm.workType === 'normal' && !batchForm.ruleId) {
+        ElMessage.warning('请选择排班规则')
         return
       }
       
@@ -1586,8 +1591,6 @@ const submitBatchForm = async () => {
       let current = start
       
       while (current.isBefore(end) || current.isSame(end)) {
-        const dayOfWeek = current.day() === 0 ? '7' : String(current.day())
-        
         const schedule: any = {
           userId: batchForm.userId,
           pastureId: batchForm.pastureId,
@@ -1596,28 +1599,17 @@ const submitBatchForm = async () => {
           status: '0'
         }
         
-        // 如果选择了规则，使用规则的时间
-        if (batchForm.ruleId) {
+        // 如果是正常班，使用排班规则的时间
+        if (batchForm.workType === 'normal' && batchForm.ruleId) {
           const rule = ruleList.value.find(r => r.ruleId === batchForm.ruleId)
-          if (rule && rule.workDays.split(',').includes(dayOfWeek)) {
+          if (rule) {
             schedule.ruleId = batchForm.ruleId
             schedule.workStartTime = `${current.format('YYYY-MM-DD')} ${rule.workStartTime || '08:00:00'}`
             schedule.workEndTime = `${current.format('YYYY-MM-DD')} ${rule.workEndTime || '17:00:00'}`
-          } else {
-            // 规则不适用于该日期，跳过
-            current = current.add(1, 'day')
-            continue
-          }
-        } else {
-          // 使用手动输入的时间
-          if (batchForm.workStartTime && batchForm.workEndTime) {
-            schedule.workStartTime = `${current.format('YYYY-MM-DD')} ${batchForm.workStartTime}:00`
-            schedule.workEndTime = `${current.format('YYYY-MM-DD')} ${batchForm.workEndTime}:00`
           }
         }
         
         schedules.push(schedule)
-        
         current = current.add(1, 'day')
       }
       
@@ -1902,19 +1894,19 @@ watch(() => open.value, (newVal) => {
         border: 1px solid #dcdfe6;
         
         &.normal {
-          background-color: #409eff;
+          background-color: #67c23a; /* 正常班 - 绿色 */
         }
         
         &.leave {
-          background-color: #ffcccc; /* 请假改为淡红色 */
+          background-color: #f56c6c; /* 请假 - 红色 */
         }
         
         &.rest {
-          background-color: #e6a23c; /* 休息改为黄色 */
+          background-color: #e6a23c; /* 休息 - 橙色 */
         }
         
         &.selected {
-          background-color: #67c23a;
+          background-color: #409eff; /* 已选择 - 蓝色 */
         }
       }
     }
@@ -2144,11 +2136,14 @@ watch(() => open.value, (newVal) => {
       .cell-content {
         display: flex;
         flex-direction: column;
+        align-items: center;
+        justify-content: center;
         gap: 4px;
         min-height: 60px;
+        height: 100%;
         
         .schedule-badge {
-          padding: 4px 6px;
+          padding: 4px 8px;
           border-radius: 3px;
           font-size: 12px;
           cursor: pointer;
@@ -2156,6 +2151,7 @@ watch(() => open.value, (newVal) => {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+          text-align: center;
           
           &:hover {
             opacity: 0.8;
@@ -2163,17 +2159,17 @@ watch(() => open.value, (newVal) => {
           }
           
           &.normal {
-            background-color: #409eff;
+            background-color: #67c23a; /* 正常班 - 绿色 */
             color: #fff;
           }
           
           &.leave {
-            background-color: #ffcccc; /* 请假改为淡红色 */
-            color: #666; /* 文字颜色改为深灰色，确保在淡红色背景上可读 */
+            background-color: #f56c6c; /* 请假 - 红色 */
+            color: #fff;
           }
           
           &.rest {
-            background-color: #e6a23c; /* 休息改为黄色 */
+            background-color: #e6a23c; /* 休息 - 橙色 */
             color: #fff;
           }
         }

@@ -10,8 +10,9 @@ export interface AgricultureEmployeeScheduleResult {
   scheduleDate: string
   workStartTime: string
   workEndTime: string
-  workType?: string // normal=正常班,overtime=加班,leave=请假
+  workType?: string // normal=正常班,leave=请假,rest=休息
   ruleId?: number | string
+  ruleName?: string // 排班规则名称（班次名称）
   taskId?: number | string
   status?: string // 0正常 1已取消
   createBy?: string
