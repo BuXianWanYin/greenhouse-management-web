@@ -54,17 +54,6 @@
           </el-form>
       </template>
       <template #bottom>
-          <el-button
-          :type="viewMode === 'calendar' ? 'primary' : ''"
-          @click="switchToCalendar"
-          v-ripple
-        >日历视图</el-button>
-        <el-button
-          :type="viewMode === 'grid' ? 'primary' : ''"
-          @click="switchToGrid"
-          v-hasPermi="['agriculture:schedule:add']"
-          v-ripple
-        >网格排班</el-button>
         <el-button
             @click="handleAdd"
             v-hasPermi="['agriculture:schedule:add']"
@@ -88,81 +77,8 @@
       </template>
     </table-bar>
 
-    <!-- 日历视图 -->
-    <el-card v-if="viewMode === 'calendar'" v-loading="loading">
-      <div class="calendar-header">
-        <div class="calendar-nav">
-          <el-button :icon="ArrowLeft" circle @click="prevMonth" />
-          <div class="calendar-title">
-            <el-date-picker
-              v-model="currentDate"
-              type="month"
-              format="YYYY年MM月"
-              value-format="YYYY-MM"
-              @change="handleMonthChange"
-              style="width: 150px"
-            />
-          </div>
-          <el-button :icon="ArrowRight" circle @click="nextMonth" />
-          <el-button @click="goToday">今天</el-button>
-        </div>
-        <div class="calendar-legend">
-          <div class="legend-item">
-            <span class="legend-dot normal"></span>
-            <span>正常班</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-dot leave"></span>
-            <span>请假</span>
-          </div>
-        </div>
-      </div>
-      <div class="calendar-container">
-        <div class="calendar-weekdays">
-          <div class="weekday" v-for="day in weekdays" :key="day">{{ day }}</div>
-        </div>
-        <div class="calendar-days">
-          <div
-            v-for="(day, index) in calendarDays"
-            :key="index"
-            class="calendar-day"
-            :class="{
-              'other-month': day.otherMonth,
-              'today': day.isToday,
-              'has-schedule': day.schedules && day.schedules.length > 0
-            }"
-            @click="handleDayClick(day)"
-          >
-            <div class="day-number">{{ day.date }}</div>
-            <div class="day-schedules">
-              <div
-                v-for="(schedule, idx) in (day.schedules || []).slice(0, 3)"
-                :key="schedule.scheduleId || idx"
-                class="schedule-item"
-                :class="schedule.workType || 'normal'"
-                @click.stop="handleScheduleClick(schedule)"
-                :title="`${schedule.nickName || schedule.userName || '未知'} ${schedule.workStartTime?.substring(11, 16) || ''}-${schedule.workEndTime?.substring(11, 16) || ''}`"
-              >
-                <span class="schedule-time" v-if="schedule.workStartTime && schedule.workEndTime">
-                  {{ schedule.workStartTime.substring(11, 16) }}-{{ schedule.workEndTime.substring(11, 16) }}
-                </span>
-                <span class="schedule-user">{{ schedule.nickName || schedule.userName || '未知' }}</span>
-              </div>
-              <div
-                v-if="day.schedules && day.schedules.length > 3"
-                class="schedule-more"
-                @click.stop="handleDayClick(day)"
-              >
-                +{{ day.schedules.length - 3 }} 更多
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </el-card>
-
     <!-- 网格排班视图 -->
-    <el-card v-if="viewMode === 'grid'" v-loading="loading" class="grid-schedule-card">
+    <el-card v-loading="loading" class="grid-schedule-card">
       <div class="grid-header">
         <div class="grid-controls">
           <el-date-picker
@@ -262,7 +178,7 @@
                   :key="schedule.scheduleId"
                   class="schedule-badge"
                   :class="schedule.workType || 'normal'"
-                  @click.stop="handleScheduleClick(schedule)"
+                  @click.stop="handleDelete(schedule)"
                   :title="getScheduleTooltip(schedule)"
                 >
                   {{ getScheduleDisplayText(schedule) }}
@@ -511,10 +427,23 @@ const queryFormRef = ref<FormInstance>()
 const userList = ref<any[]>([])
 const pastureList = ref<any[]>([])
 const ruleList = ref<AgricultureScheduleRuleResult[]>([])
-const viewMode = ref<'calendar' | 'grid'>('calendar')
-const currentDate = ref(dayjs().format('YYYY-MM'))
 const gridStartDate = ref(dayjs().startOf('month').format('YYYY-MM-DD'))
 const gridEndDate = ref(dayjs().endOf('month').format('YYYY-MM-DD'))
+
+// 单个排班表单
+const form = reactive({
+  scheduleId: undefined as number | undefined,
+  userId: undefined as number | undefined,
+  pastureId: undefined as number | undefined,
+  scheduleDate: '',
+  workStartTime: '',
+  workEndTime: '',
+  workType: 'normal',
+  ruleId: undefined as number | undefined,
+  taskId: undefined as number | undefined,
+  status: '0',
+  remark: ''
+})
 
 // 网格视图相关
 const selectedDateRange = ref<{ start: string; end: string } | null>(null)
@@ -535,6 +464,15 @@ const batchForm = reactive({
   workEndTime: '18:00',
   workType: 'normal' as string
 })
+
+// 单个排班验证规则
+const rules = computed(() => ({
+  userId: [{ required: true, message: '请选择用户', trigger: 'change' }],
+  scheduleDate: [{ required: true, message: '请选择排班日期', trigger: 'change' }],
+  workStartTime: [{ required: true, message: '请选择工作开始时间', trigger: 'change' }],
+  workEndTime: [{ required: true, message: '请选择工作结束时间', trigger: 'change' }],
+  workType: [{ required: true, message: '请选择工作类型', trigger: 'change' }]
+}))
 
 // 批量排班验证规则（动态）
 const batchRules = computed(() => {
@@ -562,90 +500,6 @@ const queryParams = reactive({
   workType: ''
 })
 
-const weekdays = ['日', '一', '二', '三', '四', '五', '六']
-
-// 计算日历天数
-const calendarDays = computed(() => {
-  const year = parseInt(currentDate.value.split('-')[0])
-  const month = parseInt(currentDate.value.split('-')[1]) - 1
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-  const firstDayWeek = firstDay.getDay()
-  const daysInMonth = lastDay.getDate()
-  const today = new Date()
-  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth()
-  const todayDate = today.getDate()
-
-  const days: any[] = []
-
-  // 上个月的日期
-  const prevMonthLastDay = new Date(year, month, 0).getDate()
-  for (let i = firstDayWeek - 1; i >= 0; i--) {
-    const date = prevMonthLastDay - i
-    days.push({
-      date,
-      fullDate: dayjs(new Date(year, month - 1, date)).format('YYYY-MM-DD'),
-      otherMonth: true,
-      schedules: getSchedulesForDate(dayjs(new Date(year, month - 1, date)).format('YYYY-MM-DD'))
-    })
-  }
-
-  // 当前月的日期
-  for (let date = 1; date <= daysInMonth; date++) {
-    const fullDate = dayjs(new Date(year, month, date)).format('YYYY-MM-DD')
-    days.push({
-      date,
-      fullDate,
-      otherMonth: false,
-      isToday: isCurrentMonth && date === todayDate,
-      schedules: getSchedulesForDate(fullDate)
-    })
-  }
-
-  // 下个月的日期（补齐到42天，6行x7列）
-  const remainingDays = 42 - days.length
-  for (let date = 1; date <= remainingDays; date++) {
-    days.push({
-      date,
-      fullDate: dayjs(new Date(year, month + 1, date)).format('YYYY-MM-DD'),
-      otherMonth: true,
-      schedules: getSchedulesForDate(dayjs(new Date(year, month + 1, date)).format('YYYY-MM-DD'))
-    })
-  }
-
-  return days
-})
-
-// 获取指定日期的排班
-const getSchedulesForDate = (date: string) => {
-  if (!date || !scheduleList.value || scheduleList.value.length === 0) {
-    return []
-  }
-  
-  return scheduleList.value.filter(schedule => {
-    if (!schedule || !schedule.scheduleDate) return false
-    
-    // 格式化日期进行比较（确保格式一致）
-    const scheduleDate = schedule.scheduleDate.substring(0, 10) // 只取日期部分 YYYY-MM-DD
-    const targetDate = date.substring(0, 10)
-    
-    // 日期匹配且状态正常
-    return scheduleDate === targetDate && schedule.status === '0'
-  })
-}
-
-// 切换到日历视图
-const switchToCalendar = () => {
-  viewMode.value = 'calendar'
-    loadCalendarData()
-  }
-
-
-// 切换到网格视图
-const switchToGrid = () => {
-  viewMode.value = 'grid'
-  loadGridData()
-}
 
 // 计算网格视图的日期列表
 const gridDateList = computed(() => {
@@ -808,7 +662,7 @@ const loadGridData = async () => {
       
       gridScheduleMap.value = scheduleMap
       
-      // 获取用户列表（只显示有排班的用户，或者所有用户）
+      // 获取用户列表（根据角色显示不同的用户）
       if (isEmployee.value && currentUserId.value) {
         // 员工只显示自己
         const currentUser = userList.value.find(u => u.userId === currentUserId.value)
@@ -817,9 +671,55 @@ const loadGridData = async () => {
         } else {
           gridUserList.value = []
         }
+      } else if (isAdmin.value) {
+        // 超级管理员：过滤掉admin角色，但显示ceo
+        gridUserList.value = userList.value.filter(user => {
+          // 若依框架中，超级管理员通过admin字段标识，不在sys_user_role表中
+          if (user.admin === true) {
+            return false
+          }
+          // 检查roles数组中是否有admin角色
+          const roles = user.roles || []
+          const hasAdmin = roles.some((role: any) => {
+            const roleKey = role.roleKey || ''
+            return roleKey === 'admin'
+          })
+          return !hasAdmin
+        })
+      } else if (isGeneralManager.value) {
+        // CEO：过滤掉admin和ceo角色
+        gridUserList.value = userList.value.filter(user => {
+          // 过滤超级管理员（通过admin字段）
+          if (user.admin === true) {
+            return false
+          }
+          // 检查roles数组中是否有admin或ceo角色
+          const roles = user.roles || []
+          const hasAdminOrCeo = roles.some((role: any) => {
+            const roleKey = role.roleKey || ''
+            return roleKey === 'admin' || roleKey === 'ceo'
+          })
+          return !hasAdminOrCeo
+        })
       } else {
-        // 主管显示所有用户
-        gridUserList.value = userList.value // 显示所有用户
+        // 主管只显示本部门的用户（除了超级管理员和CEO）
+        gridUserList.value = userList.value.filter(user => {
+          // 过滤超级管理员（通过admin字段）
+          if (user.admin === true) {
+            return false
+          }
+          // 检查roles数组中是否有admin或ceo角色
+          const roles = user.roles || []
+          const hasAdminOrCeo = roles.some((role: any) => {
+            const roleKey = role.roleKey || ''
+            return roleKey === 'admin' || roleKey === 'ceo'
+          })
+          if (hasAdminOrCeo) return false
+          
+          // 只显示同部门的用户
+          const userDeptId = user.dept?.deptId || user.deptId
+          return userDeptId === currentUserDeptId.value
+        })
       }
     }
   } catch (error) {
@@ -1019,158 +919,20 @@ const hasPermission = (perms: string[]) => {
   return hasPerm
 }
 
-// 加载日历数据
-const loadCalendarData = async () => {
-  loading.value = true
+
+// 导出按钮操作
+const handleExport = async () => {
   try {
-    const year = parseInt(currentDate.value.split('-')[0])
-    const month = parseInt(currentDate.value.split('-')[1])
-    
-    // 构建查询参数 - 不传scheduleDate，获取所有数据后在前端过滤
-    const params: any = {
-      pageNum: 1,
-      pageSize: 1000 // 获取足够多的数据
-    }
-    
-    // 如果是员工，自动添加用户ID过滤
-    if (isEmployee.value && currentUserId.value) {
-      params.userId = currentUserId.value
-    } else if (queryParams.userId) {
-      params.userId = queryParams.userId
-    }
-    if (queryParams.pastureId) {
-      params.pastureId = queryParams.pastureId
-    }
-    
-    const res = await AgricultureScheduleService.listSchedule(params)
-    if (res.code === 200 && res.rows) {
-      // 过滤出当前月的数据
-      scheduleList.value = res.rows.filter((item: AgricultureEmployeeScheduleResult) => {
-        if (!item.scheduleDate) return false
-        // 确保日期格式正确
-        const dateStr = item.scheduleDate
-        if (dateStr.length < 10) return false
-        
-        const itemYear = parseInt(dateStr.substring(0, 4))
-        const itemMonth = parseInt(dateStr.substring(5, 7))
-        
-        // 只显示当前年月的排班
-        return itemYear === year && itemMonth === month && item.status === '0'
-      })
-      
-      console.log('加载日历数据成功:', {
-        year,
-        month,
-        total: res.rows.length,
-        filtered: scheduleList.value.length,
-        schedules: scheduleList.value
-      })
-    } else {
-      scheduleList.value = []
-      console.warn('加载日历数据返回异常:', res)
-    }
+    console.log('网格导出参数:', gridStartDate.value, gridEndDate.value)
+    await downloadExcel(
+      AgricultureScheduleService.exportGridExcel(gridStartDate.value, gridEndDate.value), 
+      '网格排班.xlsx'
+    )
   } catch (error) {
-    console.error('加载日历数据失败:', error)
-    scheduleList.value = []
-  } finally {
-    loading.value = false
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败')
   }
 }
-
-// 上一个月
-const prevMonth = () => {
-  const date = dayjs(currentDate.value + '-01').subtract(1, 'month')
-  currentDate.value = date.format('YYYY-MM')
-  loadCalendarData()
-}
-
-// 下一个月
-const nextMonth = () => {
-  const date = dayjs(currentDate.value + '-01').add(1, 'month')
-  currentDate.value = date.format('YYYY-MM')
-  loadCalendarData()
-}
-
-// 回到今天
-const goToday = () => {
-  currentDate.value = dayjs().format('YYYY-MM')
-  loadCalendarData()
-}
-
-// 月份改变
-const handleMonthChange = () => {
-  loadCalendarData()
-}
-
-// 点击日期
-const handleDayClick = (day: any) => {
-  if (day.otherMonth) {
-    // 如果是其他月的日期，切换到那个月
-    currentDate.value = dayjs(day.fullDate).format('YYYY-MM')
-    loadCalendarData()
-    return
-  }
-  
-  // 打开新增/编辑对话框
-  reset()
-  form.scheduleDate = day.fullDate
-  form.workStartTime = `${day.fullDate} 08:00:00`
-  form.workEndTime = `${day.fullDate} 17:00:00`
-  
-  // 如果该日期已有排班，显示列表让用户选择编辑
-  if (day.schedules && day.schedules.length > 0) {
-    ElMessageBox.confirm(
-      `该日期已有 ${day.schedules.length} 个排班，是否查看详情？`,
-      '提示',
-      {
-        confirmButtonText: '查看详情',
-        cancelButtonText: '新增排班',
-        type: 'info'
-      }
-    ).then(() => {
-      // 显示该日期的排班列表
-      // 不再切换到表格视图，直接打开添加排班对话框
-      reset()
-      form.scheduleDate = day.fullDate
-      form.workStartTime = `${day.fullDate} 08:00:00`
-      form.workEndTime = `${day.fullDate} 17:00:00`
-      open.value = true
-      title.value = '添加排班'
-    }).catch(() => {
-      open.value = true
-      title.value = '添加排班'
-    })
-  } else {
-    open.value = true
-    title.value = '添加排班'
-  }
-}
-
-// 点击排班项
-const handleScheduleClick = (schedule: AgricultureEmployeeScheduleResult) => {
-  handleUpdate(schedule)
-}
-
-const form = reactive({
-  scheduleId: undefined as number | string | undefined,
-  userId: undefined as number | undefined,
-  pastureId: undefined as number | undefined,
-  scheduleDate: '',
-  workStartTime: '',
-  workEndTime: '',
-  workType: 'normal',
-  ruleId: undefined as number | undefined,
-  taskId: undefined as number | undefined,
-  status: '0',
-  remark: ''
-})
-
-const rules = reactive({
-  userId: [{ required: true, message: '用户不能为空', trigger: 'change' }],
-  scheduleDate: [{ required: true, message: '排班日期不能为空', trigger: 'change' }],
-  workStartTime: [{ required: true, message: '工作开始时间不能为空', trigger: 'change' }],
-  workEndTime: [{ required: true, message: '工作结束时间不能为空', trigger: 'change' }]
-})
 
 // 需要温室的部门
 const departmentsRequiringPasture = [
@@ -1242,10 +1004,30 @@ const isEmployee = computed(() => {
   return userInfo.roles.some((role: string) => role.includes('employee'))
 })
 
+// 判断是否是超级管理员角色
+const isAdmin = computed(() => {
+  const userInfo = userStore.getUserInfo
+  if (!userInfo || !userInfo.roles) return false
+  return userInfo.roles.some((role: string) => role.includes('admin'))
+})
+
+// 判断是否是总经理角色
+const isGeneralManager = computed(() => {
+  const userInfo = userStore.getUserInfo
+  if (!userInfo || !userInfo.roles) return false
+  return userInfo.roles.some((role: string) => role.includes('ceo') || role.includes('总经理'))
+})
+
 // 获取当前用户ID
 const currentUserId = computed(() => {
   const userInfo = userStore.getUserInfo
   return userInfo?.id ? Number(userInfo.id) : null
+})
+
+// 获取当前用户的部门ID
+const currentUserDeptId = computed(() => {
+  const userInfo: any = userStore.getUserInfo
+  return userInfo?.dept?.deptId ? Number(userInfo.dept.deptId) : null
 })
 
 /** 查询排班列表 */
@@ -1267,11 +1049,7 @@ const getList = async () => {
 
 /** 搜索按钮操作 */
 const handleQuery = () => {
-  if (viewMode.value === 'calendar') {
-    loadCalendarData()
-  } else if (viewMode.value === 'grid') {
-    loadGridData()
-  }
+  loadGridData()
 }
 
 /** 重置按钮操作 */
@@ -1310,22 +1088,14 @@ const submitForm = async () => {
         if (res.code === 200) {
           ElMessage.success(res.msg)
           open.value = false
-          if (viewMode.value === 'calendar') {
-            loadCalendarData()
-          } else if (viewMode.value === 'grid') {
-            loadGridData()
-          }
+          loadGridData()
         }
       } else {
         const res = await AgricultureScheduleService.addSchedule(form as any)
         if (res.code === 200) {
           ElMessage.success(res.msg)
           open.value = false
-          if (viewMode.value === 'calendar') {
-            loadCalendarData()
-          } else if (viewMode.value === 'grid') {
-            loadGridData()
-          }
+          loadGridData()
         }
       }
     }
@@ -1335,7 +1105,7 @@ const submitForm = async () => {
 /** 删除按钮操作 */
 const handleDelete = async (row?: AgricultureEmployeeScheduleResult) => {
   if (!row) {
-    ElMessage.warning('请选择要删除的数据（在日历或网格视图中点击排班项进行删除）')
+    ElMessage.warning('请选择要删除的数据（在网格视图中点击排班项进行删除）')
     return
   }
   
@@ -1346,56 +1116,8 @@ const handleDelete = async (row?: AgricultureEmployeeScheduleResult) => {
   })
   const res = await AgricultureScheduleService.deleteSchedule(deleteIds)
   if (res.code === 200) {
-    if (viewMode.value === 'calendar') {
-      loadCalendarData()
-    } else if (viewMode.value === 'grid') {
-      loadGridData()
-    }
+    loadGridData()
     ElMessage.success(res.msg)
-  }
-}
-
-/** 导出按钮操作 */
-const handleExport = async () => {
-  try {
-    // 如果是网格视图，使用网格导出
-    if (viewMode.value === 'grid') {
-      console.log('网格导出参数:', gridStartDate.value, gridEndDate.value)
-      await downloadExcel(
-        AgricultureScheduleService.exportGridExcel(gridStartDate.value, gridEndDate.value), 
-        '网格排班数据'
-      )
-      return
-    }
-    
-    // 日历视图使用普通导出
-    const exportParams: any = {}
-    
-    // 只传递非空值
-    if (queryParams.userId) {
-      exportParams.userId = queryParams.userId
-    }
-    if (queryParams.pastureId) {
-      exportParams.pastureId = queryParams.pastureId
-    }
-    if (queryParams.scheduleDate && queryParams.scheduleDate.trim() !== '') {
-      exportParams.scheduleDate = queryParams.scheduleDate
-    }
-    if (queryParams.workType && queryParams.workType.trim() !== '') {
-      exportParams.workType = queryParams.workType
-    }
-    
-    // 如果是员工，自动添加用户ID过滤
-    if (isEmployee.value && currentUserId.value) {
-      exportParams.userId = currentUserId.value
-    }
-    
-    console.log('导出参数:', exportParams)
-    
-    await downloadExcel(AgricultureScheduleService.exportExcel(exportParams), '人员排班数据')
-  } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败，请稍后重试')
   }
 }
 
@@ -1623,12 +1345,8 @@ const submitBatchForm = async () => {
         if (res.code === 200) {
           ElMessage.success(`成功创建 ${schedules.length} 条排班记录`)
           batchOpen.value = false
-          if (viewMode.value === 'calendar') {
-            loadCalendarData()
-          } else if (viewMode.value === 'grid') {
-            loadGridData()
-            clearSelection()
-          }
+          loadGridData()
+          clearSelection()
         }
       } catch (error) {
         console.error('批量创建排班失败:', error)
@@ -1642,28 +1360,20 @@ const submitBatchForm = async () => {
 watch(
   () => [queryParams.userId, queryParams.pastureId],
   () => {
-    if (viewMode.value === 'calendar') {
-      loadCalendarData()
-    } else if (viewMode.value === 'grid') {
-      loadGridData()
-    }
+    loadGridData()
   }
 )
 
-onMounted(() => {
-  getUserList()
-  getPastureList()
-  getRuleList()
-  if (viewMode.value === 'calendar') {
-    loadCalendarData()
-  } else if (viewMode.value === 'grid') {
-    loadGridData()
-  }
+onMounted(async () => {
+  await getUserList()
+  await getPastureList()
+  await getRuleList()
+  loadGridData()
 })
 
 // 监听批量排班成功，刷新网格数据
 watch(() => batchOpen.value, (newVal) => {
-  if (!newVal && viewMode.value === 'grid') {
+  if (!newVal) {
     // 批量排班对话框关闭后，刷新网格数据
     loadGridData()
     clearSelection()
@@ -1672,7 +1382,7 @@ watch(() => batchOpen.value, (newVal) => {
 
 // 监听单个排班成功，刷新网格数据
 watch(() => open.value, (newVal) => {
-  if (!newVal && viewMode.value === 'grid') {
+  if (!newVal) {
     loadGridData()
   }
 })
@@ -1682,174 +1392,6 @@ watch(() => open.value, (newVal) => {
 .page-content {
   padding: 20px;
 }
-
-.calendar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #ebeef5;
-  
-  .calendar-nav {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    
-    .calendar-title {
-      font-size: 18px;
-      font-weight: 500;
-      margin: 0 12px;
-    }
-  }
-  
-  .calendar-legend {
-    display: flex;
-    gap: 20px;
-    
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 14px;
-      color: #606266;
-      
-      .legend-dot {
-        display: inline-block;
-        width: 12px;
-        height: 12px;
-        border-radius: 2px;
-        
-        &.normal {
-          background-color: #409eff;
-        }
-        
-        &.leave {
-          background-color: #ffcccc; /* 请假改为淡红色 */
-        }
-      }
-    }
-  }
-}
-
-.calendar-container {
-  .calendar-weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
-    margin-bottom: 8px;
-    
-    .weekday {
-      text-align: center;
-      padding: 12px 0;
-      font-weight: 500;
-      color: #606266;
-      background-color: #f5f7fa;
-    }
-  }
-  
-  .calendar-days {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
-    background-color: #ebeef5;
-    border: 1px solid #ebeef5;
-    
-    .calendar-day {
-      min-height: 120px;
-      background-color: #fff;
-      padding: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-      
-      &:hover {
-        background-color: #f5f7fa;
-        z-index: 1;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      }
-      
-      &.other-month {
-        background-color: #fafafa;
-        color: #c0c4cc;
-      }
-      
-      &.today {
-        background-color: #ecf5ff;
-        border: 2px solid #409eff;
-        
-        .day-number {
-          color: #409eff;
-          font-weight: 600;
-        }
-      }
-      
-      &.has-schedule {
-        background-color: #f0f9ff;
-      }
-      
-      .day-number {
-        font-size: 14px;
-        font-weight: 500;
-        margin-bottom: 4px;
-        color: #303133;
-      }
-      
-      .day-schedules {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        
-        .schedule-item {
-          padding: 4px 6px;
-          border-radius: 3px;
-          font-size: 12px;
-          cursor: pointer;
-          transition: all 0.2s;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          
-          &:hover {
-            opacity: 0.8;
-            transform: translateX(2px);
-          }
-          
-          &.normal {
-            background-color: #409eff;
-            color: #fff;
-          }
-          
-          &.leave {
-            background-color: #ffcccc; /* 请假改为淡红色 */
-            color: #666; /* 文字颜色改为深灰色，确保在淡红色背景上可读 */
-          }
-          
-          .schedule-time {
-            font-weight: 500;
-            margin-right: 4px;
-          }
-          
-          .schedule-user {
-            opacity: 0.9;
-          }
-        }
-        
-        .schedule-more {
-          font-size: 11px;
-          color: #909399;
-          text-align: center;
-          padding: 2px 0;
-          cursor: pointer;
-          
-          &:hover {
-            color: #409eff;
-          }
-        }
-      }
-    }
-  }
-}
-
 
 // 网格排班视图样式
 .grid-schedule-card {
