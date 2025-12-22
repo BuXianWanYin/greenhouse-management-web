@@ -5,7 +5,7 @@
       <span class="number box-title">
         <MoCountTo :num="item.value" :duration="800" :separator="2" />
         <span v-if="item.label === '温室面积' || item.label === '总面积'" class="unit">亩</span>
-        <span v-if="item.label === '温室数量' || item.label === '大棚数量'" class="unit">个</span>
+        <span v-if="item.label === '温室数量' || item.label === '温室数量'" class="unit">个</span>
         <span v-if="item.label === '分区数量' || item.label === '分区'" class="unit">块</span>
         <span v-if="item.label === '作物种类' || item.label === '种质数量' || item.label === '农场作物' || item.label === '农场种类'" class="unit">种</span>
         <span v-if="item.label === '计划数量' || item.label === '计划总数'" class="unit">个</span>

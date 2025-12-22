@@ -324,23 +324,19 @@
     </el-dialog>
 
     <!-- 批量排班对话框 -->
-    <el-dialog title="批量排班" v-model="batchOpen" width="700px" append-to-body>
+    <el-dialog :title="batchDialogTitle" v-model="batchOpen" width="700px" append-to-body>
       <el-form :model="batchForm" :rules="batchRules as any" ref="batchFormRef" label-width="120px">
-        <el-form-item label="用户" prop="userId">
-          <el-select v-model="batchForm.userId" placeholder="请选择用户" filterable style="width: 100%">
-            <el-option
-              v-for="user in userList"
-              :key="user.userId"
-              :label="user.nickName || user.userName"
-              :value="user.userId"
-            />
+        <el-form-item label="工作类型" prop="workType">
+          <el-select v-model="batchForm.workType" placeholder="请选择工作类型" style="width: 100%">
+            <el-option label="正常班" value="normal" />
+            <el-option label="请假" value="leave" />
+            <el-option label="休息" value="rest" />
           </el-select>
         </el-form-item>
-        <el-form-item label="温室" prop="pastureId" :rules="batchPastureRules">
+        <el-form-item label="温室" prop="pastureId" :rules="batchPastureRules" v-if="batchForm.workType === 'normal' && isBatchPastureRequired">
           <el-select 
             v-model="batchForm.pastureId" 
             placeholder="请选择温室"
-            :clearable="!isBatchPastureRequired"
             style="width: 100%"
           >
             <el-option
@@ -350,9 +346,6 @@
               :value="pasture.id || pasture.pastureId"
             />
           </el-select>
-          <div v-if="!isBatchPastureRequired" style="color: #909399; font-size: 12px; margin-top: 5px">
-            该用户所在部门不需要指定温室，此项可选
-          </div>
         </el-form-item>
         <el-form-item label="日期范围" prop="dateRange">
           <el-date-picker
@@ -364,13 +357,6 @@
             value-format="YYYY-MM-DD"
             style="width: 100%"
           />
-        </el-form-item>
-        <el-form-item label="工作类型" prop="workType">
-          <el-select v-model="batchForm.workType" placeholder="请选择工作类型" style="width: 100%">
-            <el-option label="正常班" value="normal" />
-            <el-option label="请假" value="leave" />
-            <el-option label="休息" value="rest" />
-          </el-select>
         </el-form-item>
         <el-form-item label="排班规则" prop="ruleId" v-if="batchForm.workType === 'normal'">
           <el-select v-model="batchForm.ruleId" placeholder="请选择排班规则" filterable style="width: 100%">
@@ -463,6 +449,17 @@ const batchForm = reactive({
   workStartTime: '08:00',
   workEndTime: '18:00',
   workType: 'normal' as string
+})
+
+// 批量排班对话框标题
+const batchDialogTitle = computed(() => {
+  if (batchForm.userId) {
+    const user = userList.value.find(u => u.userId === batchForm.userId)
+    if (user) {
+      return `为${user.nickName || user.userName}批量排班`
+    }
+  }
+  return '批量排班'
 })
 
 // 单个排班验证规则
@@ -1557,6 +1554,9 @@ watch(() => open.value, (newVal) => {
       min-width: 100px;
       max-width: 100px;
       flex-shrink: 0; /* 用户列固定宽度，不缩放 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
       
       @media (min-width: 1920px) {
         width: 120px;
@@ -1586,7 +1586,7 @@ watch(() => open.value, (newVal) => {
       text-align: center;
       background-color: #f5f7fa;
       font-weight: 500;
-      min-height: 60px;
+      min-height: 40px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -1629,7 +1629,7 @@ watch(() => open.value, (newVal) => {
     &.grid-data-cell {
       flex: 1 1 0; /* 日期列平均分配剩余空间，确保对齐 */
       min-width: 50px; /* 减小最小宽度，让更多日期能显示 */
-      min-height: 80px;
+      min-height: 60px;
       cursor: pointer;
       transition: background-color 0.2s, border-color 0.2s;
       background-color: #fff;
@@ -1646,7 +1646,7 @@ watch(() => open.value, (newVal) => {
       }
       
       @media (max-width: 768px) {
-        min-height: 60px;
+        min-height: 40px;
         min-width: 40px; /* 移动端更小的最小宽度 */
       }
       
@@ -1681,7 +1681,7 @@ watch(() => open.value, (newVal) => {
         align-items: center;
         justify-content: center;
         gap: 4px;
-        min-height: 60px;
+        min-height: 40px;
         height: 100%;
         
         .schedule-badge {

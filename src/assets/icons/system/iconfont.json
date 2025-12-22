@@ -56,7 +56,7 @@
     },
     {
       "icon_id": "32488236",
-      "name": "添加大棚-大棚",
+      "name": "添加温室-温室",
       "font_class": "tianjiadapeng-dapeng",
       "unicode": "e632",
       "unicode_decimal": 58930
@@ -154,7 +154,7 @@
     },
     {
       "icon_id": "44542299",
-      "name": "大棚管理",
+      "name": "温室管理",
       "font_class": "dapengguanli",
       "unicode": "e60e",
       "unicode_decimal": 58894

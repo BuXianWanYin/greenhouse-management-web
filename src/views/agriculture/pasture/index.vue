@@ -13,13 +13,13 @@
             <form-input label="名称" prop="name"
                         v-model="queryParams.name"
                         @keyup.enter="handleQuery"/>
-            <form-input label="大棚位置" prop="address"
+            <form-input label="温室位置" prop="address"
                         v-model="queryParams.address"
                         @keyup.enter="handleQuery"/>
             <form-input label="备注" prop="description"
                         v-model="queryParams.description"
                         @keyup.enter="handleQuery"/>
-            <form-input label="大棚面积" prop="area"
+            <form-input label="温室面积" prop="area"
                         v-model="queryParams.area"
                         @keyup.enter="handleQuery"/>
           </el-row>
@@ -91,17 +91,17 @@
     />
 
 
-    <!-- 添加或修改大棚对话框 -->
+    <!-- 添加或修改温室对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
       <el-form ref="pastureRef" :model="form" :rules="rules" label-width="110px">
-        <el-form-item label="大棚名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入大棚名称"/>
+        <el-form-item label="温室名称" prop="name">
+          <el-input v-model="form.name" placeholder="请输入温室名称"/>
         </el-form-item>
-        <el-form-item label="大棚位置" prop="address">
-          <el-input v-model="form.address" placeholder="请输入大棚位置"/>
+        <el-form-item label="温室位置" prop="address">
+          <el-input v-model="form.address" placeholder="请输入温室位置"/>
         </el-form-item>
-        <el-form-item label="大棚面积" prop="area">
-          <el-input v-model="form.area" placeholder="请输入大棚面积(亩)"/>
+        <el-form-item label="温室面积" prop="area">
+          <el-input v-model="form.area" placeholder="请输入温室面积(亩)"/>
         </el-form-item>
         <el-form-item label="备注" prop="description">
           <el-input v-model="form.description" placeholder="请输入备注"/>
@@ -169,22 +169,22 @@
     ],
     address: [
       {
-        required: true, message: "大棚位置不能为空"
+        required: true, message: "温室位置不能为空"
       }
     ],
     area: [
       {
-        required: true, message: "大棚面积不能为空"
+        required: true, message: "温室面积不能为空"
       },
       {
         pattern: /^\d*\.?\d+$/,
-        message: "请输入有效的大棚面积",
+        message: "请输入有效的温室面积",
       }
     ]
   })
 
 
-  /** 查询大棚列表 */
+  /** 查询温室列表 */
   const getList = async () => {
     loading.value = true;
     const res = await AgriculturePastureService.listPasture(queryParams);
@@ -203,9 +203,9 @@
   const columns = reactive([
     {name: 'id', show: true},
     {name: '名称', show: true},
-    {name: '大棚位置', show: true},
+    {name: '温室位置', show: true},
     {name: '备注', show: true},
-    {name: '大棚面积', show: true},
+    {name: '温室面积', show: true},
   ])
 
 
@@ -258,7 +258,7 @@
   const handleAdd = () => {
     reset()
     open.value = true
-    title.value = '添加大棚'
+    title.value = '添加温室'
   }
 
   /** 修改按钮操作 */
@@ -269,7 +269,7 @@
     if (res.code === 200) {
       Object.assign(form, res.data)
       open.value = true
-      title.value = '修改大棚'
+      title.value = '修改温室'
     }
   }
 
@@ -303,29 +303,29 @@
 
   /** 删除按钮操作 */
   const handleDelete = async (row?: any) => {
-    // 获取要删除的大棚ID数组，如果是单个删除则取row.id，否则取选中的ids
+    // 获取要删除的温室ID数组，如果是单个删除则取row.id，否则取选中的ids
     const _ids = row ? [row.id] : ids.value;
-    // 获取要显示在弹窗中的大棚名称或数量
+    // 获取要显示在弹窗中的温室名称或数量
     const messageName = row ? row.name : `${_ids.length} 项`;
 
-    // 如果没有选中任何大棚，给出提示并返回
+    // 如果没有选中任何温室，给出提示并返回
     if (_ids.length === 0) {
       ElMessage.warning("请选择要删除的数据项");
       return;
     }
 
-    // 只允许单个大棚删除时校验分区（如需批量删除可循环判断）
-    const pastureId = _ids[0]; // 取第一个大棚ID
-    // 调用分区服务，查询该大棚下是否有分区
+    // 只允许单个温室删除时校验分区（如需批量删除可循环判断）
+    const pastureId = _ids[0]; // 取第一个温室ID
+    // 调用分区服务，查询该温室下是否有分区
     const batchRes = await AgricultureCropBatchService.listBatchByPasture(pastureId);
     // 如果接口返回成功，并且分区数组长度大于0，说明有分区，不能删除
     if (batchRes.code === 200 && Array.isArray(batchRes.rows) && batchRes.rows.length > 0) {
-      ElMessage.warning("该大棚之下有分区，不能删除"); // 给出提示
+      ElMessage.warning("该温室之下有分区，不能删除"); // 给出提示
       return; // 终止删除流程
     }
 
     // 弹出确认框，询问用户是否确定删除
-    const Tr = await ElMessageBox.confirm('是否确认删除大棚 "' + messageName + '"？', '警告', {
+    const Tr = await ElMessageBox.confirm('是否确认删除温室 "' + messageName + '"？', '警告', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
@@ -333,7 +333,7 @@
 
     // 如果用户点击了确定按钮
     if (Tr) {
-      // 调用删除大棚接口
+      // 调用删除温室接口
       const delRes = await AgriculturePastureService.deletePasture(_ids.join(','));
       // 如果删除成功，刷新列表并提示成功
       if (delRes.code === 200) {

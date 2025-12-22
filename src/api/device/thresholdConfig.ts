@@ -19,7 +19,7 @@ export class AgricultureThresholdConfigService {
         })
     }
 
-       // 通过大棚ID和分区ID获取所有设备的阈值配置
+       // 通过温室ID和分区ID获取所有设备的阈值配置
        static listByPastureAndBatch(pastureId: any, batchId: any, deviceType?: any) {
         return request.get<AgricultureThresholdConfigListResult>({
             url: '/device/config/listByPastureAndBatch',

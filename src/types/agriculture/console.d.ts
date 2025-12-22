@@ -1,6 +1,6 @@
 import { BaseArrayResult } from '../axios'
 export interface ConsoleTotalInfo {
-  /** 描述，例如“鱼类总数” */
+  /** 描述 */
   label: string
   /** 数值 */
   value: number
@@ -11,7 +11,7 @@ export interface ConsoleTotalInfo {
   /** 卡片样式类名 */
   class: string
   /** 颜色样式 */
-  color: string
+  color: stringW
 }
 
 /**

@@ -2,9 +2,9 @@ import request from '@/utils/http'
 import { AgriculturePastureInfoResult,AgriculturePastureListPageResult } from '@/types/agriculture/pasture'
 import { CodeMsgResult } from '@/types/axios'
 
-// 大棚
+// 温室
 export class AgriculturePastureService {
-    // 查询大棚列表
+    // 查询温室列表
     static listPasture(query: any) {
         return request.get<AgriculturePastureListPageResult>({
             url: '/agriculture/pasture/list',
@@ -12,14 +12,14 @@ export class AgriculturePastureService {
         })
     }
 
-    // 查询大棚详细
+    // 查询温室详细
     static getPasture(id: any) {
         return request.get<AgriculturePastureInfoResult>({
             url: '/agriculture/pasture/' + id,
         })
     }
 
-    // 新增大棚
+    // 新增温室
     static addPasture(data: any) {
         return request.post<CodeMsgResult>({
             url: '/agriculture/pasture',
@@ -27,7 +27,7 @@ export class AgriculturePastureService {
         })
     }
 
-    // 修改大棚
+    // 修改温室
     static updatePasture(data: any) {
         return request.put<CodeMsgResult>({
             url: '/agriculture/pasture',
@@ -35,14 +35,14 @@ export class AgriculturePastureService {
         })
     }
 
-    // 删除大棚
+    // 删除温室
     static deletePasture(id: any) {
         return request.del<CodeMsgResult>({
             url: '/agriculture/pasture/' + id,
         })
     }
 
-    // 导出大棚列表
+    // 导出温室列表
     static exportExcel(data: any) {
         return request.post({
             url: 'agriculture/pasture/export',
