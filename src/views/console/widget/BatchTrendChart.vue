@@ -92,6 +92,7 @@ const initChart = () => {
     },
     yAxis: {
       type: 'value',
+      minInterval: 1,
       axisLine: {
         show: false
       },
@@ -100,7 +101,8 @@ const initChart = () => {
       },
       axisLabel: {
         color: '#999',
-        fontSize: 11
+        fontSize: 11,
+        formatter: (value: number) => String(Math.floor(value))
       },
       splitLine: {
         lineStyle: {

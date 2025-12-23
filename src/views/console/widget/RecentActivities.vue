@@ -11,12 +11,14 @@
           v-for="(activity, index) in activities" 
           :key="index"
         >
-          <div class="activity-icon" :class="activity.icon">
-            <el-icon v-if="activity.icon === 'success'"><Check /></el-icon>
-            <el-icon v-else-if="activity.icon === 'primary'"><Plus /></el-icon>
-            <el-icon v-else-if="activity.icon === 'warning'"><VideoPlay /></el-icon>
-            <el-icon v-else><Bell /></el-icon>
-          </div>
+          <el-avatar 
+            :size="32" 
+            class="activity-avatar" 
+            :class="activity.avatar ? '' : activity.icon"
+            :src="activity.avatar"
+          >
+            <template v-if="!activity.avatar">{{ getAvatarText(activity.title) }}</template>
+          </el-avatar>
           <div class="activity-content">
             <div class="activity-title">{{ activity.title }}</div>
             <div class="activity-desc">{{ activity.content }}</div>
@@ -30,19 +32,26 @@
 </template>
 
 <script setup lang="ts">
-import { Check, Plus, VideoPlay, Bell } from '@element-plus/icons-vue'
-
 interface Activity {
   type: string
   icon: string
   title: string
   content: string
   time: string
+  avatar?: string
 }
 
 defineProps({
   activities: { type: Array as () => Activity[], default: () => [] }
 })
+
+const getAvatarText = (title: string) => {
+  const match = title.match(/^(.+?)\s/)
+  if (match) {
+    return match[1].charAt(0)
+  }
+  return title.charAt(0)
+}
 </script>
 
 <style lang="scss" scoped>
@@ -89,20 +98,11 @@ defineProps({
           border-bottom: none;
         }
 
-        .activity-icon {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+        .activity-avatar {
           flex-shrink: 0;
           margin-right: 12px;
-
-          .el-icon {
-            font-size: 14px;
-            color: #fff;
-          }
+          font-size: 13px;
+          color: #fff;
 
           &.success {
             background: linear-gradient(135deg, #34d399, #10b981);
