@@ -47,6 +47,18 @@
     >
       <template #default>
         <el-table-column type="selection" width="55" align="center" />
+        <el-table-column label="农资图片" align="center" width="100">
+          <template #default="{ row }">
+            <div class="resource-image-cell">
+              <img 
+                v-if="getResourceImage(row.resourceId)" 
+                :src="getResourceImage(row.resourceId)" 
+                class="resource-thumbnail"
+              />
+              <el-icon v-else class="image-placeholder"><PictureFilled /></el-icon>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column label="库存ID" prop="inventoryId" align="center" v-if="columns[0].show" />
         <el-table-column label="农资ID" prop="resourceId" align="center" v-if="columns[1].show" />
         <el-table-column label="农资编码" v-if="columns[2].show">
@@ -256,7 +268,7 @@
 </template>
 
 <script setup lang="ts">
-import { EditPen, Delete, Plus, MagicStick } from '@element-plus/icons-vue'
+import { EditPen, Delete, Plus, MagicStick, PictureFilled } from '@element-plus/icons-vue'
 import AIResourceSuggestionPanel from '@/components/AIResourceSuggestionPanel/index.vue'
 import { ref, reactive, onMounted, computed } from 'vue'
 import { resetForm } from '@/utils/utils'
@@ -440,6 +452,12 @@ const getResourceTypeLabel = (resourceId: string) => {
 const getResourceMeasureUnit = (resourceId: string) => {
   const resource = resourceList.value.find(item => item.resourceId === resourceId)
   return resource ? (resource.measureUnit || '-') : '-'
+}
+
+/** 根据农资ID获取农资图片 */
+const getResourceImage = (resourceId: string) => {
+  const resource = resourceList.value.find(item => item.resourceId === resourceId)
+  return resource ? resource.resourceImage : null
 }
 
 /** 搜索按钮操作 */
@@ -708,6 +726,25 @@ onMounted(() => {
 <style lang="scss" scoped>
 .page-content {
   padding: 20px;
+}
+
+.resource-image-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .resource-thumbnail {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+  }
+  
+  .image-placeholder {
+    font-size: 32px;
+    color: #c0c4cc;
+  }
 }
 </style>
 

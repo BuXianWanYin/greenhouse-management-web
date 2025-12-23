@@ -77,6 +77,18 @@
     >
       <template #default>
         <el-table-column type="selection" width="55" align="center" />
+        <el-table-column label="农资图片" align="center" width="100">
+          <template #default="{ row }">
+            <div class="resource-image-cell">
+              <img 
+                v-if="getResourceImage(row.resourceId)" 
+                :src="getResourceImage(row.resourceId)" 
+                class="resource-thumbnail"
+              />
+              <el-icon v-else class="image-placeholder"><PictureFilled /></el-icon>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column label="农资名称" show-overflow-tooltip v-if="columns[1].show">
           <template #default="{ row }">
             {{ getResourceName(row.resourceId) }}
@@ -192,7 +204,7 @@
 </template>
 
 <script setup lang="ts">
-import { EditPen, Delete, Document } from '@element-plus/icons-vue'
+import { EditPen, Delete, Document, PictureFilled } from '@element-plus/icons-vue'
 import { ref, reactive, onMounted, computed } from 'vue'
 import { resetForm } from '@/utils/utils'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -312,6 +324,12 @@ const handleBatchChange = async (val: any) => {
 const getResourceName = (resourceId: string) => {
   const resource = resourceList.value.find(item => String(item.resourceId) === String(resourceId))
   return resource ? resource.resourceName : (resourceId || '-')
+}
+
+/** 根据农资ID获取农资图片 */
+const getResourceImage = (resourceId: string) => {
+  const resource = resourceList.value.find(item => String(item.resourceId) === String(resourceId))
+  return resource ? resource.resourceImage : null
 }
 
 /** 根据批次ID获取批次名称 */
@@ -488,6 +506,25 @@ onMounted(async () => {
 <style lang="scss" scoped>
 .page-content {
   padding: 20px;
+}
+
+.resource-image-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .resource-thumbnail {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+  }
+  
+  .image-placeholder {
+    font-size: 32px;
+    color: #c0c4cc;
+  }
 }
 </style>
 

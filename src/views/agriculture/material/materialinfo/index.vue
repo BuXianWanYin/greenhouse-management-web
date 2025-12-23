@@ -33,60 +33,69 @@
     </el-form>
     <!-- 搜索栏结束 -->
 
-    <el-row :gutter="8">
-      <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="item in resourceList" :key="item.resourceId"
-        style="margin-bottom: 8px;">
-        <el-card shadow="hover" class="material-card">
-          <div class="card-content">
-            <h3 class="card-title">
-              <span class="title-label">农资名称</span>
-              <span class="title-name">{{ item.resourceName }}</span>
-            </h3>
-            <div class="card-image-container" v-if="item.resourceImage">
-              <img :src="item.resourceImage" :alt="item.resourceName" class="card-image" />
-            </div>
-            <div class="card-image-placeholder" v-else>
-              <el-icon class="placeholder-icon"><PictureFilled /></el-icon>
+    <div class="material-cards-container">
+      <div v-for="item in resourceList" :key="item.resourceId" class="material-card">
+        <div class="card-header">
+          <div class="material-name">
+            <span>{{ item.resourceName }}</span>
+          </div>
+          <div class="material-type">
+            <el-tag :type="item.resourceType === '0' ? 'success' : 'primary'">
+              {{ getResourceTypeLabel(item.resourceType) }}
+            </el-tag>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-body-content">
+            <!-- 左侧：农资图片 -->
+            <div class="material-image-container">
+              <img 
+                v-if="item.resourceImage" 
+                :src="item.resourceImage" 
+                :alt="item.resourceName"
+                class="material-image"
+              />
+              <div v-else class="material-image-placeholder">
+                <el-icon class="placeholder-icon">
+                  <PictureFilled />
+                </el-icon>
+                <span class="placeholder-text">暂无图片</span>
+              </div>
             </div>
             
-            <div class="card-info">
-              <div class="card-details">
-                
-                <div class="detail-item">
-                  <el-icon><ScaleToOriginal /></el-icon>
-                  <span>计量单位 : {{ item.measureUnit }}</span>
-                </div>
-                <div class="detail-item">
-                  <el-icon><Document /></el-icon>
-                  <span>编码 : {{ item.resourceCode }}</span>
-                </div>
-                <div class="detail-item">
-                  <el-icon><ChatDotRound /></el-icon>
-                  <span>类型 : {{ getResourceTypeLabel(item.resourceType) }}</span>
-                </div>
-                <div class="detail-item">
-                  <el-icon><ChatDotRound /></el-icon>
-                  <span>备注 : {{ item.remark || '无' }}</span>
-                </div>
+            <!-- 右侧：农资信息 -->
+            <div class="material-info-container">
+              <div class="info-row">
+                <span class="label"><el-icon><Document /></el-icon> 编码：</span>
+                <span class="value">{{ item.resourceCode }}</span>
               </div>
-              
-              <div class="card-actions">
-                <el-button type="primary" size="small" @click="handleUpdate(item)" 
-                  v-hasPermi="['agriculture:resource:edit']" class="action-button">
-                  <el-icon><EditPen /></el-icon>
-                  修改
-                </el-button>
-                <el-button type="danger" size="small" @click="handleDelete(item)"
-                  v-hasPermi="['agriculture:resource:remove']" class="action-button">
-                  <el-icon><Delete /></el-icon>
-                  删除
-                </el-button>
+              <div class="info-row">
+                <span class="label"><el-icon><ScaleToOriginal /></el-icon> 计量单位：</span>
+                <span class="value">{{ item.measureUnit }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label"><el-icon><ChatDotRound /></el-icon> 备注：</span>
+                <span class="value">{{ item.remark || '无' }}</span>
               </div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </div>
+
+        <div class="card-footer">
+          <el-button-group>
+            <el-button class="card-action-btn edit" size="small" @click="handleUpdate(item)" 
+              v-hasPermi="['agriculture:resource:edit']">
+              <el-icon><EditPen /></el-icon>修改
+            </el-button>
+            <el-button class="card-action-btn delete" size="small" @click="handleDelete(item)"
+              v-hasPermi="['agriculture:resource:remove']">
+              <el-icon><Delete /></el-icon>删除
+            </el-button>
+          </el-button-group>
+        </div>
+      </div>
+    </div>
 
     <el-pagination 
       v-if="total > queryParams.pageSize"
@@ -210,7 +219,7 @@ const initialFormState = {
 const form = reactive({ ...initialFormState })
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 8,
+  pageSize: 12,
   resourceName: '',
   resourceType: '',
   resourceCode: '',
@@ -408,193 +417,257 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.material-cards-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 16px;
+  padding: 10px 5px;
+}
+
+@media (max-width: 1600px) {
+  .material-cards-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1200px) {
+  .material-cards-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .material-cards-container {
+    grid-template-columns: 1fr;
+    padding: 10px;
+    gap: 12px;
+  }
+  .material-card {
+    height: 100%;
+  }
+  
+  .card-header {
+    padding: 16px;
+  }
+  
+  .material-name {
+    font-size: 16px;
+  }
+  
+  .card-body {
+    padding: 16px;
+  }
+  
+  .card-body-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .material-image-container {
+    width: 100%;
+    height: 180px;
+    align-self: center;
+  }
+  
+  .info-row {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  
+  .label {
+    min-width: 100px;
+  }
+  
+  .card-footer {
+    padding: 12px 16px;
+  }
+}
+
 .material-card {
-  transition: all 0.3s ease;
-  height: 100%;
+  background: #fff;
   border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s;
   overflow: hidden;
+  border: 1px solid #e0e0e0;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: var(--el-bg-color-overlay);
-  min-height: 380px;
+}
 
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-  }
+.material-card:hover {
+  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.12);
+}
 
-  .card-content {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    padding: 12px;
-  }
+.card-header {
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb00 100%);
+  border-bottom: 1px solid #e0e0e042;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-  .card-image-container {
-    width: 100%;
-    height: 220px;
-    overflow: hidden;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    flex-shrink: 0;
-    background-color: var(--el-fill-color-light);
+.material-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
 
-    .card-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.4s ease;
-      cursor: pointer;
+.material-type {
+  display: flex;
+  gap: 8px;
+}
 
-      &:hover {
-        transform: scale(1.1);
-      }
-    }
-  }
+.card-body {
+  padding: 20px 24px;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
 
-  .card-image-placeholder {
-    width: 100%;
-    height: 220px;
-    background: var(--el-fill-color-light);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    flex-shrink: 0;
+.card-body-content {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+  align-items: flex-start;
+}
 
-    .placeholder-icon {
-      font-size: 60px;
-      color: var(--el-color-info-light-3);
-    }
-  }
+/* 农资图片容器 */
+.material-image-container {
+  flex-shrink: 0;
+  width: 140px;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f5f7fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  .card-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
+.material-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
-  .card-title {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    margin: 0 0 8px 0;
-    .title-label {
-      color: #999;
-      font-size: 14px;
-      font-weight: 400;
-      letter-spacing: 1px;
-    }
-    .title-name {
-      color: #222;
-      font-size: 18px;
-      font-weight: 700;
-      margin-top: 2px;
-    }
-  }
+.material-image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #909399;
+}
 
-  .card-details {
-    flex: 1;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 8px;
-    margin-bottom: 12px;
-    margin-top: 8px;
+.placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  color: #c0c4cc;
+}
 
-    .detail-item {
-      display: flex;
-      align-items: center;
-      color: var(--el-text-color-regular);
-      font-size: 14px;
+.placeholder-text {
+  font-size: 12px;
+  color: #909399;
+}
 
-      .el-icon {
-        margin-right: 8px;
-        font-size: 16px;
-        color: var(--el-color-info);
-      }
-    }
-  }
+/* 农资信息容器 */
+.material-info-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 
-  .card-actions {
-    margin-top: auto;
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    padding: 8px 12px;
+.info-row {
+  display: flex;
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
 
-    .action-button {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-size: 11px;
-      border: 1.5px solid #409eff !important;
-      background: #fff !important;
-      color: #409eff !important;
-      border-radius: 10px !important;
-      transition: all 0.3s ease;
-      box-shadow: none !important;
-      font-weight: 500;
-      min-width: 36px;
-      min-height: 28px;
-      padding: 0 10px;
-      overflow: hidden;
+.info-row:last-child {
+  margin-bottom: 0;
+}
 
-      &::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background-color: #409eff;
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
-        z-index: 0;
-      }
+.label {
+  color: #909399;
+  min-width: 100px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 
-      .el-icon {
-        font-size: 16px;
-        position: relative;
-        z-index: 1;
-        transition: color 0.3s ease;
-      }
+.label .el-icon {
+  font-size: 16px;
+}
 
-      span {
-        position: relative;
-        z-index: 1;
-        transition: color 0.3s ease;
-      }
+.value {
+  color: #303133;
+  flex-grow: 1;
+  word-break: break-all;
+}
 
-      &:hover {
-        border-color: #409eff !important;
-        color: #fff !important;
+.card-footer {
+  padding: 16px 24px;
+  background: #f1f1f15c;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  align-items: center;
+  margin-top: auto;
+}
 
-        &::before {
-          transform: translateX(0);
-        }
+.el-button-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
 
-        .el-icon, span {
-          color: #fff !important;
-        }
-      }
+.card-action-btn {
+  position: relative;
+  border: none !important;
+  background: #fff !important;
+  color: #409eff !important;
+  border-radius: 1.5rem !important;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  font-weight: 500;
+  min-width: 80px;
+  min-height: 32px;
+  padding: 0 16px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  overflow: hidden;
+}
 
-      &.el-button--danger {
-        border-color: #f56c6c !important;
-        color: #f56c6c !important;
+.card-action-btn.edit {
+  border: 1px solid #409eff !important;
+}
 
-        &::before {
-          background-color: #f56c6c;
-        }
+.card-action-btn.edit:hover {
+  background: #409eff !important;
+  color: #fff !important;
+}
 
-        &:hover {
-          border-color: #f56c6c !important;
-          color: #fff !important;
-        }
-      }
-    }
-  }
+.card-action-btn.delete {
+  border: 1px solid #f56c6c !important;
+  color: #f56c6c !important;
+}
+
+.card-action-btn.delete:hover {
+  background: #f56c6c !important;
+  color: #fff !important;
 }
 
 .upload-container {

@@ -19,7 +19,19 @@
             empty-text="暂无农资使用记录"
             style="width: 100%"
         >
-            <el-table-column label="农资名称" align="center" prop="resourceId" min-width="150">
+            <el-table-column label="图片" align="center" width="80">
+                <template #default="{ row }">
+                    <div class="resource-image-cell">
+                        <img 
+                            v-if="getResourceImage(row.resourceId)" 
+                            :src="getResourceImage(row.resourceId)" 
+                            class="resource-thumbnail"
+                        />
+                        <el-icon v-else class="image-placeholder"><PictureFilled /></el-icon>
+                    </div>
+                </template>
+            </el-table-column>
+            <el-table-column label="农资名称" align="center" prop="resourceId" min-width="120">
                 <template #default="{ row }">
                     {{ getResourceName(row.resourceId) }}
                 </template>
@@ -145,6 +157,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { PictureFilled } from '@element-plus/icons-vue'
 import { AgricultureResourceUsageService } from '@/api/agriculture/resourceUsageApi'
 import { AgricultureResourceService } from '@/api/agriculture/resourceApi'
 import { AgricultureTaskLogService } from '@/api/agriculture/logApi'
@@ -233,6 +246,12 @@ const fetchResourceList = async () => {
 const getResourceName = (resourceId) => {
     const resource = resourceList.value.find(item => item.resourceId == resourceId)
     return resource?.resourceName || '-'
+}
+
+// 获取农资图片
+const getResourceImage = (resourceId) => {
+    const resource = resourceList.value.find(item => item.resourceId == resourceId)
+    return resource?.resourceImage || null
 }
 
 // 获取使用类型标签
@@ -395,6 +414,25 @@ onMounted(() => {
         font-size: 12px;
         color: #909399;
         margin-top: 4px;
+    }
+    
+    .resource-image-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        .resource-thumbnail {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .image-placeholder {
+            font-size: 24px;
+            color: #c0c4cc;
+        }
     }
 }
 </style>
