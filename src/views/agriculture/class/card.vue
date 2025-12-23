@@ -68,7 +68,8 @@
 
 <style lang="scss" scoped>
   .card {
-    height: 490px;
+    height: auto;
+    min-height: 400px;
     background: white;
     border-radius: 12px;
     transition: all 0.3s ease;
@@ -108,16 +109,19 @@
 
     .image {
       width: 100%;
-      height: 281px;
+      height: 200px;
       border-radius: 8px;
       overflow: hidden;
       cursor: pointer;
       margin-bottom: 16px;
+      flex-shrink: 0;
+      background: #f5f7fa;
 
       img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
+        background: #f5f7fa;
       }
     }
 

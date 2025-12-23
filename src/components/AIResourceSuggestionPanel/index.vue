@@ -34,13 +34,13 @@
       <!-- 库存状态概览 -->
       <el-card class="section-card status-card" shadow="never">
         <el-row :gutter="16">
-          <el-col :span="6">
+          <el-col :span="6" v-if="suggestion.resourceId && suggestion.resourceName">
             <div class="status-item">
               <div class="status-label">农资名称</div>
-              <div class="status-value">{{ suggestion.resourceName || '全局分析' }}</div>
+              <div class="status-value">{{ suggestion.resourceName }}</div>
             </div>
           </el-col>
-          <el-col :span="6">
+          <el-col :span="suggestion.resourceId && suggestion.resourceName ? 6 : 8">
             <div class="status-item">
               <div class="status-label">当前库存</div>
               <div class="status-value">
@@ -48,7 +48,7 @@
               </div>
             </div>
           </el-col>
-          <el-col :span="6">
+          <el-col :span="suggestion.resourceId && suggestion.resourceName ? 6 : 8">
             <div class="status-item">
               <div class="status-label">库存状态</div>
               <div class="status-value">
@@ -58,7 +58,7 @@
               </div>
             </div>
           </el-col>
-          <el-col :span="6">
+          <el-col :span="suggestion.resourceId && suggestion.resourceName ? 6 : 8">
             <div class="status-item">
               <div class="status-label">采购紧迫度</div>
               <div class="status-value">
@@ -94,10 +94,10 @@
               </div>
             </div>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="8" v-if="suggestion.purchaseUrgency !== 'low' && suggestion.suggestedQuantity">
             <div class="analysis-item">
               <div class="analysis-label">建议采购量</div>
-              <div class="analysis-value highlight">{{ suggestion.suggestedQuantity || '-' }} {{ suggestion.stockUnit || '' }}</div>
+              <div class="analysis-value highlight">{{ suggestion.suggestedQuantity }} {{ suggestion.stockUnit || '' }}</div>
             </div>
           </el-col>
         </el-row>
@@ -141,7 +141,7 @@
             <span>风险分析</span>
           </div>
         </template>
-        <div v-for="(risk, index) in riskAnalysis" :key="index" class="risk-item">
+        <div v-for="(risk, index) in riskAnalysis" :key="index" class="risk-item" :class="getRiskItemClass(risk.level)">
           <div class="risk-header">
             <span class="risk-name">{{ risk.risk }}</span>
             <el-tag :type="risk.level === '高' ? 'danger' : risk.level === '中' ? 'warning' : 'info'" size="small">
@@ -244,6 +244,12 @@ const getRemainingDaysClass = (days: number | null) => {
   return 'text-success'
 }
 
+const getRiskItemClass = (level: string) => {
+  if (level === '高') return 'risk-high'
+  if (level === '中') return 'risk-medium'
+  return 'risk-low'
+}
+
 // 加载最新建议
 const loadLatestSuggestion = async () => {
   loading.value = true
@@ -261,27 +267,33 @@ const loadLatestSuggestion = async () => {
 
 // 生成建议
 const handleGenerate = async () => {
+  // 防止重复点击
+  if (generating.value) return
+  
   generating.value = true
+  
+  // 立即显示提示
+  ElNotification({
+    title: 'AI分析已开始',
+    message: '正在调用DeepSeek AI生成建议，预计需要1-2分钟',
+    type: 'success',
+    duration: 5000
+  })
+  
   try {
     const res = await AgricultureDecisionService.triggerGenerateResourceSuggestion(props.resourceId || undefined)
-    if (res.code === 200) {
-      ElNotification({
-        title: 'AI分析已开始',
-        message: '正在调用DeepSeek AI生成建议，预计需要1-2分钟',
-        type: 'success',
-        duration: 5000
-      })
-      setTimeout(() => {
-        loadLatestSuggestion()
-      }, 3000)
-    } else {
+    if (res.code !== 200) {
       ElMessage.error(res.msg || '生成失败')
     }
   } catch (error: any) {
     ElMessage.error(error.message || '生成失败')
-  } finally {
-    generating.value = false
   }
+  
+  // 3秒后刷新数据
+  setTimeout(() => {
+    loadLatestSuggestion()
+    generating.value = false
+  }, 3000)
 }
 
 watch(() => props.resourceId, () => {
@@ -401,9 +413,23 @@ defineExpose({
   .risk-item {
     padding: 12px;
     margin-bottom: 8px;
-    background: #fef0f0;
     border-radius: 4px;
-    border-left: 3px solid #F56C6C;
+    border-left: 3px solid;
+    
+    &.risk-high {
+      background: #fef0f0;
+      border-left-color: #F56C6C;
+    }
+    
+    &.risk-medium {
+      background: #fdf6ec;
+      border-left-color: #E6A23C;
+    }
+    
+    &.risk-low {
+      background: #f0f9eb;
+      border-left-color: #67C23A;
+    }
     
     &:last-child {
       margin-bottom: 0;
