@@ -8,7 +8,7 @@
     </div>
     <div class="sales-summary">
       <el-row :gutter="20">
-        <el-col :span="6" :xs="24" v-for="(item, index) in salesData" :key="index">
+        <el-col :span="6" :xs="24" v-for="(item, index) in processedSalesData" :key="index">
           <div :class="['sales-card art-custom-card']">
             <i class="iconfont-sys" :class="item.class" v-html="item.icon" :style="{backgroundColor: item.color}"></i>
             <h2>
@@ -41,7 +41,33 @@ const { setOptions, removeResize, resize } = useECharts(chartRef as Ref<HTMLDivE
 const settingStore = useSettingStore()
 const menuOpen = computed(() => settingStore.menuOpen)
 
-// 新增：class 到颜色的映射表
+// 任务状态UI配置映射表
+const taskStatusConfig: Record<number, { label: string; icon: string; class: string; color: string }> = {
+  0: { label: '未分配', icon: '&#xe7d9', class: 'bg-primary', color: '#409EFF' },
+  1: { label: '已分配', icon: '&#xe712', class: 'bg-warning', color: '#E6A23C' },
+  2: { label: '进行中', icon: '&#xe77f', class: 'bg-error', color: '#F56C6C' },
+  3: { label: '已完成', icon: '&#xe70f', class: 'bg-success', color: '#67C23A' }
+}
+
+// 处理后端返回的数据，根据状态码映射UI配置
+const processedSalesData = computed(() => {
+  return props.salesData.map(item => {
+    // 如果后端返回了status字段，使用配置映射；否则使用原有字段（兼容旧数据）
+    if (item.status !== undefined && item.status !== null) {
+      const config = taskStatusConfig[item.status] || taskStatusConfig[0]
+      return {
+        ...item,
+        label: config.label,
+        icon: config.icon,
+        class: config.class,
+        color: config.color
+      }
+    }
+    return item
+  })
+})
+
+// class到颜色的映射表（兼容旧数据）
 const classColorMap: Record<string, string> = {
   'bg-primary': '#409EFF',
   'bg-warning': '#E6A23C',
@@ -57,12 +83,12 @@ watch(menuOpen, () => {
   })
 })
 
-// 饼图数据与卡片数据同步，颜色一致
+// 饼图数据与卡片数据同步，颜色一致（使用处理后的数据）
 const chartData = computed(() =>
-  props.salesData.map(item => ({
+  processedSalesData.value.map(item => ({
     value: item.value,
     name: item.label,
-    itemStyle: { color: item.color || classColorMap[item.class] || '#409EFF' }
+    itemStyle: { color: item.color || classColorMap[item.class || ''] || '#409EFF' }
   }))
 )
 

@@ -1,17 +1,21 @@
 import { BaseArrayResult } from '../axios'
+/**
+ * 控制台统计数据类型
+ * 后端只返回状态码和业务数据，UI配置由前端处理
+ */
 export interface ConsoleTotalInfo {
-  /** 描述 */
-  label: string
-  /** 数值 */
+  /** 状态码，用于前端映射UI配置 */
+  status?: number
+  /** 统计数值 */
   value: number
-  /** 变化趋势（如“+3%”） */
+  /** 环比变化率（如"+10%"、"-5%"） */
   change: string
-  /** 图标名或图标路径 */
-  icon: string
-  /** 卡片样式类名 */
-  class: string
-  /** 颜色样式 */
-  color: stringW
+  /** 以下字段由前端根据status映射填充 */
+  label?: string
+  icon?: string
+  class?: string
+  color?: string
+  unit?: string
 }
 
 /**

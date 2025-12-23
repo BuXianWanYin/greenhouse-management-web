@@ -268,7 +268,7 @@
 </template>
 
 <script setup lang="ts">
-import { EditPen, Delete, Plus, MagicStick, PictureFilled } from '@element-plus/icons-vue'
+import { EditPen, Delete, MagicStick, PictureFilled } from '@element-plus/icons-vue'
 import AIResourceSuggestionPanel from '@/components/AIResourceSuggestionPanel/index.vue'
 import { ref, reactive, onMounted, computed } from 'vue'
 import { resetForm } from '@/utils/utils'
@@ -317,7 +317,7 @@ const userStore = useUserStore()
 
 // AI决策建议相关
 const showAISuggestionDialog = ref(false)
-const selectedResourceIdForAI = ref<number | string | null>(null)
+const selectedResourceIdForAI = ref<number | string | undefined>(undefined)
 const aiResourcePanelRef = ref<InstanceType<typeof AIResourceSuggestionPanel> | null>(null)
 
 const columns = reactive([
@@ -457,7 +457,7 @@ const getResourceMeasureUnit = (resourceId: string) => {
 /** 根据农资ID获取农资图片 */
 const getResourceImage = (resourceId: string) => {
   const resource = resourceList.value.find(item => item.resourceId === resourceId)
-  return resource ? resource.resourceImage : null
+  return resource ? resource.resourceImage : undefined
 }
 
 /** 搜索按钮操作 */
@@ -465,8 +465,6 @@ const search = () => {
   queryParams.pageNum = 1
   getList()
 }
-
-const handleQuery = search
 
 /** 每页条数改变 */
 const handleSizeChange = (size: number) => {
@@ -632,29 +630,6 @@ const handleExport = () => {
   downloadExcel(AgricultureResourceInventoryService.exportExcel(queryParams))
 }
 
-/** 入库按钮操作 */
-const handleStockIn = () => {
-  resetStockIn()
-  getResourceList()
-  stockInOpen.value = true
-  stockInForm.operator = userStore.info.nickName || userStore.info.userName || userStore.info.name || ''
-  stockInForm.usageDate = new Date().toISOString().split('T')[0]
-}
-
-/** 根据行数据入库 */
-const handleStockInByRow = async (row: any) => {
-  resetStockIn()
-  await getResourceList()
-  stockInForm.resourceId = row.resourceId
-  // 根据resourceId查找对应的农资信息
-  const resource = resourceList.value.find(item => item.resourceId === row.resourceId)
-  if (resource) {
-    stockInForm.measureUnit = resource.measureUnit
-  }
-  stockInOpen.value = true
-  stockInForm.operator = userStore.info.nickName || userStore.info.userName || userStore.info.name || ''
-  stockInForm.usageDate = new Date().toISOString().split('T')[0]
-}
 
 /** 农资选择变化时，自动填充计量单位 */
 const handleResourceChangeForStockIn = (resourceId: string) => {

@@ -1,15 +1,10 @@
 <template>
   <ul class="card-list" :style="{ marginTop: showWorkTab ? '0' : '10px' }">
-    <li class="art-custom-card" v-for="(item, index) in dataList" :key="index">
-      <span class="des subtitle">{{ getDisplayLabel(item.label) }}</span>
+    <li class="art-custom-card" v-for="(item, index) in processedDataList" :key="index">
+      <span class="des subtitle">{{ item.label }}</span>
       <span class="number box-title">
         <MoCountTo :num="item.value" :duration="800" :separator="2" />
-        <span v-if="item.label === '温室面积' || item.label === '总面积'" class="unit">亩</span>
-        <span v-if="item.label === '温室数量' || item.label === '温室数量'" class="unit">个</span>
-        <span v-if="item.label === '分区数量' || item.label === '分区'" class="unit">块</span>
-        <span v-if="item.label === '作物种类' || item.label === '作物数量' || item.label === '农场作物' || item.label === '农场种类'" class="unit">种</span>
-        <span v-if="item.label === '计划数量' || item.label === '计划总数'" class="unit">个</span>
-        <span v-if="item.label === '任务数量' || item.label === '任务总数'" class="unit">个</span>
+        <span v-if="getUnit(item)" class="unit">{{ getUnit(item) }}</span>
       </span>
       <div class="change-box">
         <span class="change-text">较上周</span>
@@ -37,12 +32,38 @@ const props = defineProps({
 const settingStore = useSettingStore()
 const showWorkTab = computed(() => settingStore.showWorkTab)
 
-// 标签显示转换：将"农场种类"转换为"农场作物"
-const getDisplayLabel = (label: string) => {
-  if (label === '农场种类') {
-    return '农场作物'
-  }
-  return label
+// 农业统计UI配置映射表（前后端分离：后端只返回状态码，前端负责UI展示）
+const agricultureConfig: Record<number, { label: string; icon: string; unit: string }> = {
+  0: { label: '农场温室', icon: '&#xe632', unit: '个' },
+  1: { label: '农场批次', icon: '&#xe66b', unit: '个' },
+  2: { label: '农场作物', icon: '&#xe60a', unit: '种' },
+  3: { label: '农场面积', icon: '&#xe6dc', unit: '亩' }
+}
+
+// 处理后端返回的数据，根据状态码映射UI配置
+const processedDataList = computed(() => {
+  return props.dataList.map(item => {
+    if (item.status !== undefined && item.status !== null) {
+      const config = agricultureConfig[item.status] || agricultureConfig[0]
+      return {
+        ...item,
+        label: config.label,
+        icon: config.icon,
+        unit: config.unit
+      }
+    }
+    return item
+  })
+})
+
+// 获取单位（根据处理后的数据）
+const getUnit = (item: any) => {
+  if (item.unit) return item.unit
+  if (item.label === '农场面积' || item.label === '温室面积' || item.label === '总面积') return '亩'
+  if (item.label === '农场温室' || item.label === '温室数量') return '个'
+  if (item.label === '农场作物' || item.label === '作物种类' || item.label === '农场种类') return '种'
+  if (item.label === '农场批次') return '个'
+  return ''
 }
 </script>
 

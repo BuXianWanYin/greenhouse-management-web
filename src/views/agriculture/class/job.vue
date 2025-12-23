@@ -99,7 +99,7 @@
 </template>
 <script setup lang="ts">
   import { AgricultureJobService } from '@/api/agriculture/jobApi'
-  import { ref, reactive } from 'vue'
+  import { ref, reactive, onMounted } from 'vue'
   import { resetForm } from '@/utils/utils'
   import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
   import { FormInstance } from 'element-plus'

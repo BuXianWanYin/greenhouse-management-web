@@ -204,7 +204,7 @@
 </template>
 
 <script setup lang="ts">
-import { EditPen, Delete, Document, PictureFilled } from '@element-plus/icons-vue'
+import { Delete, Document, PictureFilled } from '@element-plus/icons-vue'
 import { ref, reactive, onMounted, computed } from 'vue'
 import { resetForm } from '@/utils/utils'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -313,7 +313,7 @@ const getTaskList = async () => {
   }
 }
 
-const handleBatchChange = async (val: any) => {
+const handleBatchChange = async () => {
   // 如有后台按批次查询任务的接口可替换为精准拉取；现用前端过滤
   if (!taskList.value.length) {
     await getTaskList()
@@ -329,7 +329,7 @@ const getResourceName = (resourceId: string) => {
 /** 根据农资ID获取农资图片 */
 const getResourceImage = (resourceId: string) => {
   const resource = resourceList.value.find(item => String(item.resourceId) === String(resourceId))
-  return resource ? resource.resourceImage : null
+  return resource ? resource.resourceImage : undefined
 }
 
 /** 根据批次ID获取批次名称 */
@@ -527,4 +527,3 @@ onMounted(async () => {
   }
 }
 </style>
-
