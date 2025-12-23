@@ -138,7 +138,7 @@ const emit = defineEmits(['close'])
 const inputMessage = ref('')
 const messages = ref<ChatMessage[]>([
     {
-        text: '你好！我是你的助手，有什么可以帮你的吗？',
+        text: '你好！我是你的智能助手，有什么可以帮你的吗？',
         type: 'received',
         ...formatTime()
     }

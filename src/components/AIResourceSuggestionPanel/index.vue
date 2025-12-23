@@ -13,15 +13,110 @@
     </div>
 
     <!-- 无数据状态 -->
-    <el-empty v-else-if="!suggestion" description="暂无AI建议，点击生成按钮获取">
+    <el-empty v-else-if="!hasData" description="暂无AI建议，点击生成按钮获取">
       <el-button type="primary" @click="handleGenerate">
         <el-icon><MagicStick /></el-icon>
         生成AI建议
       </el-button>
     </el-empty>
 
-    <!-- 建议内容 -->
-    <div v-else class="suggestion-content">
+    <!-- 全局分析：建议列表 -->
+    <div v-else-if="isGlobalMode && suggestionList.length > 0" class="suggestion-content">
+      <!-- 操作栏 -->
+      <div class="action-bar">
+        <el-button type="primary" size="small" @click="handleGenerate" :loading="generating">
+          <el-icon><Refresh /></el-icon>
+          重新生成
+        </el-button>
+        <span class="update-time">更新于：{{ suggestionList[0]?.createTime }}</span>
+      </div>
+
+      <!-- 汇总统计 -->
+      <el-card class="section-card" shadow="never">
+        <el-row :gutter="16">
+          <el-col :span="6">
+            <div class="status-item">
+              <div class="status-label">农资总数</div>
+              <div class="status-value">{{ suggestionList.length }} 种</div>
+            </div>
+          </el-col>
+          <el-col :span="6">
+            <div class="status-item">
+              <div class="status-label">需立即采购</div>
+              <div class="status-value text-danger">{{ urgencyStats.immediate }} 种</div>
+            </div>
+          </el-col>
+          <el-col :span="6">
+            <div class="status-item">
+              <div class="status-label">需尽快采购</div>
+              <div class="status-value text-warning">{{ urgencyStats.soon }} 种</div>
+            </div>
+          </el-col>
+          <el-col :span="6">
+            <div class="status-item">
+              <div class="status-label">库存充足</div>
+              <div class="status-value text-success">{{ urgencyStats.low }} 种</div>
+            </div>
+          </el-col>
+        </el-row>
+      </el-card>
+
+      <!-- 农资建议列表 -->
+      <el-card class="section-card" shadow="never">
+        <template #header>
+          <div class="card-header">
+            <el-icon><List /></el-icon>
+            <span>各农资采购建议</span>
+          </div>
+        </template>
+        <el-table :data="suggestionList" stripe size="small" :row-class-name="getRowClassName">
+          <el-table-column prop="resourceName" label="农资名称" min-width="100" />
+          <el-table-column label="当前库存" min-width="100">
+            <template #default="{ row }">
+              {{ row.currentStock || '-' }} {{ row.stockUnit || '' }}
+            </template>
+          </el-table-column>
+          <el-table-column label="库存状态" min-width="80" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getStockStatusType(row.stockStatus)" size="small">
+                {{ getStockStatusText(row.stockStatus) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="日均消耗" min-width="90">
+            <template #default="{ row }">
+              {{ row.avgDailyUsage || 0 }} {{ row.stockUnit || '' }}
+            </template>
+          </el-table-column>
+          <el-table-column label="可用天数" min-width="80" align="center">
+            <template #default="{ row }">
+              <span :class="getRemainingDaysClass(row.remainingDays)">
+                {{ row.remainingDays || '-' }} 天
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="采购紧迫度" min-width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getUrgencyType(row.purchaseUrgency)" size="small">
+                {{ getUrgencyText(row.purchaseUrgency) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="建议采购量" min-width="100">
+            <template #default="{ row }">
+              <span v-if="row.suggestedQuantity > 0" class="highlight">
+                {{ row.suggestedQuantity }} {{ row.stockUnit || '' }}
+              </span>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="summary" label="建议摘要" min-width="200" show-overflow-tooltip />
+        </el-table>
+      </el-card>
+    </div>
+
+    <!-- 单个农资分析：详情展示 -->
+    <div v-else-if="suggestion" class="suggestion-content">
       <!-- 操作栏 -->
       <div class="action-bar">
         <el-button type="primary" size="small" @click="handleGenerate" :loading="generating">
@@ -185,7 +280,7 @@ import { ref, computed, watch } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
 import { 
   Loading, MagicStick, Refresh, TrendCharts, ShoppingCart, 
-  OfficeBuilding, WarningFilled, Switch, Document 
+  OfficeBuilding, WarningFilled, Switch, Document, List 
 } from '@element-plus/icons-vue'
 import { AgricultureDecisionService } from '@/api/agriculture/decisionApi'
 import type { 
@@ -202,6 +297,37 @@ const props = defineProps<{
 const loading = ref(false)
 const generating = ref(false)
 const suggestion = ref<AgricultureResourceAiSuggestionResult | null>(null)
+const suggestionList = ref<AgricultureResourceAiSuggestionResult[]>([])
+
+// 是否全局模式
+const isGlobalMode = computed(() => !props.resourceId)
+
+// 是否有数据
+const hasData = computed(() => {
+  if (isGlobalMode.value) {
+    return suggestionList.value.length > 0
+  }
+  return suggestion.value !== null
+})
+
+// 紧迫度统计
+const urgencyStats = computed(() => {
+  const stats = { immediate: 0, soon: 0, normal: 0, low: 0 }
+  suggestionList.value.forEach(item => {
+    const urgency = item.purchaseUrgency as keyof typeof stats
+    if (urgency && stats[urgency] !== undefined) {
+      stats[urgency]++
+    }
+  })
+  return stats
+})
+
+// 表格行样式
+const getRowClassName = ({ row }: { row: AgricultureResourceAiSuggestionResult }) => {
+  if (row.purchaseUrgency === 'immediate') return 'row-danger'
+  if (row.purchaseUrgency === 'soon') return 'row-warning'
+  return ''
+}
 
 // 解析JSON数组
 const parseJsonArray = <T>(jsonStr: string | null): T[] => {
@@ -254,9 +380,18 @@ const getRiskItemClass = (level: string) => {
 const loadLatestSuggestion = async () => {
   loading.value = true
   try {
-    const res = await AgricultureDecisionService.getLatestResourceSuggestion(props.resourceId || undefined)
-    if (res.code === 200) {
-      suggestion.value = res.data
+    if (isGlobalMode.value) {
+      // 全局模式：加载建议列表
+      const res = await AgricultureDecisionService.getLatestGlobalSuggestions()
+      if (res.code === 200) {
+        suggestionList.value = res.data || []
+      }
+    } else {
+      // 单个农资模式：加载单条建议
+      const res = await AgricultureDecisionService.getLatestResourceSuggestion(props.resourceId || undefined)
+      if (res.code === 200) {
+        suggestion.value = res.data
+      }
     }
   } catch (error) {
     console.error('加载资源采购建议失败:', error)
@@ -457,6 +592,23 @@ defineExpose({
       line-height: 1.8;
       color: #606266;
     }
+  }
+
+  .highlight {
+    color: #409EFF;
+    font-weight: 500;
+  }
+
+  .text-danger { color: #F56C6C !important; }
+  .text-warning { color: #E6A23C !important; }
+  .text-success { color: #67C23A !important; }
+
+  :deep(.row-danger) {
+    background-color: #fef0f0 !important;
+  }
+  
+  :deep(.row-warning) {
+    background-color: #fdf6ec !important;
   }
 }
 

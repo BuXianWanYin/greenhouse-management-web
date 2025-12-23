@@ -57,3 +57,5 @@ export interface AgricultureResourceAiSuggestionResult {
 
 export type AgricultureResourceAiSuggestionInfoResult = BaseObjectResult<AgricultureResourceAiSuggestionResult>
 
+export type AgricultureResourceAiSuggestionListResult = BaseObjectResult<AgricultureResourceAiSuggestionResult[]>
+

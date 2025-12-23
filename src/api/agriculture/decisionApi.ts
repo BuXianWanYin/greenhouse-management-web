@@ -1,7 +1,7 @@
 import request from '@/utils/http'
 import { BaseResult } from '@/types/axios'
 import { AgricultureBatchAiSuggestionInfoResult } from '@/types/agriculture/batchAiSuggestion'
-import { AgricultureResourceAiSuggestionInfoResult } from '@/types/agriculture/resourceAiSuggestion'
+import { AgricultureResourceAiSuggestionInfoResult, AgricultureResourceAiSuggestionListResult } from '@/types/agriculture/resourceAiSuggestion'
 
 /**
  * AI决策API超时时间（2分钟）
@@ -33,6 +33,15 @@ export class AgricultureDecisionService {
     return request.get<AgricultureResourceAiSuggestionInfoResult>({
       url: '/agriculture/decision/resource/latest',
       params: resourceId ? { resourceId } : {}
+    })
+  }
+
+  /**
+   * 获取最新全局资源采购建议列表
+   */
+  static getLatestGlobalSuggestions() {
+    return request.get<AgricultureResourceAiSuggestionListResult>({
+      url: '/agriculture/decision/resource/global/latest'
     })
   }
 

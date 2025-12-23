@@ -239,13 +239,13 @@
       </template>
     </el-dialog>
 
-    <!-- AI资源采购建议对话框 -->
-    <el-dialog title="AI资源采购建议" v-model="showAISuggestionDialog" width="800px" append-to-body>
+    <!-- AI农资采购建议对话框 -->
+    <el-dialog title="AI农资采购建议" v-model="showAISuggestionDialog" width="800px" append-to-body>
       <el-form :inline="true" style="margin-bottom: 20px">
-        <el-form-item label="选择资源（可选）">
+        <el-form-item label="选择农资">
           <el-select
             v-model="selectedResourceIdForAI"
-            placeholder="留空表示分析所有资源"
+            placeholder="留空表示分析所有农资"
             clearable
             filterable
             style="width: 300px"
