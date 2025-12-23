@@ -9,10 +9,16 @@
             <div class="trigger" :class="{ disabled }">
                 <template v-if="selectedLabel">
                     <div class="avatar-box">
-                        <span class="avatar-circle">{{ firstChar }}</span>
+                        <el-avatar 
+                            v-if="selectedAvatar" 
+                            :src="selectedAvatar" 
+                            :size="40"
+                            class="user-avatar"
+                        />
+                        <span v-else class="avatar-circle">{{ firstChar }}</span>
                         <div class="info">
                             <div class="name">{{ selectedLabel }}</div>
-                            <div class="desc">责任人</div>
+                            <div class="desc">批次任务责任人</div>
                         </div>
                         <span v-if="!disabled" class="close" @click.stop="clearSelect">×</span>
                     </div>
@@ -29,7 +35,15 @@
                         :key="item[valueName]"
                         :command="item[valueName]"
                     >
-                        {{ item[keyName] }}
+                        <div class="dropdown-item-content">
+                            <el-avatar 
+                                v-if="item.avatar" 
+                                :src="item.avatar" 
+                                :size="24"
+                            />
+                            <span v-else class="mini-avatar">{{ item[keyName] ? item[keyName][0] : '' }}</span>
+                            <span class="item-name">{{ item[keyName] }}</span>
+                        </div>
                     </el-dropdown-item>
                 </el-dropdown-menu>
             </template>
@@ -73,6 +87,13 @@ const selectedLabel = computed(() => {
         item => item[props.valueName] === selectedValue.value
     )
     return found ? found[props.keyName] : ''
+})
+
+const selectedAvatar = computed(() => {
+    const found = props.options.find(
+        item => item[props.valueName] === selectedValue.value
+    )
+    return found ? found.avatar : ''
 })
 
 const firstChar = computed(() => selectedLabel.value ? selectedLabel.value[0] : '')
@@ -171,5 +192,32 @@ function clearSelect() {
         cursor: pointer;
         font-size: 18px;
     }
+}
+
+.dropdown-item-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .mini-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #13c2c2;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .item-name {
+        font-size: 14px;
+    }
+}
+
+.user-avatar {
+    margin-right: 12px;
 }
 </style>

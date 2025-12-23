@@ -257,37 +257,49 @@ const initSelectedDate = () => {
     }
 }
 
-// 获取用户列表
+// 获取用户列表（过滤：只显示超级管理员、总经理、种植管理部主管和员工）
 const fetchUserList = async () => {
     try {
         const firstRes = await UserService.listUser({ pageNum: 1, pageSize: 100 })
         if (firstRes.code === 200) {
             const total = firstRes.total || 0
             const firstPageRows = firstRes.rows || []
-            if (total <= 100) {
-                userList.value = firstPageRows.map(item => ({
-                    ...item,
-                    userId: Number(item.userId),
-                    nickName: item.nickName
-                }))
-                return
-            }
-            const allUsers = [...firstPageRows]
-            const totalPages = Math.ceil(total / 100)
-            const promises = []
-            for (let page = 2; page <= totalPages; page++) {
-                promises.push(UserService.listUser({ pageNum: page, pageSize: 100 }))
-            }
-            const results = await Promise.all(promises)
-            results.forEach((res) => {
-                if (res.code === 200 && res.rows) {
-                    allUsers.push(...res.rows)
+            let allUsers = [...firstPageRows]
+            
+            if (total > 100) {
+                const totalPages = Math.ceil(total / 100)
+                const promises = []
+                for (let page = 2; page <= totalPages; page++) {
+                    promises.push(UserService.listUser({ pageNum: page, pageSize: 100 }))
                 }
+                const results = await Promise.all(promises)
+                results.forEach((res) => {
+                    if (res.code === 200 && res.rows) {
+                        allUsers.push(...res.rows)
+                    }
+                })
+            }
+            
+            // 过滤：只保留超级管理员、总经理、种植管理部主管和员工
+            // 允许的角色ID: 1-超级管理员, 2-总经理, 3-种植管理部主管, 4-种植管理部员工
+            const allowedRoleIds = [1, 2, 3, 4]
+            const filteredUsers = allUsers.filter(user => {
+                // admin用户特殊处理
+                if (user.userName === 'admin') return true
+                // 检查用户角色
+                if (user.roles && user.roles.length > 0) {
+                    return user.roles.some(role => allowedRoleIds.includes(Number(role.roleId)))
+                }
+                // 如果没有roles信息，根据部门ID过滤（种植管理部 dept_id=101）
+                if (user.deptId === 101 || user.deptId === 100) return true
+                return false
             })
-            userList.value = allUsers.map(item => ({
+            
+            userList.value = filteredUsers.map(item => ({
                 ...item,
                 userId: Number(item.userId),
-                nickName: item.nickName
+                nickName: item.nickName,
+                avatar: item.avatar ? (item.avatar.startsWith('http') ? item.avatar : import.meta.env.VITE_API_URL + item.avatar) : ''
             }))
         }
     } catch (error) {

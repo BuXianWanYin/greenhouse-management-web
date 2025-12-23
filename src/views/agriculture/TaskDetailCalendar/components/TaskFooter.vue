@@ -41,7 +41,7 @@
                         
                         <!-- 人员信息 -->
                         <div class="detail-section">
-                            <div class="section-title">人员信息</div>
+                            <div class="section-title">工作人员信息</div>
                             <div class="employee-list">
                                 <MultipleSelect
                                     v-model="localEmployeeList"

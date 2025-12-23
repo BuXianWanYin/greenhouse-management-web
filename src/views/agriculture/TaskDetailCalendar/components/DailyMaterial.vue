@@ -17,34 +17,36 @@
             :data="materialList"
             size="small"
             empty-text="暂无农资使用记录"
+            style="width: 100%"
         >
-            <el-table-column label="农资名称" align="center" prop="resourceId" min-width="120">
+            <el-table-column label="农资名称" align="center" prop="resourceId" min-width="150">
                 <template #default="{ row }">
                     {{ getResourceName(row.resourceId) }}
                 </template>
             </el-table-column>
-            <el-table-column label="数量" align="center" prop="usageQuantity" width="80" />
-            <el-table-column label="单位" align="center" prop="measureUnit" width="60" />
-            <el-table-column label="类型" align="center" prop="usageType" width="80">
+            <el-table-column label="数量" align="center" prop="usageQuantity" min-width="80" />
+            <el-table-column label="单位" align="center" prop="measureUnit" min-width="80" />
+            <el-table-column label="类型" align="center" prop="usageType" min-width="90">
                 <template #default="{ row }">
                     <el-tag :type="row.usageType === '0' ? 'success' : 'warning'" size="small">
                         {{ getUsageTypeLabel(row.usageType) }}
                     </el-tag>
                 </template>
             </el-table-column>
-            <el-table-column label="状态" align="center" width="80">
+            <el-table-column label="状态" align="center" min-width="90">
                 <template #default="{ row }">
                     <el-tag :type="getStatusTagType(row.status)" size="small">
                         {{ getStatusLabel(row.status, row.usageType) }}
                     </el-tag>
                 </template>
             </el-table-column>
-            <el-table-column label="操作人" align="center" prop="operator" width="80" />
+            <el-table-column label="操作人" align="center" prop="operator" min-width="100" />
             <el-table-column 
                 v-if="!props.readonly"
                 label="操作" 
                 align="center" 
                 width="80"
+                fixed="right"
             >
                 <template #default="{ row }">
                     <el-button 

@@ -11,7 +11,7 @@
       :data="costEmployeeList"
       class="margin-top-10"
     >
-      <el-table-column label="雇员" align="center" prop="employeeId">
+      <el-table-column label="员工" align="center" prop="employeeId">
         <template #default="{ row }">
           {{ taskEmployeeList.find(item => item.userId == row.employeeId)?.nickName }}
         </template>
@@ -94,11 +94,11 @@
         :rules="rules"
         label-width="80px"
       >
-        <el-form-item label="雇员" prop="employeeId">
+        <el-form-item label="员工" prop="employeeId">
           <el-select
             v-model="form.employeeId"
             class="display-block"
-            placeholder="请选择雇员"
+            placeholder="请选择员工"
             clearable
             filterable
           >
@@ -210,7 +210,7 @@ const rules = {
     { required: true, message: "任务ID不能为空", trigger: "blur" }
   ],
   employeeId: [
-    { required: true, message: "雇员ID不能为空", trigger: "blur" }
+    { required: true, message: "员工ID不能为空", trigger: "blur" }
   ],
   workingHours: [
     { required: true, message: "工时不能为空", trigger: "blur" }

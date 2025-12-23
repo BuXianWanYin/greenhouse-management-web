@@ -53,4 +53,12 @@ export class AgricultureCostEmployeeService {
             data: data
         })
     }
+
+    // 获取员工某日排班信息（用于工时录入联动）
+    static getScheduleInfo(params: { userId: number | string; scheduleDate: string; taskId?: number | string }) {
+        return request.get<any>({
+            url: '/agriculture/costEmployee/getScheduleInfo',
+            params
+        })
+    }
 }

@@ -17,28 +17,42 @@
             :data="workHoursList"
             size="small"
             empty-text="暂无工时记录"
+            style="width: 100%"
         >
-            <el-table-column label="雇员" align="center" prop="employeeId" min-width="100">
+            <el-table-column label="员工" align="center" prop="nickName" min-width="100">
                 <template #default="{ row }">
-                    {{ getEmployeeName(row.employeeId) }}
+                    {{ row.nickName || getEmployeeName(row.userId) }}
                 </template>
             </el-table-column>
-            <el-table-column label="工时(天)" align="center" prop="workingHours" width="100" />
-            <el-table-column label="开始日期" align="center" prop="workingStart" width="120">
+            <el-table-column label="排班时间" align="center" min-width="140">
                 <template #default="{ row }">
-                    {{ formatDate(row.workingStart) }}
+                    <span v-if="row.scheduleStartTime && row.scheduleEndTime">
+                        {{ formatTime(row.scheduleStartTime) }} - {{ formatTime(row.scheduleEndTime) }}
+                    </span>
+                    <span v-else style="color: #909399">无排班</span>
                 </template>
             </el-table-column>
-            <el-table-column label="结束日期" align="center" prop="workingFinish" width="120">
+            <el-table-column label="计划工时" align="center" prop="planHours" min-width="90">
                 <template #default="{ row }">
-                    {{ formatDate(row.workingFinish) }}
+                    {{ row.planHours ? row.planHours + 'h' : '-' }}
+                </template>
+            </el-table-column>
+            <el-table-column label="实际工时" align="center" prop="actualHours" min-width="90">
+                <template #default="{ row }">
+                    {{ row.actualHours ? row.actualHours + 'h' : (row.workingHours ? row.workingHours * 8 + 'h' : '-') }}
+                </template>
+            </el-table-column>
+            <el-table-column label="备注" align="center" prop="remark" min-width="150" show-overflow-tooltip>
+                <template #default="{ row }">
+                    {{ row.remark || '-' }}
                 </template>
             </el-table-column>
             <el-table-column 
                 v-if="!props.readonly"
                 label="操作" 
                 align="center" 
-                width="120"
+                width="100"
+                fixed="right"
             >
                 <template #default="{ row }">
                     <el-button size="small" type="primary" link @click="handleEdit(row)">
@@ -64,13 +78,14 @@
                 :rules="rules"
                 label-width="80px"
             >
-                <el-form-item label="雇员" prop="employeeId">
+                <el-form-item label="员工" prop="userId">
                     <el-select
-                        v-model="form.employeeId"
-                        placeholder="请选择雇员"
+                        v-model="form.userId"
+                        placeholder="请选择员工"
                         clearable
                         filterable
                         style="width: 100%"
+                        @change="handleEmployeeChange"
                     >
                         <el-option
                             v-for="item in props.taskEmployeeList"
@@ -80,28 +95,53 @@
                         />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="工时" prop="workingHours">
-                    <el-input v-model="form.workingHours" placeholder="请输入工时">
-                        <template #append>天</template>
+                
+                <!-- 排班信息展示 -->
+                <el-form-item v-if="scheduleInfo.hasSchedule" label="排班信息">
+                    <el-tag type="success" size="large">
+                        {{ formatTime(scheduleInfo.workStartTime) }} - {{ formatTime(scheduleInfo.workEndTime) }}
+                        （{{ getWorkTypeText(scheduleInfo.workType) }}）
+                    </el-tag>
+                </el-form-item>
+                
+                <el-form-item v-if="scheduleInfo.hasSchedule" label="计划工时">
+                    <el-input :model-value="scheduleInfo.planHours" disabled>
+                        <template #append>小时</template>
                     </el-input>
                 </el-form-item>
-                <el-form-item label="开始日期" prop="workingStart">
-                    <el-date-picker
-                        v-model="form.workingStart"
-                        type="date"
-                        value-format="YYYY-MM-DD"
-                        placeholder="选择开始日期"
-                        style="width: 100%"
-                    />
+                
+                <!-- 无排班提示 -->
+                <el-alert
+                    v-if="form.userId && !scheduleInfo.hasSchedule && !scheduleLoading"
+                    title="该员工当日无排班记录，请手动录入工时"
+                    type="warning"
+                    :closable="false"
+                    show-icon
+                    style="margin-bottom: 12px"
+                />
+                
+                <el-form-item label="实际工时" prop="actualHours">
+                    <el-input 
+                        v-model="form.actualHours" 
+                        type="number"
+                        :min="0" 
+                        :max="24"
+                        placeholder="请输入实际工时"
+                    >
+                        <template #append>小时</template>
+                    </el-input>
                 </el-form-item>
-                <el-form-item label="结束日期" prop="workingFinish">
-                    <el-date-picker
-                        v-model="form.workingFinish"
-                        type="date"
-                        value-format="YYYY-MM-DD"
-                        placeholder="选择结束日期"
-                        style="width: 100%"
-                        :disabled-date="disableFinishDate"
+                
+                <el-form-item label="工作日期">
+                    <el-input :model-value="props.selectedDate" disabled />
+                </el-form-item>
+                
+                <el-form-item label="备注" prop="remark">
+                    <el-input 
+                        v-model="form.remark" 
+                        type="textarea"
+                        :rows="2"
+                        :placeholder="getRemarkPlaceholder"
                     />
                 </el-form-item>
             </el-form>
@@ -114,7 +154,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { AgricultureCostEmployeeService } from '@/api/agriculture/costEmployeeApi'
 import { AgricultureTaskLogService } from '@/api/agriculture/logApi'
@@ -153,18 +193,40 @@ const formRef = ref(null)
 const form = reactive({
     costId: null,
     taskId: props.taskId,
-    employeeId: '',
+    userId: '',
+    scheduleId: null,
     workingHours: null,
-    workingStart: '',
-    workingFinish: ''
+    planHours: null,
+    actualHours: null,
+    workStartTime: '',
+    workEndTime: '',
+    remark: ''
 })
 
+// 排班信息
+const scheduleInfo = reactive({
+    hasSchedule: false,
+    schedule: null,
+    scheduleId: null,
+    planHours: 0,
+    workType: '',
+    workStartTime: '',
+    workEndTime: ''
+})
+const scheduleLoading = ref(false)
+
 const rules = {
-    employeeId: [{ required: true, message: '请选择雇员', trigger: 'change' }],
-    workingHours: [{ required: true, message: '请输入工时', trigger: 'blur' }],
-    workingStart: [{ required: true, message: '请选择开始日期', trigger: 'change' }],
-    workingFinish: [{ required: true, message: '请选择结束日期', trigger: 'change' }]
+    userId: [{ required: true, message: '请选择员工', trigger: 'change' }],
+    actualHours: [{ required: true, message: '请输入实际工时', trigger: 'blur' }]
 }
+
+// 备注提示文字（当实际工时与计划工时不一致时提示）
+const getRemarkPlaceholder = computed(() => {
+    if (scheduleInfo.hasSchedule && form.actualHours && form.actualHours != scheduleInfo.planHours) {
+        return '实际工时与计划工时不一致，请填写调整原因（如加班等）'
+    }
+    return '可填写备注信息'
+})
 
 // 获取当日工时列表
 const getList = async () => {
@@ -186,7 +248,7 @@ const getList = async () => {
     }
 }
 
-// 获取雇员名称
+// 获取员工名称
 const getEmployeeName = (employeeId) => {
     const employee = props.taskEmployeeList.find(item => item.userId == employeeId)
     return employee?.nickName || '-'
@@ -198,11 +260,79 @@ const formatDate = (dateStr) => {
     return dateStr.split(' ')[0]
 }
 
+// 员工变更时查询排班
+const handleEmployeeChange = async (userId) => {
+    if (!userId || !props.selectedDate) {
+        resetScheduleInfo()
+        return
+    }
+    
+    scheduleLoading.value = true
+    try {
+        const res = await AgricultureCostEmployeeService.getScheduleInfo({
+            userId,
+            scheduleDate: props.selectedDate,
+            taskId: props.taskId
+        })
+        
+        if (res.code === 200 && res.data) {
+            Object.assign(scheduleInfo, res.data)
+            
+            // 如果有排班，自动填充工时
+            if (res.data.hasSchedule) {
+                form.scheduleId = res.data.scheduleId
+                form.actualHours = res.data.planHours
+                form.planHours = res.data.planHours
+                form.workStartTime = res.data.workStartTime
+                form.workEndTime = res.data.workEndTime
+            } else {
+                form.scheduleId = null
+                form.planHours = null
+            }
+        }
+    } catch (error) {
+        console.error('获取排班信息失败:', error)
+    } finally {
+        scheduleLoading.value = false
+    }
+}
+
+// 重置排班信息
+const resetScheduleInfo = () => {
+    Object.assign(scheduleInfo, {
+        hasSchedule: false,
+        schedule: null,
+        scheduleId: null,
+        planHours: 0,
+        workType: '',
+        workStartTime: '',
+        workEndTime: ''
+    })
+}
+
+// 格式化时间显示 HH:mm
+const formatTime = (datetime) => {
+    if (!datetime) return ''
+    if (typeof datetime === 'string') {
+        return datetime.substring(11, 16)
+    }
+    return ''
+}
+
+// 获取工作类型文本
+const getWorkTypeText = (workType) => {
+    const typeMap = {
+        'normal': '正常班',
+        'leave': '请假',
+        'rest': '休息'
+    }
+    return typeMap[workType] || '正常班'
+}
+
 // 新增
 const handleAdd = () => {
     resetForm()
-    form.workingStart = props.selectedDate
-    form.workingFinish = props.selectedDate
+    resetScheduleInfo()
     dialogTitle.value = '新增工时'
     dialogVisible.value = true
 }
@@ -210,16 +340,25 @@ const handleAdd = () => {
 // 编辑
 const handleEdit = async (row) => {
     resetForm()
+    resetScheduleInfo()
     const response = await AgricultureCostEmployeeService.getEmployee(row.costId)
     if (response.data) {
         Object.assign(form, {
             costId: response.data.costId,
             taskId: response.data.taskId,
-            employeeId: response.data.employeeId,
+            userId: response.data.userId,
+            scheduleId: response.data.scheduleId,
             workingHours: response.data.workingHours,
-            workingStart: response.data.workingStart ? response.data.workingStart.split(' ')[0] : '',
-            workingFinish: response.data.workingFinish ? response.data.workingFinish.split(' ')[0] : ''
+            planHours: response.data.planHours,
+            actualHours: response.data.actualHours || (response.data.workingHours ? response.data.workingHours * 8 : null),
+            workStartTime: response.data.workStartTime,
+            workEndTime: response.data.workEndTime,
+            remark: response.data.remark || ''
         })
+        // 如果有员工ID，查询排班信息
+        if (response.data.userId) {
+            await handleEmployeeChange(response.data.userId)
+        }
     }
     dialogTitle.value = '编辑工时'
     dialogVisible.value = true
@@ -247,12 +386,21 @@ const submitForm = async () => {
     await formRef.value.validate(async (valid) => {
         if (valid) {
             try {
+                // 自动使用当前选中日期作为开始和结束日期
+                // 排除workStartTime和workEndTime（排班信息仅用于展示，不存储）
+                const { workStartTime, workEndTime, ...restForm } = form
+                const submitData = {
+                    ...restForm,
+                    workingStart: props.selectedDate,
+                    workingFinish: props.selectedDate
+                }
+                
                 if (form.costId) {
-                    await AgricultureCostEmployeeService.updateEmployee(form)
+                    await AgricultureCostEmployeeService.updateEmployee(submitData)
                     ElMessage.success('修改成功')
                     await addTaskLog('修改人工工时')
                 } else {
-                    await AgricultureCostEmployeeService.addEmployee(form)
+                    await AgricultureCostEmployeeService.addEmployee(submitData)
                     ElMessage.success('新增成功')
                     await addTaskLog('新增人工工时')
                 }
@@ -270,10 +418,14 @@ const submitForm = async () => {
 const resetForm = () => {
     form.costId = null
     form.taskId = props.taskId
-    form.employeeId = ''
+    form.userId = ''
+    form.scheduleId = null
     form.workingHours = null
-    form.workingStart = ''
-    form.workingFinish = ''
+    form.planHours = null
+    form.actualHours = null
+    form.workStartTime = ''
+    form.workEndTime = ''
+    form.remark = ''
     formRef.value?.resetFields()
 }
 
@@ -288,16 +440,6 @@ const addTaskLog = async (des) => {
         updateBy: props.currentUser.userId
     })
     emit('log')
-}
-
-// 结束日期不能早于开始日期
-const disableFinishDate = (date) => {
-    if (!form.workingStart) return false
-    const start = new Date(form.workingStart)
-    start.setHours(0, 0, 0, 0)
-    const check = new Date(date)
-    check.setHours(0, 0, 0, 0)
-    return check < start
 }
 
 // 监听日期变化，重新获取数据
