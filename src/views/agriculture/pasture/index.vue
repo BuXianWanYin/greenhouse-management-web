@@ -101,7 +101,9 @@
           <el-input v-model="form.address" placeholder="请输入温室位置"/>
         </el-form-item>
         <el-form-item label="温室面积" prop="area">
-          <el-input v-model="form.area" placeholder="请输入温室面积(亩)"/>
+          <el-input v-model="form.area" placeholder="请输入温室面积">
+            <template #append>亩</template>
+          </el-input>
         </el-form-item>
         <el-form-item label="备注" prop="description">
           <el-input v-model="form.description" placeholder="请输入备注"/>

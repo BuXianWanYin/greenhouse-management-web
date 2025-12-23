@@ -140,7 +140,11 @@ const getTodaySchedule = async () => {
 // 获取最近动态
 const getRecentActivities = async () => {
   const res = await AgricultureConsoleService.getRecentActivities()
-  recentActivities.value = res.data
+  // 处理头像URL拼接
+  recentActivities.value = (res.data || []).map((item: any) => ({
+    ...item,
+    avatar: item.avatar ? (item.avatar.startsWith('http') ? item.avatar : import.meta.env.VITE_API_URL + item.avatar) : ''
+  }))
 }
 
 // 监听全局 event 总线，实时更新统计数据

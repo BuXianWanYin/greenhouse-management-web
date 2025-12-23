@@ -41,25 +41,25 @@ const actions = [
   { 
     label: '新建批次', 
     icon: Plus, 
-    path: '/agriculture/plan/batch',
+    path: '/plantingplan/batch',
     bgColor: 'linear-gradient(135deg, #60a5fa, #3b82f6)'
   },
   { 
     label: '任务列表', 
     icon: List, 
-    path: '/agriculture/plan/batchTask',
+    path: '/plantingplan/batchtask',
     bgColor: 'linear-gradient(135deg, #34d399, #10b981)'
   },
   { 
     label: '人员排班', 
     icon: Calendar, 
-    path: '/personnel/schedule',
+    path: '/personnelmanagement/schedule',
     bgColor: 'linear-gradient(135deg, #fbbf24, #f59e0b)'
   },
   { 
     label: '种植计划', 
     icon: Document, 
-    path: '/agriculture/plan/rotationPlan',
+    path: '/plantingplan/plan',
     bgColor: 'linear-gradient(135deg, #a78bfa, #8b5cf6)'
   }
 ]
