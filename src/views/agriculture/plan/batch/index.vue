@@ -49,13 +49,13 @@
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="批次ID" prop="batchId" width="100" v-if="columns[0].show" />
         <el-table-column label="批次名称" prop="batchName" min-width="150" show-overflow-tooltip v-if="columns[1].show" />
-        <el-table-column label="种质" prop="className" width="150" align="center" v-if="columns[2].show">
+        <el-table-column label="作物" prop="className" width="150" align="center" v-if="columns[2].show">
           <template #default="scope">
             <div class="germplasm-cell">
               <el-image
                 v-if="scope.row.classImage"
                 :src="getImageUrl(scope.row.classImage)"
-                :alt="scope.row.className || '种质图片'"
+                :alt="scope.row.className || '作物图片'"
                 class="germplasm-image"
                 fit="cover"
                 :preview-src-list="[getImageUrl(scope.row.classImage)]"
@@ -204,8 +204,8 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="种植种质" prop="classId">
-          <el-select v-model="form.classId" placeholder="请选择种植种质" clearable style="width: 100%" disabled>
+        <el-form-item label="种植作物" prop="classId">
+          <el-select v-model="form.classId" placeholder="请选择种植作物" clearable style="width: 100%" disabled>
             <el-option
               v-for="item in classOptions"
               :key="item.classId"
@@ -381,7 +381,7 @@ const inProgressBatchList = computed(() => {
 const columns = reactive([
   { name: '批次ID', show: true },
   { name: '批次名称', show: true },
-  { name: '种质', show: true },
+  { name: '作物', show: true },
   { name: '所属温室', show: true },
   { name: '计划类型', show: true },
   { name: '计划年份', show: true },
@@ -491,7 +491,7 @@ const validateHarvestTime = (rule: any, value: any, callback: any) => {
 
 const rules = reactive({
   batchName: [{ required: true, message: '批次名称不能为空', trigger: 'blur' }],
-  classId: [{ required: true, message: '种植种质不能为空', trigger: 'change' }],
+  classId: [{ required: true, message: '种植作物不能为空', trigger: 'change' }],
   pastureId: [{ required: true, message: '所属温室不能为空', trigger: 'change' }],
   cropArea: [{ required: true, message: '种植面积不能为空', trigger: 'blur' }],
   startTime: [
@@ -1037,7 +1037,7 @@ const handlePlantingPlanCascaderChange = async (value: any) => {
       const selectedPlan = planOptions.value.find(plan => Number(plan.planId) === Number(value[1]))
       if (selectedPlan) {
         form.planYear = selectedPlan.planYear
-        // 自动绑定计划的所属温室、种质、总面积和种植密度
+        // 自动绑定计划的所属温室、作物、总面积和种植密度
         if (selectedPlan.pastureId) {
           form.pastureId = Number(selectedPlan.pastureId)
         }
@@ -1058,7 +1058,7 @@ const handlePlantingPlanCascaderChange = async (value: any) => {
       const selectedPlan = planOptions.value.find(plan => Number(plan.planId) === Number(value[0]))
       if (selectedPlan) {
         form.planYear = selectedPlan.planYear
-        // 自动绑定计划的所属温室、种质、总面积和种植密度
+        // 自动绑定计划的所属温室、作物、总面积和种植密度
         if (selectedPlan.pastureId) {
           form.pastureId = Number(selectedPlan.pastureId)
         }
@@ -1175,7 +1175,7 @@ const handlePlanTypeChange = (value: string | number | boolean | undefined) => {
     // 清空种植面积和密度（因为是从轮作计划切换过来的）
     form.cropArea = 0
     form.plantingDensity = undefined
-    // 清空所属温室和种质
+    // 清空所属温室和作物
     form.pastureId = undefined
     form.classId = undefined
     // 清空时间范围
@@ -1190,7 +1190,7 @@ const handlePlanTypeChange = (value: string | number | boolean | undefined) => {
     if (!form.rotationPlanId) {
       form.cropArea = 0
       form.plantingDensity = undefined
-      // 清空所属温室和种质
+      // 清空所属温室和作物
       form.pastureId = undefined
       form.classId = undefined
     }
@@ -1268,7 +1268,7 @@ const handleCascaderChange = async (value: any) => {
             form.plantingDensity = Number(matchedDetail.plantingDensity)
           }
           
-          // 自动绑定计划的所属温室和种质
+          // 自动绑定计划的所属温室和作物
           if (selectedPlan) {
             if (selectedPlan.pastureId) {
               form.pastureId = Number(selectedPlan.pastureId)
@@ -1278,7 +1278,7 @@ const handleCascaderChange = async (value: any) => {
             }
           }
           
-          // 如果明细中有种质ID，也自动填充（明细优先）
+          // 如果明细中有作物ID，也自动填充（明细优先）
           if (matchedDetail.classId) {
             form.classId = Number(matchedDetail.classId)
           }
@@ -1304,7 +1304,7 @@ const handleCascaderChange = async (value: any) => {
     if (form.planType === 'rotation') {
       form.cropArea = 0
       form.plantingDensity = undefined
-      // 清空所属温室和种质
+      // 清空所属温室和作物
       form.pastureId = undefined
       form.classId = undefined
     }

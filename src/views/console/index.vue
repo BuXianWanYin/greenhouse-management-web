@@ -50,7 +50,7 @@
             <el-icon class="feature-icon"><Crop /></el-icon>
             <div class="feature-content">
               <h3>作物信息管理</h3>
-              <p>完善的作物种质库管理，支持作业流程配置和智能分析</p>
+              <p>完善的作物作物库管理，支持作业流程配置和智能分析</p>
             </div>
           </div>
           <div class="feature-item">

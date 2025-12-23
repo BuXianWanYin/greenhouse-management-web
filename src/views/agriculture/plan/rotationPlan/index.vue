@@ -167,8 +167,8 @@
             <el-option label="冬季" value="winter" />
           </el-select>
         </el-form-item>
-        <el-form-item label="种质" prop="classId" v-if="form.planType === 'seasonal'">
-          <el-select v-model="form.classId" placeholder="请选择种质" filterable style="width: 100%">
+        <el-form-item label="作物" prop="classId" v-if="form.planType === 'seasonal'">
+          <el-select v-model="form.classId" placeholder="请选择作物" filterable style="width: 100%">
             <el-option
               v-for="item in classOptions"
               :key="item.classId"
@@ -366,7 +366,7 @@
                 <el-tag type="primary" effect="plain" size="small">第{{ scope.row.rotationOrder }}年</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="种质名称" prop="classId" min-width="100" v-if="columnsDetail[1].show" show-overflow-tooltip>
+            <el-table-column label="作物名称" prop="classId" min-width="100" v-if="columnsDetail[1].show" show-overflow-tooltip>
               <template #default="scope">
                 {{ getClassName(scope.row.classId) }}
               </template>
@@ -462,7 +462,7 @@
                   {{ getPastureName(scope.row.pastureId) }}
                 </template>
               </el-table-column>
-              <el-table-column label="种质" prop="classId" min-width="90" align="center" v-if="columnsSeasonalPlan[4].show" show-overflow-tooltip>
+              <el-table-column label="作物" prop="classId" min-width="90" align="center" v-if="columnsSeasonalPlan[4].show" show-overflow-tooltip>
                 <template #default="scope">
                   {{ getClassName(scope.row.classId) }}
                 </template>
@@ -551,8 +551,8 @@
         <el-form-item label="计划名称" v-if="detailOpen">
           <el-input :value="detailInfo.planName" disabled />
         </el-form-item>
-        <el-form-item label="种质" prop="classId">
-          <el-select v-model="formDetail.classId" placeholder="请选择种质" filterable style="width: 100%">
+        <el-form-item label="作物" prop="classId">
+          <el-select v-model="formDetail.classId" placeholder="请选择作物" filterable style="width: 100%">
             <el-option
               v-for="item in classOptions"
               :key="item.classId"
@@ -864,7 +864,7 @@ const rules = reactive({
       validator: (rule: any, value: any, callback: any) => {
         if (form.planType === 'seasonal') {
           if (!value || value === undefined || value === null || value === '') {
-            callback(new Error('种质不能为空'))
+            callback(new Error('作物不能为空'))
           } else {
             callback()
           }
@@ -901,7 +901,7 @@ const rules = reactive({
   planStatus: [{ required: true, message: '计划状态不能为空', trigger: 'change' }]
 })
 
-// 轮作计划和种质映射数据
+// 轮作计划和作物映射数据
 const rotationPlanMap = ref<Map<string | number, string>>(new Map())
 const classMap = ref<Map<string | number, string>>(new Map())
 const classOptions = ref<any[]>([])
@@ -915,7 +915,7 @@ const detailRef = ref<FormInstance>()
 // 明细列表列配置（用于详情对话框）
 const columnsDetail = reactive([
   { name: '轮作顺序', show: true },
-  { name: '种质名称', show: true },
+  { name: '作物名称', show: true },
   { name: '季节类型', show: true },
   { name: '种植面积(亩)', show: true },
   { name: '种植密度', show: true },
@@ -953,7 +953,7 @@ const formDetail = reactive({ ...initialFormStateDetail })
 
 const rulesDetail = reactive({
   planId: [{ required: true, message: '计划ID不能为空', trigger: 'blur' }],
-  classId: [{ required: true, message: '种质ID不能为空', trigger: 'blur' }],
+  classId: [{ required: true, message: '作物ID不能为空', trigger: 'blur' }],
   rotationOrder: [
     { required: true, message: '轮作顺序不能为空', trigger: 'blur' },
     {
@@ -1598,7 +1598,7 @@ const columnsSeasonalPlan = reactive([
   { name: '计划年份', show: true },
   { name: '季节类型', show: true },
   { name: '所属温室', show: true },
-  { name: '种质', show: true },
+  { name: '作物', show: true },
   { name: '总面积(亩)', show: true },
   { name: '种植密度(株/亩)', show: true },
   { name: '预期开始', show: true },
@@ -2425,7 +2425,7 @@ const getSeasonTypeName = (seasonType: string | undefined | null): string => {
   return seasonMap[key] || seasonType
 }
 
-/** 获取种质名称 */
+/** 获取作物名称 */
 const getClassName = (classId: string | number | undefined | null): string => {
   if (!classId) return '--'
   return classMap.value.get(classId) || String(classId)
@@ -2468,7 +2468,7 @@ const loadRotationPlanMap = async () => {
   }
 }
 
-/** 加载种质映射 */
+/** 加载作物映射 */
 const loadClassMap = async () => {
   try {
     const res = await AgricultureClassService.listClass({ pageNum: 1, pageSize: 1000 })
@@ -2480,7 +2480,7 @@ const loadClassMap = async () => {
       })
     }
   } catch (error) {
-    console.error('加载种质映射失败:', error)
+    console.error('加载作物映射失败:', error)
   }
 }
 

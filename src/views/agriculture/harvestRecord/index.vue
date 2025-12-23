@@ -78,7 +78,7 @@
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column label="采收人员" prop="harvestPersonName" width="120" align="center" v-if="columns[8].show" />
+        <el-table-column label="采收负责人" prop="harvestPersonName" width="120" align="center" v-if="columns[8].show" />
         <el-table-column label="存储位置" prop="storageLocation" min-width="150" show-overflow-tooltip v-if="columns[9].show" />
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="scope">
@@ -162,10 +162,10 @@
             <el-option label="合格" value="C" />
           </el-select>
         </el-form-item>
-        <el-form-item label="采收人员" prop="harvestPersonId">
+        <el-form-item label="采收负责人" prop="harvestPersonId">
           <el-select
             v-model="form.harvestPersonId"
-            placeholder="请选择采收人员"
+            placeholder="请选择采收负责人"
             filterable
             clearable
             style="width: 100%"
@@ -232,7 +232,7 @@ const columns = reactive([
   { name: '采收重量', show: true },
   { name: '采收数量', show: true },
   { name: '质量等级', show: true },
-  { name: '采收人员', show: true },
+  { name: '采收负责人', show: true },
   { name: '存储位置', show: true }
 ])
 
@@ -423,10 +423,10 @@ const getBatchList = async () => {
   }
 }
 
-/** 获取用户列表 */
+/** 获取用户列表（只获取采收质量管理部门的人员，deptId=104） */
 const getUserList = async () => {
   try {
-    const res = await UserService.listUser({ status: '0' })
+    const res = await UserService.listUser({ status: '0', deptId: 104, pageSize: 1000 })
     if (res.code === 200) {
       userList.value = res.rows || []
     }

@@ -9,7 +9,7 @@
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="明细ID" prop="detailId" width="100" />
       <el-table-column label="轮作ID" prop="rotationId" width="100" />
-      <el-table-column label="种质ID" prop="classId" width="100" />
+      <el-table-column label="作物ID" prop="classId" width="100" />
       <el-table-column label="轮作顺序" prop="rotationOrder" width="100" align="center" />
       <el-table-column label="季节类型" prop="seasonType" width="120" align="center">
         <template #default="scope">
@@ -47,8 +47,8 @@
     <!-- 添加或修改轮作明细对话框 -->
     <el-dialog :title="title" v-model="open" width="600px" append-to-body>
       <el-form ref="detailRef" :model="form" :rules="rules" label-width="120px">
-        <el-form-item label="种质ID" prop="classId">
-          <el-input-number v-model="form.classId" :min="1" placeholder="请输入种质ID" style="width: 100%" />
+        <el-form-item label="作物ID" prop="classId">
+          <el-input-number v-model="form.classId" :min="1" placeholder="请输入作物ID" style="width: 100%" />
         </el-form-item>
         <el-form-item label="轮作顺序" prop="rotationOrder">
           <el-input-number v-model="form.rotationOrder" :min="1" style="width: 100%" />
@@ -140,7 +140,7 @@ const queryParams = reactive({
 })
 
 const rules = reactive({
-  classId: [{ required: true, message: '种质ID不能为空', trigger: 'blur' }],
+  classId: [{ required: true, message: '作物ID不能为空', trigger: 'blur' }],
   rotationOrder: [{ required: true, message: '轮作顺序不能为空', trigger: 'blur' }],
   seasonType: [{ required: true, message: '季节类型不能为空', trigger: 'blur' }]
 })

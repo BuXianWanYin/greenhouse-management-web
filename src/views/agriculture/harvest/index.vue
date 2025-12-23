@@ -17,7 +17,7 @@
               v-model="queryParams.batchName"
             />
             <form-select
-              label="种质"
+              label="作物"
               prop="germplasmId"
               v-model="queryParams.germplasmId"
               :options="germplasmOptions"
@@ -50,7 +50,7 @@
                       v-for="(img, idx) in getClassImages(item)"
                       :key="idx"
                     >
-                      <img :src="img" alt="种质图片" />
+                      <img :src="img" alt="作物图片" />
                     </el-carousel-item>
                   </el-carousel>
                 </div>
@@ -71,7 +71,7 @@
                   <div class="batch-card-info">
                     <div class="info-item">
                       <el-icon><Menu /></el-icon>
-                      <span class="label">种质：</span>
+                      <span class="label">作物：</span>
                       <span>{{ item.displayClassName }}</span>
                     </div>
                     <div class="info-item">
@@ -204,7 +204,7 @@
                       </div>
                       <div class="info-item">
                         <i class="el-icon-menu"></i>
-                        <span class="label">种质 ID:</span>
+                        <span class="label">作物 ID:</span>
                         <span>{{ item.classId }}</span>
                       </div>
                     </div>
@@ -235,11 +235,10 @@
     <!-- 新增采摘记录弹窗 -->
     <el-dialog title="新增" v-model="addDialogVisible" width="700px" append-to-body>
       <el-form :model="addForm" :rules="addFormRules" ref="addFormRef" label-width="120px">
-        <el-form-item label="种质" prop="classId">
+        <el-form-item label="作物" prop="classId">
           <el-select 
-            size="small"
             v-model="addForm.classId"
-            placeholder="请选择种质"
+            placeholder="请选择作物"
             :disabled="classIdOptions.length === 1"
             style="width: 100%"
           >
@@ -293,7 +292,7 @@
             <el-option label="合格" value="C" />
           </el-select>
         </el-form-item>
-        <el-form-item label="采收人员">
+        <el-form-item label="采收负责人">
           <el-select
             v-model="addForm.harvestPersonId"
             placeholder="请选择采收人员"
@@ -320,8 +319,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="addDialogVisible = false">关闭</el-button>
-        <el-button size="small" type="primary" @click="handleAddSave">保存</el-button>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="handleAddSave">确 定</el-button>
+          <el-button @click="addDialogVisible = false">取 消</el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -380,7 +381,7 @@
   const userList = ref<any[]>([])
   const pastureList = ref<any[]>([])
 
-  // 种质选项，用于form-select组件
+  // 作物选项，用于form-select组件
   const germplasmOptions = computed(() => {
     return germplasmList.value.map(item => ({
       label: item.className,
@@ -423,10 +424,10 @@
     storageLocation: '',
     remark: ''
   })
-  // 种质可选项
+  // 作物可选项
   const classIdOptions = ref<Array<{classId: number, className: string}>>([])
   const addFormRules: any = {
-    classId: [{ required: true, message: '请选择种质', trigger: ['blur', 'change'] }],
+    classId: [{ required: true, message: '请选择作物', trigger: ['blur', 'change'] }],
     weight: [{ required: true, message: '请输入采摘重量', trigger: ['blur', 'change'] }],
     date: [{ required: true, message: '请选择采摘日期', trigger: ['blur', 'change'] }],
     area: [
@@ -440,7 +441,7 @@
 
 
   const canAddHarvest = computed(() => {
-    // 当前分区下已采摘的种质ID
+    // 当前分区下已采摘的作物ID
     const pickedClassIds = processData.value.map((item: any) => item.classId)
     const options: Array<{classId: number, className: string}> = []
     if (batchTask.vegDone && currentVegetableId.value) {
@@ -461,7 +462,7 @@
     iaPartitionId?: string | number | null,
     classId?: number
   ) {
-    // 当前分区下已采摘的种质ID
+    // 当前分区下已采摘的作物ID
     const pickedClassIds = processData.value.map((item: any) => item.classId)
     const options: Array<{classId: number, className: string}> = []
     
@@ -557,7 +558,7 @@
     })
   }
 
-  // 获取种质名
+  // 获取作物名
   function getClassName(classId: string | number) {
     const found = germplasmList.value.find((c: any) => c.classId == classId)
     return found ? found.className : ''
@@ -604,7 +605,7 @@
 
     // 4. 查询采摘记录
     for (const batch of filteredBatches) {
-      // 拼接种质名（使用 classId 字段）
+      // 拼接作物名（使用 classId 字段）
       let displayClassName = ''
       if ((batch as any).classId) {
         const classItem = germplasmList.value.find((c: any) => c.classId == (batch as any).classId)
@@ -634,16 +635,16 @@
     getList()
   }
 
-  // 获取种质列表
+  // 获取作物列表
   async function getGermplasmList() {
     const res = await AgricultureClassService.listClass({})
     germplasmList.value = res.rows || []
     console.log('germplasmList:', germplasmList.value)
   }
 
-  // 获取用户列表
+  // 获取用户列表（只获取采收质量管理部门的人员，deptId=104）
   async function getUserList() {
-    const res = await UserService.listUser({})
+    const res = await UserService.listUser({ deptId: 104, pageSize: 1000 })
     userList.value = res.rows || []
   }
 
@@ -682,10 +683,10 @@
     return found ? found.classImage : ''
   }
 
-  // 获取当前批次的所有种质图片
+  // 获取当前批次的所有作物图片
   function getClassImages(item: any) {
     const images = []
-    // 使用 classId 获取种质图片
+    // 使用 classId 获取作物图片
     if (item.classId) {
       const classImg = getClassImage(item.classId)
       if (classImg) images.push(classImg)
@@ -698,7 +699,7 @@
 
   async function openHarvestDialog(batchId: string | number, vegDone: boolean, hasHarvestRecord: boolean) {
     currentBatchId.value = batchId
-    // 请求分区详情，获取种质（使用 classId 字段）
+    // 请求分区详情，获取作物（使用 classId 字段）
     const res = await AgricultureCropBatchService.getBatch(batchId)
     if (res.data && (res.data as any).classId) {
       currentVegetableId.value = Number((res.data as any).classId)
@@ -757,7 +758,7 @@
 
 
   onMounted(async () => {
-    // 先加载种质列表，确保绑定种质信息时列表已准备好
+    // 先加载作物列表，确保绑定作物信息时列表已准备好
     await getGermplasmList()
     await getList()
     getUserList()
