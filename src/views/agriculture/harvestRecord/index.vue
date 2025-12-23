@@ -57,20 +57,33 @@
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="采收ID" prop="harvestId" width="100" v-if="columns[0].show" />
         <el-table-column label="批次名称" prop="batchName" min-width="150" show-overflow-tooltip v-if="columns[1].show" />
-        <el-table-column label="采收日期" prop="harvestDate" width="120" align="center" v-if="columns[2].show" />
-        <el-table-column label="采收时间" prop="harvestTime" width="160" align="center" v-if="columns[3].show" />
-        <el-table-column label="采收面积" prop="harvestArea" width="120" align="center" v-if="columns[4].show">
+        <el-table-column label="作物信息" width="180" align="center" v-if="columns[2].show">
+          <template #default="scope">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <el-image
+                v-if="scope.row.classImage"
+                :src="scope.row.classImage"
+                style="width: 40px; height: 40px; border-radius: 4px;"
+                fit="cover"
+              />
+              <span>{{ scope.row.className || '-' }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="采收日期" prop="harvestDate" width="120" align="center" v-if="columns[3].show" />
+        <el-table-column label="采收时间" prop="harvestTime" width="160" align="center" v-if="columns[4].show" />
+        <el-table-column label="采收面积" prop="harvestArea" width="120" align="center" v-if="columns[5].show">
           <template #default="scope">
             {{ scope.row.harvestArea ? scope.row.harvestArea + ' 亩' : '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="采收重量" prop="harvestWeight" width="120" align="center" v-if="columns[5].show">
+        <el-table-column label="采收重量" prop="harvestWeight" width="120" align="center" v-if="columns[6].show">
           <template #default="scope">
             {{ scope.row.harvestWeight }} 公斤
           </template>
         </el-table-column>
-        <el-table-column label="采收数量" prop="harvestQuantity" width="120" align="center" v-if="columns[6].show" />
-        <el-table-column label="质量等级" prop="qualityLevel" width="100" align="center" v-if="columns[7].show">
+        <el-table-column label="采收数量" prop="harvestQuantity" width="120" align="center" v-if="columns[7].show" />
+        <el-table-column label="质量等级" prop="qualityLevel" width="100" align="center" v-if="columns[8].show">
           <template #default="scope">
             <el-tag v-if="scope.row.qualityLevel === 'A'" type="success">优</el-tag>
             <el-tag v-else-if="scope.row.qualityLevel === 'B'" type="warning">良</el-tag>
@@ -78,8 +91,8 @@
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column label="采收负责人" prop="harvestPersonName" width="120" align="center" v-if="columns[8].show" />
-        <el-table-column label="存储位置" prop="storageLocation" min-width="150" show-overflow-tooltip v-if="columns[9].show" />
+        <el-table-column label="采收负责人" prop="harvestPersonName" width="120" align="center" v-if="columns[9].show" />
+        <el-table-column label="存储位置" prop="storageLocation" min-width="150" show-overflow-tooltip v-if="columns[10].show" />
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="scope">
             <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['agriculture:harvest:edit']">
@@ -226,6 +239,7 @@ const userList = ref<any[]>([])
 const columns = reactive([
   { name: '采收ID', show: true },
   { name: '批次名称', show: true },
+  { name: '作物信息', show: true },
   { name: '采收日期', show: true },
   { name: '采收时间', show: true },
   { name: '采收面积', show: true },
@@ -258,16 +272,16 @@ const queryParams = reactive({
   qualityLevel: ''
 })
 
-const form = reactive({
-  harvestId: null,
-  batchId: null,
+const form = reactive<any>({
+  harvestId: undefined,
+  batchId: undefined,
   harvestDate: '',
   harvestTime: '',
-  harvestArea: null,
-  harvestWeight: null,
-  harvestQuantity: null,
+  harvestArea: undefined,
+  harvestWeight: undefined,
+  harvestQuantity: undefined,
   qualityLevel: '',
-  harvestPersonId: null,
+  harvestPersonId: undefined,
   storageLocation: '',
   remark: ''
 })
@@ -373,9 +387,9 @@ const submitForm = async () => {
 
 /** 删除按钮操作 */
 const handleDelete = async (row: AgricultureHarvestRecordResult) => {
-  const harvestIds = row.harvestId || ids.value
-  await ElMessageBox.confirm('是否确认删除采收记录编号为"' + harvestIds + '"的数据项？')
-  const res = await AgricultureHarvestService.deleteHarvest(harvestIds)
+  const harvestId = row.harvestId
+  await ElMessageBox.confirm('是否确认删除采收记录编号为"' + harvestId + '"的数据项？')
+  const res = await AgricultureHarvestService.deleteHarvest(harvestId)
   if (res.code === 200) {
     getList()
     ElMessage.success(res.msg)
@@ -396,15 +410,15 @@ const cancel = () => {
 /** 表单重置 */
 const reset = () => {
   Object.assign(form, {
-    harvestId: null,
-    batchId: null,
+    harvestId: undefined,
+    batchId: undefined,
     harvestDate: '',
     harvestTime: '',
-    harvestArea: null,
-    harvestWeight: null,
-    harvestQuantity: null,
+    harvestArea: undefined,
+    harvestWeight: undefined,
+    harvestQuantity: undefined,
     qualityLevel: '',
-    harvestPersonId: null,
+    harvestPersonId: undefined,
     storageLocation: '',
     remark: ''
   })

@@ -4,6 +4,9 @@ export interface AgricultureHarvestRecordResult {
   harvestId: number | string
   batchId: number | string
   batchName?: string
+  classId?: number | string
+  className?: string
+  classImage?: string
   harvestDate: string
   harvestTime: string
   harvestArea?: number

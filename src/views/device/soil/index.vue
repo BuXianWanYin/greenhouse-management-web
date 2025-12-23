@@ -1291,7 +1291,13 @@ onBeforeUnmount(() => {
   .monitor-cards {
     margin-bottom: 20px;
 
+    :deep(.el-col) {
+      margin-bottom: 20px;
+    }
+
     .box-card {
+      border-radius: calc(var(--custom-radius) + 4px) !important;
+      
       .card-header {
         display: flex;
         justify-content: space-between;
@@ -1319,6 +1325,10 @@ onBeforeUnmount(() => {
   .trend-charts {
     margin-bottom: 20px;
     
+    .box-card {
+      border-radius: calc(var(--custom-radius) + 4px) !important;
+    }
+    
     .chart-container {
       width: 100%;
       height: 400px;
@@ -1328,6 +1338,10 @@ onBeforeUnmount(() => {
   
   .warning-list {
     margin-bottom: 20px;
+    
+    .box-card {
+      border-radius: calc(var(--custom-radius) + 4px) !important;
+    }
   }
   
   .control-panel {

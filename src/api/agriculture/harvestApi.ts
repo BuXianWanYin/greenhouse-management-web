@@ -26,7 +26,7 @@ export class AgricultureHarvestService {
   }
   
   // 新增采收记录
-  static addHarvest(data: AgricultureHarvestRecordResult) {
+  static addHarvest(data: Partial<AgricultureHarvestRecordResult>) {
     return request.post<CodeMsgResult>({
       url: '/agriculture/harvest',
       data
@@ -34,7 +34,7 @@ export class AgricultureHarvestService {
   }
   
   // 修改采收记录
-  static updateHarvest(data: AgricultureHarvestRecordResult) {
+  static updateHarvest(data: Partial<AgricultureHarvestRecordResult>) {
     return request.put<CodeMsgResult>({
       url: '/agriculture/harvest',
       data

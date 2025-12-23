@@ -454,6 +454,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border-radius: calc(var(--custom-radius) + 4px) !important;
 }
 
 .box-card :deep(.el-card__body) {

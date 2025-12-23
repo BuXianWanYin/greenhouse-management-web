@@ -523,18 +523,19 @@
           formData.remark = addForm.remark
         }
 
-        // 保存采摘记录（直接保存为采收记录）
+        // 保存采摘记录（直接保存为采收记录，包含作物ID）
         await AgricultureHarvestService.addHarvest({
           batchId: Number(addForm.iaPartitionId),
+          classId: addForm.classId ? Number(addForm.classId) : undefined,
           harvestDate: formatDateTime(addForm.date).split(' ')[0], // 只取日期部分
           harvestTime: formatDateTime(addForm.date),
           harvestWeight: Number(addForm.weight),
-          harvestArea: addForm.area ? Number(addForm.area) : null,
-          harvestQuantity: addForm.quantity ? Number(addForm.quantity) : null,
-          qualityLevel: addForm.qualityLevel || null,
-          harvestPersonId: addForm.harvestPersonId ? Number(addForm.harvestPersonId) : null,
-          storageLocation: addForm.storageLocation || null,
-          remark: addForm.remark || null
+          harvestArea: addForm.area ? Number(addForm.area) : undefined,
+          harvestQuantity: addForm.quantity ? Number(addForm.quantity) : undefined,
+          qualityLevel: addForm.qualityLevel || undefined,
+          harvestPersonId: addForm.harvestPersonId ? Number(addForm.harvestPersonId) : undefined,
+          storageLocation: addForm.storageLocation || undefined,
+          remark: addForm.remark || undefined
         })
         ElMessage.success('新增成功')
         addDialogVisible.value = false
