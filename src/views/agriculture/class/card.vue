@@ -1,46 +1,63 @@
-<!-- 图片卡片 -->
+<!-- 图片卡片 - 左右布局（参考设备详情卡片） -->
 <template>
-  <el-card class="card" shadow="hover">
+  <div class="crop-card">
     <div class="card-header">
-      <div class="header-content">
-        <div class="section-name">
-          作物信息
-        </div>
-        <div class="name">{{ className }}</div>
+      <div class="crop-name">
+        <span>{{ className }}</span>
+      </div>
+      <div class="crop-type">
+        <el-tag :type="getTagType(classTypeName)">
+          {{ categoryName }}
+        </el-tag>
       </div>
     </div>
 
-    <div class="image">
-      <img :src="classImage" alt="作物图片" />
-    </div>
-
-    <div class="card-content">
-      <div class="info">
-        <div class="info-group">
+    <div class="card-body">
+      <div class="card-body-content">
+        <!-- 左侧：作物图片 -->
+        <div class="crop-image-container">
+          <img 
+            v-if="classImage" 
+            :src="classImage" 
+            :alt="className"
+            class="crop-image"
+          />
+          <div v-else class="crop-image-placeholder">
+            <el-icon class="placeholder-icon">
+              <PictureFilled />
+            </el-icon>
+            <span class="placeholder-text">暂无图片</span>
+          </div>
+        </div>
+        
+        <!-- 右侧：作物信息 -->
+        <div class="crop-info-container">
           <div class="info-row">
-            <div class="info-item">
-              <el-icon><Crop /></el-icon>
-              <span class="label">{{ nameLabel }}</span>
-              <span class="value">{{ className }}</span>
-            </div>
-            <div class="info-item">
-              <el-icon><Collection /></el-icon>
-              <span class="label">{{ typeLabel }}</span>
-              <span class="value">{{ categoryName }}</span>
-            </div>
+            <span class="label"><el-icon><Crop /></el-icon> 作物名称：</span>
+            <span class="value">{{ className }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label"><el-icon><Collection /></el-icon> 作物类型：</span>
+            <span class="value">{{ categoryName }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label"><el-icon><ChatDotRound /></el-icon> 宣传语：</span>
+            <span class="value slogan-value">{{ classDes || '暂无宣传语' }}</span>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="card-actions">
-      <slot name="button"></slot>
+    <div class="card-footer">
+      <el-button-group>
+        <slot name="button"></slot>
+      </el-button-group>
     </div>
-  </el-card>
+  </div>
 </template>
 
 <script setup lang="ts">
-  import {Crop, Collection } from '@element-plus/icons-vue'
+  import { Crop, Collection, PictureFilled, ChatDotRound } from '@element-plus/icons-vue'
   import { computed } from 'vue'
 
   interface Props {
@@ -48,12 +65,10 @@
     classTypeName: string
     classType: string
     classImage: string
+    classDes?: string
   }
 
   const props = defineProps<Props>()
-
-  const nameLabel = computed(() => '作物名称：')
-  const typeLabel = computed(() => '作物类型：')
   
   // 将类别英文值转换为中文显示
   const categoryName = computed(() => {
@@ -64,198 +79,206 @@
     }
     return categoryMap[props.classTypeName] || props.classTypeName
   })
+
+  // 获取标签类型
+  const getTagType = (type: string): 'success' | 'primary' | 'warning' | 'info' | 'danger' => {
+    const typeMap: Record<string, 'success' | 'primary' | 'warning' | 'info' | 'danger'> = {
+      'fruit': 'success',
+      'vegetable': 'primary',
+      'other': 'info'
+    }
+    return typeMap[type] || 'info'
+  }
 </script>
 
 <style lang="scss" scoped>
-  .card {
-    height: auto;
-    min-height: 400px;
-    background: white;
-    border-radius: 12px;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    display: flex;
-    flex-direction: column;
+.crop-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 
-    .card-header {
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-
-      .header-content {
-        .section-name {
-          font-size: 13px;
-          color: #909399;
-          margin-bottom: 6px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-
-          .el-icon {
-            color: #2561b9;
-            font-size: 16px;
-          }
-        }
-
-        .name {
-          font-size: 16px;
-          font-weight: 600;
-          color: #333;
-        }
-      }
-    }
-
-    .image {
-      width: 100%;
-      height: 200px;
-      border-radius: 8px;
-      overflow: hidden;
-      cursor: pointer;
-      margin-bottom: 16px;
-      flex-shrink: 0;
-      background: #f5f7fa;
-
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        background: #f5f7fa;
-      }
-    }
-
-    .card-content {
-      padding: 0;
-      flex: 1;
-
-      .info {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-
-        .info-group {
-          padding-top: 15px;
-          padding-bottom: 16px;
-
-          &:first-child {
-            border-bottom: 1px dashed #ebeef5;
-          }
-
-          .info-row {
-            display: flex;
-            gap: 20px;
-
-            .info-item {
-              flex: 1;
-              font-size: 13px;
-              display: flex;
-              align-items: center;
-              white-space: nowrap;
-
-              .el-icon {
-                color: #409eff;
-                margin-right: 8px;
-                font-size: 16px;
-              }
-
-              .label {
-                color: #666;
-                margin-right: 8px;
-                min-width: 70px;
-              }
-
-              .value {
-                color: #333;
-                flex: 1;
-                overflow: hidden;
-                text-overflow: ellipsis;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    .card-actions {
-      padding-top: 12px;
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-      border-top: 1px solid rgba(0, 0, 0, 0.05);
-
-      .el-button, .card-action-btn {
-        height: 33px;
-        font-size: 10px;
-        padding: 8px 13px;
-        border-radius: 6px;
-        margin: 0;
-        transition: all 0.3s ease;
-        font-weight: 500;
-        letter-spacing: 0.5px;
-
-        &.el-button--primary {
-          background-color: #ecf5ff;
-          border: 1px solid #409eff;
-          color: #409eff;
-
-          &:hover {
-            background-color: #409eff;
-            color: #ffffff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
-          }
-        }
-
-        &.el-button--danger {
-          background-color: #fef0f0;
-          border: 1px solid #f56c6c;
-          color: #f56c6c;
-
-          &:hover {
-            background-color: #f56c6c;
-            color: #ffffff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
-          }
-        }
-
-        &.el-button--warning {
-          background-color: #fdf6ec;
-          border: 1px solid #e6a23c;
-          color: #e6a23c;
-
-          &:hover {
-            background-color: #e6a23c;
-            color: #ffffff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(230, 162, 60, 0.3);
-          }
-        }
-
-        &.el-button--success {
-          background-color: #f0f9eb;
-          border: 1px solid #67c23a;
-          color: #67c23a;
-
-          &:hover {
-            background-color: #67c23a;
-            color: #ffffff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(103, 194, 58, 0.3);
-          }
-        }
-      }
-    }
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-    }
-
-    .info-item:hover .el-icon,
-    .section-name:hover .el-icon {
-      color: #67c23a;
-    }
+  &:hover {
+    box-shadow: 0 8px 24px rgba(64, 158, 255, 0.12);
   }
+}
+
+.card-header {
+  padding: 24px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb00 100%);
+  border-bottom: 1px solid #e0e0e042;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.crop-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.crop-type {
+  display: flex;
+  gap: 8px;
+}
+
+.card-body {
+  padding: 20px;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-body-content {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+  align-items: flex-start;
+}
+
+/* 作物图片容器 */
+.crop-image-container {
+  flex-shrink: 0;
+  width: 140px;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f5f7fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crop-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.crop-image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #909399;
+}
+
+.placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  color: #c0c4cc;
+}
+
+.placeholder-text {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 作物信息容器 */
+.crop-info-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.info-row {
+  display: flex;
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.label {
+  color: #909399;
+  min-width: 120px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  .el-icon {
+    font-size: 16px;
+  }
+}
+
+.value {
+  color: #303133;
+  flex-grow: 1;
+  word-break: break-all;
+  white-space: pre-line;
+}
+
+.slogan-value {
+  color: #303133;
+}
+
+.card-footer {
+  padding: 24px 0px;
+  background: #f1f1f15c;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  min-height: 24px;
+  align-items: center;
+  margin-top: auto;
+}
+
+.el-button-group {
+  display: flex;
+  gap: 16px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .card-body-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .crop-image-container {
+    width: 100%;
+    height: 180px;
+    align-self: center;
+  }
+  
+  .info-row {
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  
+  .label {
+    min-width: 90px;
+  }
+  
+  .card-footer {
+    padding: 10px 0px;
+    min-height: 20px;
+    gap: 3px;
+  }
+  
+  .el-button-group {
+    width: 100%;
+    gap: 3px;
+    justify-content: space-between;
+  }
+}
 </style>

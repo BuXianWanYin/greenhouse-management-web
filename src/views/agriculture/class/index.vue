@@ -29,7 +29,7 @@
     <el-row :gutter="20">
       <el-col :xs="24" :sm="12" :md="6" v-for="item in classList" :key="item.classId" style="margin-bottom: 20px">
         <class-card :class-name="item.className" :class-type-name="item.category" :class-image="item.classImage"
-          :class-type="item.category">
+          :class-type="item.category" :class-des="item.classDes">
           <template #button>
             <el-button type="primary" size="small" @click="handleUpdate(item)" class="action-button" v-ripple>
               <el-icon>
