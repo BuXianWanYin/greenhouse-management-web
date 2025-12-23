@@ -122,6 +122,22 @@ const { t } = useI18n()
 .today-sales {
   width: 42%;
   min-height: 400px;
+  background: var(--art-main-bg-color);
+  border-radius: calc(var(--custom-radius) + 4px);
+
+  .custom-card-header {
+    padding: 18px 20px 12px;
+    
+    .title {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--art-text-gray-900);
+    }
+  }
+
+  .custom-card-body {
+    padding: 0 20px;
+  }
 
   .sales-summary {
     padding: 20px;

@@ -1,9 +1,30 @@
 <template>
   <div class="console">
+    <!-- 顶部4个卡片 -->
     <CardList :data-list="cardList"></CardList>
-    <div class="column column2 analysis-dashboard">
+    
+    <!-- 第二行：任务统计 + 批次趋势 -->
+    <div class="row row-2">
       <TodaySales :sales-data="countList"></TodaySales>
+      <div class="row-2-right">
+        <BatchTrendChart :trend-data="batchTrendData" />
+      </div>
     </div>
+    
+    <!-- 第三行：最近动态 + 今日排班 + 快捷操作 -->
+    <div class="row row-3">
+      <div class="col-activities">
+        <RecentActivities :activities="recentActivities" />
+      </div>
+      <div class="col-schedule">
+        <TodaySchedule :schedule-list="todayScheduleList" />
+      </div>
+      <div class="col-actions">
+        <QuickActions />
+      </div>
+    </div>
+    
+    <!-- 底部系统介绍 -->
     <div class="bottom-wrap art-custom-card" style="margin-bottom: 60px;">
       <div class="intro-content">
         <h2 class="box-title">关于温室种植计划管理与人员分工系统</h2>
@@ -48,10 +69,13 @@
 <script setup lang="ts">
 import CardList from './widget/CardList.vue'
 import TodaySales from './widget/TodaySales.vue'
+import BatchTrendChart from './widget/BatchTrendChart.vue'
+import RecentActivities from './widget/RecentActivities.vue'
+import TodaySchedule from './widget/TodaySchedule.vue'
+import QuickActions from './widget/QuickActions.vue'
 import { useSettingStore } from '@/store/modules/setting'
 import { useCommon } from '@/composables/useCommon'
 import { useSystemInfo } from '@/composables/useSystemInfo'
-import { WEB_LINKS } from '@/utils/links'
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Document, UserFilled, Crop, Monitor } from '@element-plus/icons-vue'
@@ -69,15 +93,6 @@ const { getSystemName } = useSystemInfo()
 // 系统名称
 const systemName = computed(() => getSystemName())
 
-// 页面跳转函数
-const goPage = (url: string) => {
-  if (url.startsWith('http')) {
-    window.open(url, '_blank')
-  } else {
-    router.push(url)
-  }
-}
-
 const currentGlopTheme = computed(() => settingStore.systemThemeType)
 
 // 系统主题风格变化时，刷新页面重写渲染 Echarts
@@ -91,6 +106,12 @@ useCommon().scrollToTop()
 const cardList = ref<ConsoleTotalInfo[]>([])
 // 批量任务统计数据
 const countList = ref<ConsoleTotalInfo[]>([])
+// 批次趋势数据
+const batchTrendData = ref<any[]>([])
+// 最近动态数据
+const recentActivities = ref<any[]>([])
+// 今日排班数据
+const todayScheduleList = ref<any[]>([])
 
 // 获取农业统计卡片数据
 const getCardList = async () => {
@@ -104,6 +125,24 @@ const getCountList = async () => {
   countList.value = res.data
 }
 
+// 获取批次创建趋势数据
+const getBatchTrend = async () => {
+  const res = await AgricultureConsoleService.getBatchTrend()
+  batchTrendData.value = res.data
+}
+
+// 获取今日排班列表
+const getTodaySchedule = async () => {
+  const res = await AgricultureConsoleService.getTodaySchedule()
+  todayScheduleList.value = res.data
+}
+
+// 获取最近动态
+const getRecentActivities = async () => {
+  const res = await AgricultureConsoleService.getRecentActivities()
+  recentActivities.value = res.data
+}
+
 // 监听全局 event 总线，实时更新统计数据
 event.on('message', (data: ConsoleToTalData) => {
   cardList.value = data.agriculture
@@ -114,36 +153,15 @@ event.on('message', (data: ConsoleToTalData) => {
 onMounted(() => {
   getCardList()
   getCountList()
+  getBatchTrend()
+  getTodaySchedule()
+  getRecentActivities()
 })
 </script>
 
 <style lang="scss" scoped>
 .console {
   padding-bottom: 15px;
-
-  :deep(.card-header) {
-    display: flex;
-    justify-content: space-between;
-    padding: 20px 25px 5px 0;
-
-    .title {
-      h4 {
-        font-size: 18px;
-        font-weight: 500;
-        color: var(--art-text-gray-800);
-      }
-
-      p {
-        margin-top: 3px;
-        font-size: 13px;
-
-        span {
-          margin-left: 10px;
-          color: #52c41a;
-        }
-      }
-    }
-  }
 
   // 主标题
   :deep(.box-title) {
@@ -156,29 +174,52 @@ onMounted(() => {
   }
 
   :deep(.card-list li),
-  .region,
-  .dynamic,
   .bottom-wrap {
     background: var(--art-main-bg-color);
     border-radius: calc(var(--custom-radius) + 4px) !important;
   }
 
-  .column {
+  // 第二行布局：任务统计 + 批次趋势
+  .row-2 {
     display: flex;
-    justify-content: space-between;
-    margin-top: var(--console-margin);
-    background-color: transparent !important;
+    gap: 16px;
+    margin-top: 16px;
+    align-items: stretch;
+
+    :deep(.today-sales) {
+      flex-shrink: 0;
+    }
+
+    .row-2-right {
+      flex: 1;
+      min-width: 0;
+    }
   }
 
-  .column2 {
-    align-items: stretch;
-    min-height: 450px;
+  // 第三行布局：最近动态 + 今日排班 + 快捷操作
+  .row-3 {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+    min-height: 320px;
+
+    .col-activities {
+      flex: 1;
+    }
+
+    .col-schedule {
+      flex: 1;
+    }
+
+    .col-actions {
+      width: 280px;
+    }
   }
 
   .bottom-wrap {
     box-sizing: border-box;
     padding: 30px;
-    margin-top: var(--console-margin);
+    margin-top: 16px;
     background: var(--art-main-bg-color);
     min-height: 400px;
 
@@ -262,36 +303,31 @@ onMounted(() => {
 <style lang="scss" scoped>
 .console {
   @media screen and (max-width: $device-ipad-pro) {
-    .column2 {
-      margin-top: 15px;
+    .row-2 {
+      flex-wrap: wrap;
 
-      :deep(.active-user) {
-        width: 50%;
+      :deep(.today-sales) {
+        width: 100%;
       }
 
-      :deep(.sales-overview) {
-        width: calc(50% - 15px);
+      .row-2-right {
+        width: 100%;
+        flex: none;
       }
     }
 
-    .column3 {
-      display: flex;
+    .row-3 {
       flex-wrap: wrap;
-      margin-top: 15px;
 
-      :deep(.new-user) {
+      .col-activities,
+      .col-schedule {
+        width: calc(50% - 8px);
+        flex: none;
+      }
+
+      .col-actions {
         width: 100%;
-        margin-top: 0;
-      }
-
-      :deep(.dynamic) {
-        flex: 1;
-        margin: 15px 0 0;
-      }
-
-      :deep(.todo-list) {
-        flex: 1;
-        margin: 15px 0 0 15px;
+        margin-top: 16px;
       }
     }
 
@@ -320,37 +356,31 @@ onMounted(() => {
       }
     }
 
-    .column2 {
-      display: block;
-      margin-top: 0;
+    .row-2 {
+      flex-direction: column;
 
-      :deep(.active-user) {
+      :deep(.today-sales) {
         width: 100%;
       }
 
-      :deep(.sales-overview) {
+      .row-2-right {
         width: 100%;
-        margin-top: 15px;
       }
     }
 
-    .column3 {
-      display: block;
-      margin-top: 15px;
+    .row-3 {
+      flex-direction: column;
 
-      :deep(.new-user) {
+      .col-activities,
+      .col-schedule,
+      .col-actions {
         width: 100%;
-        margin-top: 15px;
+        margin-top: 0;
       }
 
-      :deep(.dynamic) {
-        width: 100%;
-        margin: 15px 0 0;
-      }
-
-      :deep(.todo-list) {
-        width: 100%;
-        margin: 15px 0 0;
+      .col-schedule,
+      .col-actions {
+        margin-top: 16px;
       }
     }
 
@@ -383,19 +413,9 @@ onMounted(() => {
       }
     }
 
-    :deep(.active-user) {
-      .chart {
-        padding: 10px;
-      }
-    }
-
-    .sales-overview {
-      height: 300px;
-      padding: 20px 15px;
-
-      :deep(.card-header) {
-        padding: 0 0 0 5px !important;
-      }
+    .row-2,
+    .row-3 {
+      gap: 12px;
     }
 
     .bottom-wrap {

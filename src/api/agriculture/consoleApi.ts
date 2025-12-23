@@ -48,6 +48,34 @@ class AgricultureConsoleService {
       params: { pastureIds: pastureIds.join(',') }
     })
   }
+
+  /** 获取批次创建趋势数据 */
+  static getBatchTrend() {
+    return request.get<{ data: any[] }>({
+      url: '/agriculture/console/batchTrend'
+    })
+  }
+
+  /** 获取任务完成进度统计 */
+  static getTaskProgress() {
+    return request.get<{ data: any }>({
+      url: '/agriculture/console/taskProgress'
+    })
+  }
+
+  /** 获取今日排班列表 */
+  static getTodaySchedule() {
+    return request.get<{ data: any[] }>({
+      url: '/agriculture/console/todaySchedule'
+    })
+  }
+
+  /** 获取最近动态 */
+  static getRecentActivities() {
+    return request.get<{ data: any[] }>({
+      url: '/agriculture/console/recentActivities'
+    })
+  }
 }
 
 export default AgricultureConsoleService
