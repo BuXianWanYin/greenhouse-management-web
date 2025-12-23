@@ -93,8 +93,11 @@
         </el-table-column>
         <el-table-column label="采收负责人" prop="harvestPersonName" width="120" align="center" v-if="columns[9].show" />
         <el-table-column label="存储位置" prop="storageLocation" min-width="150" show-overflow-tooltip v-if="columns[10].show" />
-        <el-table-column label="操作" width="200" align="center" fixed="right">
+        <el-table-column label="操作" width="280" align="center" fixed="right">
           <template #default="scope">
+            <el-button link type="warning" @click="handleBatchTask(scope.row)">
+              <el-icon><List /></el-icon>批次任务
+            </el-button>
             <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['agriculture:harvest:edit']">
               <el-icon><EditPen /></el-icon>修改
             </el-button>
@@ -208,12 +211,19 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 批次任务对话框 -->
+    <el-dialog v-model="batchTask.open" :title="batchTask.title" width="1300px">
+      <div style="height: 500px; width: 100%; overflow: auto">
+        <Task :batchId="batchTask.batchId" :tableBorder="true" :readonly="true" />
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { EditPen, Delete } from '@element-plus/icons-vue'
+import { EditPen, Delete, List } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { FormInstance } from 'element-plus'
 import { resetForm } from '@/utils/utils'
@@ -222,6 +232,7 @@ import { AgricultureHarvestRecordResult } from '@/types/agriculture/harvest'
 import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
 import { UserService } from '@/api/system/userApi'
 import { downloadExcel } from '@/utils/utils'
+import Task from '../plan/batchTask/TaskList.vue'
 
 const loading = ref(false)
 const harvestList = ref<AgricultureHarvestRecordResult[]>([])
@@ -235,6 +246,13 @@ const harvestRef = ref<FormInstance>()
 const queryFormRef = ref<FormInstance>()
 const batchList = ref<any[]>([])
 const userList = ref<any[]>([])
+
+// 批次任务对话框
+const batchTask = reactive({
+  open: false,
+  title: '',
+  batchId: undefined as number | undefined
+})
 
 const columns = reactive([
   { name: '采收ID', show: true },
@@ -447,6 +465,13 @@ const getUserList = async () => {
   } catch (error) {
     console.error('获取用户列表失败:', error)
   }
+}
+
+/** 查看批次任务详情 */
+const handleBatchTask = (row: AgricultureHarvestRecordResult) => {
+  batchTask.open = true
+  batchTask.title = '批次任务详情'
+  batchTask.batchId = row.batchId ? Number(row.batchId) : undefined
 }
 
 onMounted(() => {

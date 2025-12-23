@@ -32,7 +32,10 @@
 
     <!-- 批次卡片列表 -->
     <el-card class="card-margin-bottom">
-      <div class="batch-card-grid">
+      <!-- 空状态提示 -->
+      <el-empty v-if="batchList.length === 0" description="暂时还没有可以采收的作物" :image-size="200" />
+      
+      <div class="batch-card-grid" v-else>
         <el-row :gutter="24">
           <el-col :span="8" v-for="item in batchList" :key="item.batchId">
             <el-card class="batch-card" shadow="hover">
@@ -63,7 +66,7 @@
                       <div class="batch-name">{{ item.batchName }}</div>
                     </div>
                     <el-tag :type="item.hasHarvestRecord ? 'success' : 'warning'" size="small">
-                      {{ item.hasHarvestRecord ? '已采摘' : '已成熟' }}
+                      {{ item.hasHarvestRecord ? '已采收' : '已成熟' }}
                     </el-tag>
                   </div>
                   
@@ -103,15 +106,8 @@
                       type="primary"
                       @click="openHarvestDialog(item.batchId, item.vegDone, item.hasHarvestRecord)"
                     >
-                      {{ item.hasHarvestRecord ? '采摘详情' : '采摘' }}
+                      采收
                     </el-button>
-                    <el-button
-                      size="small"
-                      plain
-                      type="warning"
-                      @click="handleBatchTask(item)"
-                      >批次任务</el-button
-                    >
                   </div>
                 </div>
               </div>
@@ -146,9 +142,9 @@
       </div>
     </el-dialog>
 
-    <!-- 采摘详情对话框 -->
+    <!-- 采收详情对话框 -->
     <el-dialog
-      :title="processData.length ? '采摘详情' : '收获'"
+      :title="processData.length ? '采收详情' : '收获'"
       v-model="processDialogVisible"
       width="70%"
     >
@@ -232,7 +228,7 @@
       </template>
     </el-dialog>
 
-    <!-- 新增采摘记录弹窗 -->
+    <!-- 新增采收记录弹窗 -->
     <el-dialog title="新增" v-model="addDialogVisible" width="700px" append-to-body>
       <el-form :model="addForm" :rules="addFormRules" ref="addFormRef" label-width="120px">
         <el-form-item label="作物" prop="classId">
@@ -250,16 +246,16 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="采摘重量" prop="weight">
+        <el-form-item label="采收重量" prop="weight">
           <el-input-number
             v-model="addForm.weight"
             :min="0"
             :precision="2"
             style="width: 100%"
-            placeholder="请输入采摘重量（公斤）"
+            placeholder="请输入采收重量（公斤）"
           />
         </el-form-item>
-        <el-form-item label="采摘日期" prop="date">
+        <el-form-item label="采收日期" prop="date">
           <el-date-picker
             v-model="addForm.date"
             type="datetime"
@@ -428,8 +424,8 @@
   const classIdOptions = ref<Array<{classId: number, className: string}>>([])
   const addFormRules: any = {
     classId: [{ required: true, message: '请选择作物', trigger: ['blur', 'change'] }],
-    weight: [{ required: true, message: '请输入采摘重量', trigger: ['blur', 'change'] }],
-    date: [{ required: true, message: '请选择采摘日期', trigger: ['blur', 'change'] }],
+    weight: [{ required: true, message: '请输入采收重量', trigger: ['blur', 'change'] }],
+    date: [{ required: true, message: '请选择采收日期', trigger: ['blur', 'change'] }],
     area: [
       { required: true, message: '请输入采收面积', trigger: ['blur', 'change'] },
       { type: 'number', min: 0, message: '采收面积必须大于0', trigger: ['blur', 'change'] }
@@ -441,7 +437,7 @@
 
 
   const canAddHarvest = computed(() => {
-    // 当前分区下已采摘的作物ID
+    // 当前分区下已采收的作物ID
     const pickedClassIds = processData.value.map((item: any) => item.classId)
     const options: Array<{classId: number, className: string}> = []
     if (batchTask.vegDone && currentVegetableId.value) {
@@ -462,7 +458,7 @@
     iaPartitionId?: string | number | null,
     classId?: number
   ) {
-    // 当前分区下已采摘的作物ID
+    // 当前分区下已采收的作物ID
     const pickedClassIds = processData.value.map((item: any) => item.classId)
     const options: Array<{classId: number, className: string}> = []
     
@@ -523,7 +519,7 @@
           formData.remark = addForm.remark
         }
 
-        // 保存采摘记录（直接保存为采收记录，包含作物ID）
+        // 保存采收记录（直接保存为采收记录，包含作物ID）
         await AgricultureHarvestService.addHarvest({
           batchId: Number(addForm.iaPartitionId),
           classId: addForm.classId ? Number(addForm.classId) : undefined,
@@ -550,9 +546,9 @@
           }
         }
         await getList()
-        // 新增：自动弹出采摘详情弹窗，用户新增后无需手动点击即可查看详情
+        // 新增：自动弹出采收详情弹窗，用户新增后无需手动点击即可查看详情
         processDialogVisible.value = true // 打开详情弹窗
-        await fetchProcessData(currentBatchId.value as string | number) // 拉取当前批次的采摘详情数据
+        await fetchProcessData(currentBatchId.value as string | number) // 拉取当前批次的采收详情数据
       } catch (e) {
         ElMessage.error('新增失败，请重试')
       }
@@ -604,7 +600,8 @@
       }
     }
 
-    // 4. 查询采摘记录
+    // 4. 查询采收记录，只保留未采收的批次
+    const unharvestedBatches: any[] = []
     for (const batch of filteredBatches) {
       // 拼接作物名（使用 classId 字段）
       let displayClassName = ''
@@ -618,10 +615,15 @@
       
       const res = await AgricultureHarvestService.listHarvest({batchId: batch.batchId})
       batch.hasHarvestRecord = res.rows && res.rows.length > 0
+      
+      // 只保留未采收的批次
+      if (!batch.hasHarvestRecord) {
+        unharvestedBatches.push(batch)
+      }
     }
 
-    // 5. 更新页面显示的批次列表
-    batchList.value = filteredBatches
+    // 5. 更新页面显示的批次列表（只显示未采收的）
+    batchList.value = unharvestedBatches
   }
 
   // 每页条数变化时触发

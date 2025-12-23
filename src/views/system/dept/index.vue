@@ -74,13 +74,15 @@
         <el-row :gutter="20">
           <el-col :span="24" v-if="form.parentId !== 0">
             <el-form-item label="上级部门" prop="parentId">
-              <tree-select
+              <el-tree-select
                 v-model="form.parentId"
                 :data="deptOptions"
                 :props="{ value: 'deptId', label: 'deptName', children: 'children' }"
                 value-key="deptId"
                 placeholder="选择上级部门"
-                :check-strictly="true"
+                check-strictly
+                default-expand-all
+                style="width: 100%"
               />
             </el-form-item>
           </el-col>

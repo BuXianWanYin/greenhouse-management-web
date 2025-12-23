@@ -10,21 +10,38 @@
         <el-form :model="queryParams" ref="queryFormRef" label-width="82px">
           <el-row :gutter="20">
             <el-col :xs="24" :sm="12" :lg="6">
+              <el-form-item label="部门" prop="deptId">
+                <el-tree-select
+                  v-model="queryParams.deptId"
+                  :data="deptTreeList"
+                  :props="{ value: 'id', label: 'label', children: 'children' }"
+                  placeholder="请选择部门"
+                  clearable
+                  check-strictly
+                  default-expand-all
+                  style="width: 100%"
+                  @change="handleDeptChange"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :lg="6">
               <el-form-item 
-                label="用户姓名" 
-                prop="userId"
-                v-hasPermi="['agriculture:schedule:remove']"
+                label="用户筛选" 
+                prop="userIds"
               >
               <el-select
-                v-model="queryParams.userId"
-                placeholder="请选择用户"
+                v-model="queryParams.userIds"
+                placeholder="请选择用户（可多选）"
                 clearable
                 filterable
-                  style="width: 100%"
-                  @keyup.enter="handleQuery"
+                multiple
+                collapse-tags
+                collapse-tags-tooltip
+                style="width: 100%"
+                @change="handleQuery"
               >
                 <el-option
-                  v-for="user in userList"
+                  v-for="user in filterUserListByDept"
                   :key="user.userId"
                   :label="user.nickName || user.userName"
                   :value="user.userId"
@@ -60,16 +77,6 @@
           v-ripple
           >新增</el-button>
         <el-button
-            @click="handleBatchAdd"
-            v-hasPermi="['agriculture:schedule:add']"
-          v-ripple
-          >批量排班</el-button>
-          <el-button
-          @click="() => handleDelete()"
-          v-hasPermi="['agriculture:schedule:remove']"
-          v-ripple
-        >删除</el-button>
-        <el-button
             @click="handleExport"
             v-hasPermi="['agriculture:schedule:export']"
           v-ripple
@@ -82,20 +89,11 @@
       <div class="grid-header">
         <div class="grid-controls">
           <el-date-picker
-            v-model="gridStartDate"
-            type="date"
-            placeholder="开始日期"
-            value-format="YYYY-MM-DD"
-            @change="loadGridData"
-            style="width: 150px; margin-right: 10px"
-          />
-          <span style="margin: 0 10px">至</span>
-          <el-date-picker
-            v-model="gridEndDate"
-            type="date"
-            placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-            @change="loadGridData"
+            v-model="gridMonth"
+            type="month"
+            placeholder="选择月份"
+            value-format="YYYY-MM"
+            @change="handleMonthChange"
             style="width: 150px; margin-right: 20px"
           />
           <el-button @click="loadGridData" :icon="Refresh">刷新</el-button>
@@ -210,9 +208,9 @@
       </div>
     </el-card>
 
-    <!-- 添加或修改对话框 -->
+    <!-- 添加或修改对话框（简化版，参考批量排班） -->
     <el-dialog :title="title" v-model="open" width="600px" append-to-body>
-      <el-form ref="scheduleRef" :model="form" :rules="rules" label-width="140px">
+      <el-form ref="scheduleRef" :model="form" :rules="rules" label-width="120px">
         <el-form-item label="用户" prop="userId">
           <el-select
             v-model="form.userId"
@@ -222,18 +220,24 @@
             @change="handleUserChange"
           >
             <el-option
-              v-for="user in userList"
+              v-for="user in filterUserList"
               :key="user.userId"
               :label="user.nickName || user.userName"
               :value="user.userId"
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="温室" prop="pastureId" :rules="pastureRules">
+        <el-form-item label="工作类型" prop="workType">
+          <el-select v-model="form.workType" placeholder="请选择工作类型" style="width: 100%">
+            <el-option label="正常班" value="normal" />
+            <el-option label="请假" value="leave" />
+            <el-option label="休息" value="rest" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="温室" prop="pastureId" :rules="pastureRules" v-if="form.workType === 'normal' && isPastureRequired">
           <el-select
             v-model="form.pastureId"
             placeholder="请选择温室"
-            :clearable="!isPastureRequired"
             style="width: 100%"
           >
             <el-option
@@ -243,9 +247,6 @@
               :value="pasture.id || pasture.pastureId"
             />
           </el-select>
-          <div v-if="!isPastureRequired" style="color: #909399; font-size: 12px; margin-top: 5px">
-            该用户所在部门不需要指定温室，此项可选
-          </div>
         </el-form-item>
         <el-form-item label="排班日期" prop="scheduleDate">
           <el-date-picker
@@ -257,11 +258,10 @@
             @change="handleDateChange"
           />
         </el-form-item>
-        <el-form-item label="排班规则" prop="ruleId">
+        <el-form-item label="排班规则" prop="ruleId" v-if="form.workType === 'normal'">
           <el-select
             v-model="form.ruleId"
-            placeholder="请选择排班规则（可选）"
-            clearable
+            placeholder="请选择排班规则"
             filterable
             style="width: 100%"
             @change="handleRuleChange"
@@ -271,7 +271,6 @@
               :key="rule.ruleId"
               :label="rule.ruleName"
               :value="rule.ruleId || 0"
-              :disabled="!isRuleApplicable(rule)"
             >
               <span>{{ rule.ruleName }}</span>
               <span style="color: #8492a6; font-size: 12px; margin-left: 10px">
@@ -279,40 +278,6 @@
               </span>
             </el-option>
           </el-select>
-        </el-form-item>
-        <el-form-item label="工作开始时间" prop="workStartTime">
-          <el-date-picker
-            v-model="form.workStartTime"
-            type="datetime"
-            placeholder="选择开始时间"
-            style="width: 100%"
-            value-format="YYYY-MM-DD HH:mm:ss"
-          />
-        </el-form-item>
-        <el-form-item label="工作结束时间" prop="workEndTime">
-          <el-date-picker
-            v-model="form.workEndTime"
-            type="datetime"
-            placeholder="选择结束时间"
-            style="width: 100%"
-            value-format="YYYY-MM-DD HH:mm:ss"
-          />
-        </el-form-item>
-        <el-form-item label="工作类型" prop="workType">
-          <el-select v-model="form.workType" placeholder="请选择工作类型" style="width: 100%">
-            <el-option label="正常班" value="normal" />
-            <el-option label="请假" value="leave" />
-            <el-option label="休息" value="rest" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态" prop="status">
-          <el-radio-group v-model="form.status">
-            <el-radio :value="'0'">正常</el-radio>
-            <el-radio :value="'1'">已取消</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -391,6 +356,7 @@ import { FormInstance } from 'element-plus'
 import { AgricultureScheduleService } from '@/api/agriculture/scheduleApi'
 import { AgricultureEmployeeScheduleResult } from '@/types/agriculture/schedule'
 import { UserService } from '@/api/system/userApi'
+import { DeptService } from '@/api/system/deptApi'
 import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
 import { AgricultureScheduleRuleService, AgricultureScheduleRuleResult } from '@/api/agriculture/scheduleRuleApi'
 import { downloadExcel, resetForm } from '@/utils/utils'
@@ -412,9 +378,21 @@ const batchFormRef = ref<FormInstance>()
 const queryFormRef = ref<FormInstance>()
 const userList = ref<any[]>([])
 const pastureList = ref<any[]>([])
+const deptList = ref<any[]>([])
+const deptTreeList = ref<any[]>([])
 const ruleList = ref<AgricultureScheduleRuleResult[]>([])
+const gridMonth = ref(dayjs().format('YYYY-MM'))
 const gridStartDate = ref(dayjs().startOf('month').format('YYYY-MM-DD'))
 const gridEndDate = ref(dayjs().endOf('month').format('YYYY-MM-DD'))
+
+// 月份变化处理
+const handleMonthChange = (month: string) => {
+  if (month) {
+    gridStartDate.value = dayjs(month).startOf('month').format('YYYY-MM-DD')
+    gridEndDate.value = dayjs(month).endOf('month').format('YYYY-MM-DD')
+    loadGridData()
+  }
+}
 
 // 单个排班表单
 const form = reactive({
@@ -462,14 +440,21 @@ const batchDialogTitle = computed(() => {
   return '批量排班'
 })
 
-// 单个排班验证规则
-const rules = computed(() => ({
-  userId: [{ required: true, message: '请选择用户', trigger: 'change' }],
-  scheduleDate: [{ required: true, message: '请选择排班日期', trigger: 'change' }],
-  workStartTime: [{ required: true, message: '请选择工作开始时间', trigger: 'change' }],
-  workEndTime: [{ required: true, message: '请选择工作结束时间', trigger: 'change' }],
-  workType: [{ required: true, message: '请选择工作类型', trigger: 'change' }]
-}))
+// 单个排班验证规则（简化版，参考批量排班）
+const rules = computed(() => {
+  const baseRules: any = {
+    userId: [{ required: true, message: '请选择用户', trigger: 'change' }],
+    scheduleDate: [{ required: true, message: '请选择排班日期', trigger: 'change' }],
+    workType: [{ required: true, message: '请选择工作类型', trigger: 'change' }]
+  }
+  
+  // 如果是正常班，则必须选择排班规则
+  if (form.workType === 'normal') {
+    baseRules.ruleId = [{ required: true, message: '请选择排班规则', trigger: 'change' }]
+  }
+  
+  return baseRules
+})
 
 // 批量排班验证规则（动态）
 const batchRules = computed(() => {
@@ -491,7 +476,8 @@ const batchRules = computed(() => {
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
-  userId: undefined as number | undefined,
+  deptId: undefined as number | undefined,
+  userIds: [] as number[],
   pastureId: undefined as number | undefined,
   scheduleDate: '',
   workType: ''
@@ -659,64 +645,16 @@ const loadGridData = async () => {
       
       gridScheduleMap.value = scheduleMap
       
-      // 获取用户列表（根据角色显示不同的用户）
-      if (isEmployee.value && currentUserId.value) {
-        // 员工只显示自己
-        const currentUser = userList.value.find(u => u.userId === currentUserId.value)
-        if (currentUser) {
-          gridUserList.value = [currentUser]
-        } else {
-          gridUserList.value = []
-        }
-      } else if (isAdmin.value) {
-        // 超级管理员：过滤掉admin角色，但显示ceo
-        gridUserList.value = userList.value.filter(user => {
-          // 若依框架中，超级管理员通过admin字段标识，不在sys_user_role表中
-          if (user.admin === true) {
-            return false
-          }
-          // 检查roles数组中是否有admin角色
-          const roles = user.roles || []
-          const hasAdmin = roles.some((role: any) => {
-            const roleKey = role.roleKey || ''
-            return roleKey === 'admin'
-          })
-          return !hasAdmin
-        })
-      } else if (isGeneralManager.value) {
-        // CEO：过滤掉admin和ceo角色
-        gridUserList.value = userList.value.filter(user => {
-          // 过滤超级管理员（通过admin字段）
-          if (user.admin === true) {
-            return false
-          }
-          // 检查roles数组中是否有admin或ceo角色
-          const roles = user.roles || []
-          const hasAdminOrCeo = roles.some((role: any) => {
-            const roleKey = role.roleKey || ''
-            return roleKey === 'admin' || roleKey === 'ceo'
-          })
-          return !hasAdminOrCeo
-        })
+      // 获取用户列表（根据角色和部门过滤，再根据选择的用户筛选）
+      let baseUserList = filterUserListByDept.value
+      
+      // 如果选择了特定用户，只显示这些用户
+      if (queryParams.userIds && queryParams.userIds.length > 0) {
+        gridUserList.value = baseUserList.filter((user: any) => 
+          queryParams.userIds.includes(user.userId)
+        )
       } else {
-        // 主管只显示本部门的用户（除了超级管理员和CEO）
-        gridUserList.value = userList.value.filter(user => {
-          // 过滤超级管理员（通过admin字段）
-          if (user.admin === true) {
-            return false
-          }
-          // 检查roles数组中是否有admin或ceo角色
-          const roles = user.roles || []
-          const hasAdminOrCeo = roles.some((role: any) => {
-            const roleKey = role.roleKey || ''
-            return roleKey === 'admin' || roleKey === 'ceo'
-          })
-          if (hasAdminOrCeo) return false
-          
-          // 只显示同部门的用户
-          const userDeptId = user.dept?.deptId || user.deptId
-          return userDeptId === currentUserDeptId.value
-        })
+        gridUserList.value = baseUserList
       }
     }
   } catch (error) {
@@ -1027,21 +965,100 @@ const currentUserDeptId = computed(() => {
   return userInfo?.dept?.deptId ? Number(userInfo.dept.deptId) : null
 })
 
-/** 查询排班列表 */
-const getList = async () => {
-  loading.value = true
+// 筛选用户列表（根据角色过滤）
+const filterUserList = computed(() => {
+  if (isEmployee.value && currentUserId.value) {
+    // 员工只能看自己
+    return userList.value.filter((u: any) => u.userId === currentUserId.value)
+  } else if (isAdmin.value) {
+    // 超级管理员：过滤掉admin角色
+    return userList.value.filter((user: any) => {
+      if (user.admin === true) return false
+      const roles = user.roles || []
+      return !roles.some((role: any) => role.roleKey === 'admin')
+    })
+  } else if (isGeneralManager.value) {
+    // CEO：过滤掉admin和ceo角色
+    return userList.value.filter((user: any) => {
+      if (user.admin === true) return false
+      const roles = user.roles || []
+      return !roles.some((role: any) => role.roleKey === 'admin' || role.roleKey === 'ceo')
+    })
+  } else {
+    // 主管只显示本部门的用户
+    return userList.value.filter((user: any) => {
+      if (user.admin === true) return false
+      const roles = user.roles || []
+      if (roles.some((role: any) => role.roleKey === 'admin' || role.roleKey === 'ceo')) return false
+      const userDeptId = user.dept?.deptId || user.deptId
+      return userDeptId === currentUserDeptId.value
+    })
+  }
+})
+
+// 根据部门筛选用户列表（用于用户下拉框）
+const filterUserListByDept = computed(() => {
+  let baseList = filterUserList.value
+  // 如果选择了部门，进一步按部门过滤
+  if (queryParams.deptId) {
+    baseList = baseList.filter((user: any) => {
+      const userDeptId = user.dept?.deptId || user.deptId
+      return userDeptId === queryParams.deptId
+    })
+  }
+  return baseList
+})
+
+// 部门变化处理
+const handleDeptChange = () => {
+  // 清空已选用户（因为部门变了，之前选的用户可能不在新部门中）
+  queryParams.userIds = []
+  handleQuery()
+}
+
+// 获取部门列表
+const getDeptList = async () => {
   try {
-    // 如果是员工，自动添加用户ID过滤（后端已处理，这里不需要额外处理）
-    const res = await AgricultureScheduleService.listSchedule(queryParams)
-    if (res.code === 200) {
-      scheduleList.value = res.rows
-      total.value = res.total
+    const res = await DeptService.listDept({ status: '0' })
+    if (res.code === 200 && res.data) {
+      deptList.value = res.data
+      // 构建树形结构
+      deptTreeList.value = buildDeptTree(res.data)
     }
   } catch (error) {
-    console.error('查询排班列表失败:', error)
-  } finally {
-    loading.value = false
+    console.error('获取部门列表失败:', error)
   }
+}
+
+// 构建部门树形结构
+const buildDeptTree = (data: any[]): any[] => {
+  const map = new Map<number, any>()
+  const tree: any[] = []
+  
+  // 先创建所有节点的映射
+  data.forEach((item: any) => {
+    map.set(item.deptId, {
+      id: item.deptId,
+      label: item.deptName,
+      parentId: item.parentId,
+      children: []
+    })
+  })
+  
+  // 构建树形结构
+  data.forEach((item: any) => {
+    const node = map.get(item.deptId)
+    if (item.parentId === 0 || !map.has(item.parentId)) {
+      tree.push(node)
+    } else {
+      const parent = map.get(item.parentId)
+      if (parent) {
+        parent.children.push(node)
+      }
+    }
+  })
+  
+  return tree
 }
 
 /** 搜索按钮操作 */
@@ -1080,15 +1097,30 @@ const submitForm = async () => {
   if (!scheduleRef.value) return
   await scheduleRef.value.validate(async (valid) => {
     if (valid) {
+      // 准备提交数据
+      const submitData: any = {
+        ...form,
+        status: '0'
+      }
+      
+      // 如果是正常班，使用排班规则的时间
+      if (form.workType === 'normal' && form.ruleId) {
+        const rule = ruleList.value.find(r => r.ruleId === form.ruleId)
+        if (rule && form.scheduleDate) {
+          submitData.workStartTime = `${form.scheduleDate} ${rule.workStartTime || '08:00:00'}`
+          submitData.workEndTime = `${form.scheduleDate} ${rule.workEndTime || '17:00:00'}`
+        }
+      }
+      
       if (form.scheduleId !== undefined && form.scheduleId !== null) {
-        const res = await AgricultureScheduleService.updateSchedule(form as any)
+        const res = await AgricultureScheduleService.updateSchedule(submitData)
         if (res.code === 200) {
           ElMessage.success(res.msg)
           open.value = false
           loadGridData()
         }
       } else {
-        const res = await AgricultureScheduleService.addSchedule(form as any)
+        const res = await AgricultureScheduleService.addSchedule(submitData)
         if (res.code === 200) {
           ElMessage.success(res.msg)
           open.value = false
@@ -1355,13 +1387,15 @@ const submitBatchForm = async () => {
 
 // 监听查询参数变化
 watch(
-  () => [queryParams.userId, queryParams.pastureId],
+  () => [queryParams.deptId, queryParams.userIds, queryParams.pastureId],
   () => {
     loadGridData()
-  }
+  },
+  { deep: true }
 )
 
 onMounted(async () => {
+  await getDeptList()
   await getUserList()
   await getPastureList()
   await getRuleList()
