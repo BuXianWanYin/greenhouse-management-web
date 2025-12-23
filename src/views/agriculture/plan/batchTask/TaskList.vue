@@ -129,16 +129,17 @@
             </div>
         </div>
 
-        <!-- 任务详情对话框 -->
+        <!-- 任务详情对话框 - 日历视图 -->
         <el-dialog
             v-model="showTaskDetailDialog"
             :title="props.readonly ? '任务详情' : '编辑任务'"
             width="65%"
             top="5vh"
             append-to-body
-            :close-on-click-modal="true"   
+            :close-on-click-modal="true"
+            class="task-detail-dialog"
         >
-            <TaskDetail
+            <TaskDetailCalendar
                 v-if="showTaskDetailDialog && taskId"
                 :taskId="taskId"
                 :oprType="oprType || 'update'"
@@ -186,7 +187,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete, Calendar, Timer } from '@element-plus/icons-vue'
 import { AgricultureCropBatchTaskService } from "@/api/agriculture/cropBatchTaskApi"
 import type { AgricultureCropBatchTaskResult } from '@/types/agriculture/batchTask.d'
-import TaskDetail from "../../TaskDetail/index.vue"
+import TaskDetailCalendar from "../../TaskDetailCalendar/index.vue"
 
 const emit = defineEmits(['updated'])
 
@@ -643,6 +644,14 @@ const onTaskUpdated = () => {
   display: flex;
   justify-content: center;
   padding: 16px 0;
+}
+
+:deep(.task-detail-dialog) {
+  .el-dialog__body {
+    height: calc(85vh - 120px);
+    overflow-y: auto;
+    padding: 15px 20px;
+  }
 }
 </style>
 
