@@ -37,6 +37,7 @@
                     :selectedDate="props.selectedDate"
                     :readonly="props.readonly"
                     @log="handleLog"
+                    @refresh="handleRefresh"
                 />
             </el-tab-pane>
         </el-tabs>

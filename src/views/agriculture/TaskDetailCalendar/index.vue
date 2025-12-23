@@ -94,6 +94,7 @@ import { AgricultureTaskEmployeeService } from '@/api/agriculture/taskEmployeeAp
 import { AgricultureTaskLogService } from '@/api/agriculture/logApi'
 import { AgricultureCostEmployeeService } from '@/api/agriculture/costEmployeeApi'
 import { AgricultureResourceUsageService } from '@/api/agriculture/resourceUsageApi'
+import { AgricultureTaskAttachmentService } from '@/api/agriculture/taskAttachmentApi'
 import { UserService } from '@/api/system/userApi'
 import { useUserStore } from '@/store/modules/user'
 
@@ -365,8 +366,20 @@ const fetchDailySummary = async () => {
             })
         }
         
-        // 附件数量（图片+视频）
-        attachmentTotal = (form.taskImages?.length || 0) + (form.taskVideos?.length || 0)
+        // 获取按日期附件数据
+        const attachmentRes = await AgricultureTaskAttachmentService.listByTask(props.taskId)
+        if (attachmentRes.data) {
+            attachmentRes.data.forEach(item => {
+                const date = item.attachmentDate ? item.attachmentDate.split(' ')[0] : null
+                if (date) {
+                    if (!summary[date]) {
+                        summary[date] = { hasWorkHours: false, hasMaterial: false, hasAttachment: false }
+                    }
+                    summary[date].hasAttachment = true
+                    attachmentTotal++
+                }
+            })
+        }
         
     } catch (error) {
         console.error('获取汇总数据失败:', error)

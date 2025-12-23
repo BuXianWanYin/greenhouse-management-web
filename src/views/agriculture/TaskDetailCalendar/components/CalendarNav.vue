@@ -47,9 +47,9 @@
                     :key="idx"
                     class="day-cell"
                     :class="{
-                        'empty': !day.date,
+                        'other-month': day.isOtherMonth,
                         'in-range': day.inRange || day.selectable,
-                        'out-range': day.date && !day.inRange && !day.selectable,
+                        'out-range': day.date && !day.inRange && !day.selectable && !day.isOtherMonth,
                         'selected': day.date === props.selectedDate,
                         'today': day.isToday,
                         'selectable': day.selectable,
@@ -234,12 +234,23 @@ const generateMonthDays = (year, month, startDate, endDate, today, range) => {
     const lastDay = new Date(year, month, 0)
     const firstDayOfWeek = firstDay.getDay()
     
-    // 填充月初空白
-    for (let i = 0; i < firstDayOfWeek; i++) {
-        days.push({ date: null, day: '', inRange: false, selectable: false })
+    // 填充月初空白（上个月的日期）
+    if (firstDayOfWeek > 0) {
+        const prevMonthLastDay = new Date(year, month - 1, 0) // 上个月最后一天
+        const prevMonthDays = prevMonthLastDay.getDate()
+        for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+            const d = prevMonthDays - i
+            days.push({ 
+                date: null, 
+                day: d, 
+                inRange: false, 
+                selectable: false,
+                isOtherMonth: true
+            })
+        }
     }
     
-    // 填充日期
+    // 填充当月日期
     for (let d = 1; d <= lastDay.getDate(); d++) {
         const date = new Date(year, month - 1, d)
         date.setHours(0, 0, 0, 0)
@@ -262,7 +273,21 @@ const generateMonthDays = (year, month, startDate, endDate, today, range) => {
             day: d,
             inRange,
             isToday,
-            selectable
+            selectable,
+            isOtherMonth: false
+        })
+    }
+    
+    // 填充月末空白（下个月的日期）
+    const totalCells = days.length
+    const remainingCells = (7 - (totalCells % 7)) % 7
+    for (let i = 1; i <= remainingCells; i++) {
+        days.push({ 
+            date: null, 
+            day: i, 
+            inRange: false, 
+            selectable: false,
+            isOtherMonth: true
         })
     }
     
@@ -362,7 +387,6 @@ const handleDayClick = (day) => {
             gap: 2px;
             
             .day-cell {
-                aspect-ratio: 1;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -371,9 +395,11 @@ const handleDayClick = (day) => {
                 cursor: pointer;
                 border-radius: 4px;
                 position: relative;
-                min-height: 32px;
+                min-height: 42px;
+                padding: 4px 0;
                 
-                &.empty {
+                &.other-month {
+                    color: #c0c4cc;
                     cursor: default;
                 }
                 

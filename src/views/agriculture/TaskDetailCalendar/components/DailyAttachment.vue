@@ -2,18 +2,8 @@
     <div class="daily-attachment">
         <div class="section-header">
             <span class="section-title">附件管理</span>
+            <span class="section-date">{{ props.selectedDate }}</span>
         </div>
-        
-        <el-alert
-            type="info"
-            :closable="false"
-            show-icon
-            class="attachment-tip"
-        >
-            <template #title>
-                附件为任务级别，不区分日期。上传的图片和视频会显示在整个任务周期内。
-            </template>
-        </el-alert>
         
         <!-- 图片上传 -->
         <div class="upload-section">
@@ -28,10 +18,10 @@
                 :on-remove="handleImageRemove"
                 :before-upload="beforeImageUpload"
                 :limit="10"
-                :disabled="props.readonly"
+                :disabled="props.readonly || !props.selectedDate"
                 multiple
             >
-                <el-icon v-if="!props.readonly"><Plus /></el-icon>
+                <el-icon v-if="!props.readonly && props.selectedDate"><Plus /></el-icon>
             </el-upload>
         </div>
         
@@ -48,20 +38,16 @@
                 :on-remove="handleVideoRemove"
                 :before-upload="beforeVideoUpload"
                 :limit="5"
-                :disabled="props.readonly"
+                :disabled="props.readonly || !props.selectedDate"
                 multiple
                 accept="video/*"
             >
-                <el-icon v-if="!props.readonly"><VideoCamera /></el-icon>
-                <template #file="{ file }">
-                    <div class="video-item">
-                        <video :src="file.url" class="video-preview" />
-                        <div v-if="!props.readonly" class="video-actions" @click.stop="handleVideoDelete(file)">
-                            <el-icon><Delete /></el-icon>
-                        </div>
-                    </div>
-                </template>
+                <el-icon v-if="!props.readonly && props.selectedDate"><VideoCamera /></el-icon>
             </el-upload>
+        </div>
+        
+        <div v-if="!props.selectedDate" class="no-date-tip">
+            请先选择日期
         </div>
     </div>
 </template>
@@ -70,7 +56,7 @@
 import { ref, watch, computed } from 'vue'
 import { Plus, VideoCamera, Delete } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { AgricultureCropBatchTaskService } from '@/api/agriculture/cropBatchTaskApi'
+import { AgricultureTaskAttachmentService } from '@/api/agriculture/taskAttachmentApi'
 import { AgricultureTaskLogService } from '@/api/agriculture/logApi'
 import { useUserStore } from '@/store/modules/user'
 
@@ -89,73 +75,46 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['log'])
+const emit = defineEmits(['log', 'refresh'])
 
 const userStore = useUserStore()
 const uploadUrl = `${import.meta.env.VITE_API_BASE_URL}/common/upload`
 const uploadHeaders = { Authorization: userStore.accessToken }
 
-const taskImages = ref([])
-const taskVideos = ref([])
+const attachments = ref([])
 
 const imageFileList = computed(() => {
-    return taskImages.value.map((url, idx) => ({
-        name: `图片${idx + 1}`,
-        url,
-        uid: url
-    }))
+    return attachments.value
+        .filter(item => item.fileType === '0')
+        .map(item => ({
+            name: item.fileName || '图片',
+            url: item.fileUrl,
+            uid: item.attachmentId
+        }))
 })
 
 const videoFileList = computed(() => {
-    return taskVideos.value.map((url, idx) => ({
-        name: `视频${idx + 1}`,
-        url,
-        uid: url
-    }))
+    return attachments.value
+        .filter(item => item.fileType === '1')
+        .map(item => ({
+            name: item.fileName || '视频',
+            url: item.fileUrl,
+            uid: item.attachmentId
+        }))
 })
 
-// 获取任务附件
-const fetchTaskAttachments = async () => {
+// 获取当日附件
+const fetchAttachments = async () => {
+    if (!props.taskId || !props.selectedDate) {
+        attachments.value = []
+        return
+    }
     try {
-        const response = await AgricultureCropBatchTaskService.getBatchTask(props.taskId)
-        if (response.data) {
-            if (typeof response.data.taskImages === 'string') {
-                taskImages.value = response.data.taskImages ? response.data.taskImages.split(',') : []
-            } else {
-                taskImages.value = response.data.taskImages || []
-            }
-            if (typeof response.data.taskVideos === 'string') {
-                taskVideos.value = response.data.taskVideos ? response.data.taskVideos.split(',') : []
-            } else {
-                taskVideos.value = response.data.taskVideos || []
-            }
-        }
+        const response = await AgricultureTaskAttachmentService.listByDate(props.taskId, props.selectedDate)
+        attachments.value = response.data || []
     } catch (error) {
         console.error('获取附件失败:', error)
-    }
-}
-
-// 更新任务图片
-const updateTaskImages = async () => {
-    try {
-        await AgricultureCropBatchTaskService.updateBatchTask({
-            taskId: props.taskId,
-            taskImages: taskImages.value.join(',')
-        })
-    } catch (error) {
-        console.error('更新图片失败:', error)
-    }
-}
-
-// 更新任务视频
-const updateTaskVideos = async () => {
-    try {
-        await AgricultureCropBatchTaskService.updateBatchTask({
-            taskId: props.taskId,
-            taskVideos: taskVideos.value.join(',')
-        })
-    } catch (error) {
-        console.error('更新视频失败:', error)
+        attachments.value = []
     }
 }
 
@@ -177,18 +136,38 @@ const addTaskLog = async (des) => {
 }
 
 // 图片上传成功
-const handleImageSuccess = (response) => {
-    taskImages.value.push(response.url)
-    ElMessage.success('图片上传成功')
-    addTaskLog('上传图片')
-    updateTaskImages()
+const handleImageSuccess = async (response) => {
+    try {
+        await AgricultureTaskAttachmentService.addAttachment({
+            taskId: props.taskId,
+            attachmentDate: props.selectedDate,
+            fileUrl: response.url,
+            fileType: '0',
+            fileName: response.fileName || '图片',
+            createBy: userStore.info.id
+        })
+        ElMessage.success('图片上传成功')
+        await addTaskLog('上传图片')
+        await fetchAttachments()
+        emit('refresh')
+    } catch (error) {
+        console.error('保存图片失败:', error)
+        ElMessage.error('保存图片失败')
+    }
 }
 
-// 图片移除
-const handleImageRemove = (file, fileList) => {
-    taskImages.value = fileList.map(f => f.url)
-    addTaskLog('删除图片')
-    updateTaskImages()
+// 图片移除（el-upload on-remove 事件）
+const handleImageRemove = async (file) => {
+    try {
+        await AgricultureTaskAttachmentService.deleteAttachment(file.uid)
+        ElMessage.success('图片删除成功')
+        await addTaskLog('删除图片')
+        await fetchAttachments()
+        emit('refresh')
+    } catch (error) {
+        console.error('删除图片失败:', error)
+        ElMessage.error('删除图片失败')
+    }
 }
 
 // 图片上传前校验
@@ -207,29 +186,38 @@ const beforeImageUpload = (file) => {
 }
 
 // 视频上传成功
-const handleVideoSuccess = (response) => {
-    taskVideos.value.push(response.url)
-    ElMessage.success('视频上传成功')
-    addTaskLog('上传视频')
-    updateTaskVideos()
-}
-
-// 视频移除
-const handleVideoRemove = (file, fileList) => {
-    taskVideos.value = fileList.map(f => f.url)
-    addTaskLog('删除视频')
-    updateTaskVideos()
-}
-
-// 视频删除
-const handleVideoDelete = async (file) => {
-    const index = taskVideos.value.indexOf(file.url)
-    if (index > -1) {
-        taskVideos.value.splice(index, 1)
+const handleVideoSuccess = async (response) => {
+    try {
+        await AgricultureTaskAttachmentService.addAttachment({
+            taskId: props.taskId,
+            attachmentDate: props.selectedDate,
+            fileUrl: response.url,
+            fileType: '1',
+            fileName: response.fileName || '视频',
+            createBy: userStore.info.id
+        })
+        ElMessage.success('视频上传成功')
+        await addTaskLog('上传视频')
+        await fetchAttachments()
+        emit('refresh')
+    } catch (error) {
+        console.error('保存视频失败:', error)
+        ElMessage.error('保存视频失败')
     }
-    await addTaskLog('删除视频')
-    await updateTaskVideos()
-    ElMessage.success('视频删除成功')
+}
+
+// 视频移除（el-upload on-remove 事件）
+const handleVideoRemove = async (file) => {
+    try {
+        await AgricultureTaskAttachmentService.deleteAttachment(file.uid)
+        ElMessage.success('视频删除成功')
+        await addTaskLog('删除视频')
+        await fetchAttachments()
+        emit('refresh')
+    } catch (error) {
+        console.error('删除视频失败:', error)
+        ElMessage.error('删除视频失败')
+    }
 }
 
 // 视频上传前校验
@@ -247,25 +235,29 @@ const beforeVideoUpload = (file) => {
     return true
 }
 
-watch(() => props.taskId, () => {
-    fetchTaskAttachments()
+watch([() => props.taskId, () => props.selectedDate], () => {
+    fetchAttachments()
 }, { immediate: true })
 </script>
 
 <style lang="scss" scoped>
 .daily-attachment {
     .section-header {
-        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
         
         .section-title {
             font-size: 14px;
             font-weight: 500;
             color: #303133;
         }
-    }
-    
-    .attachment-tip {
-        margin-bottom: 15px;
+        
+        .section-date {
+            font-size: 12px;
+            color: #909399;
+        }
     }
     
     .upload-section {
@@ -279,31 +271,21 @@ watch(() => props.taskId, () => {
         }
     }
     
-    .video-item {
-        width: 100%;
-        height: 100%;
-        position: relative;
-        
-        .video-preview {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .video-actions {
-            position: absolute;
-            top: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.5);
-            color: #fff;
-            padding: 4px 8px;
-            cursor: pointer;
-            border-radius: 0 0 0 4px;
-            
-            &:hover {
-                background: rgba(245, 108, 108, 0.8);
-            }
-        }
+    .no-date-tip {
+        text-align: center;
+        color: #909399;
+        padding: 40px 0;
+        font-size: 14px;
+    }
+    
+    :deep(.el-upload--picture-card) {
+        width: 100px;
+        height: 100px;
+    }
+    
+    :deep(.el-upload-list--picture-card .el-upload-list__item) {
+        width: 100px;
+        height: 100px;
     }
 }
 </style>
