@@ -9,22 +9,7 @@
       <template #top>
         <el-form :model="queryParams" ref="queryFormRef" label-width="82px">
           <el-row :gutter="20">
-            <el-col :xs="24" :sm="12" :lg="6">
-              <el-form-item label="部门" prop="deptId">
-                <el-tree-select
-                  v-model="queryParams.deptId"
-                  :data="deptTreeList"
-                  :props="{ value: 'id', label: 'label', children: 'children' }"
-                  placeholder="请选择部门"
-                  clearable
-                  check-strictly
-                  default-expand-all
-                  style="width: 100%"
-                  @change="handleDeptChange"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :lg="6">
+            <el-col :xs="24" :sm="12" :lg="8">
               <el-form-item 
                 label="用户筛选" 
                 prop="userIds"
@@ -41,28 +26,10 @@
                 @change="handleQuery"
               >
                 <el-option
-                  v-for="user in filterUserListByDept"
+                  v-for="user in filterUserList"
                   :key="user.userId"
                   :label="user.nickName || user.userName"
                   :value="user.userId"
-                />
-              </el-select>
-            </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :lg="6">
-            <el-form-item label="温室" prop="pastureId">
-              <el-select
-                v-model="queryParams.pastureId"
-                placeholder="请选择温室"
-                clearable
-                  style="width: 100%"
-                  @keyup.enter="handleQuery"
-              >
-                <el-option
-                  v-for="pasture in pastureList"
-                  :key="pasture.id || pasture.pastureId"
-                  :label="pasture.name || pasture.pastureName"
-                  :value="pasture.id || pasture.pastureId"
                 />
               </el-select>
             </el-form-item>
@@ -356,8 +323,6 @@ import { FormInstance } from 'element-plus'
 import { AgricultureScheduleService } from '@/api/agriculture/scheduleApi'
 import { AgricultureEmployeeScheduleResult } from '@/types/agriculture/schedule'
 import { UserService } from '@/api/system/userApi'
-import { DeptService } from '@/api/system/deptApi'
-import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
 import { AgricultureScheduleRuleService, AgricultureScheduleRuleResult } from '@/api/agriculture/scheduleRuleApi'
 import { downloadExcel, resetForm } from '@/utils/utils'
 import { useUserStore } from '@/store/modules/user'
@@ -377,9 +342,6 @@ const scheduleRef = ref<FormInstance>()
 const batchFormRef = ref<FormInstance>()
 const queryFormRef = ref<FormInstance>()
 const userList = ref<any[]>([])
-const pastureList = ref<any[]>([])
-const deptList = ref<any[]>([])
-const deptTreeList = ref<any[]>([])
 const ruleList = ref<AgricultureScheduleRuleResult[]>([])
 const gridMonth = ref(dayjs().format('YYYY-MM'))
 const gridStartDate = ref(dayjs().startOf('month').format('YYYY-MM-DD'))
@@ -476,9 +438,7 @@ const batchRules = computed(() => {
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
-  deptId: undefined as number | undefined,
   userIds: [] as number[],
-  pastureId: undefined as number | undefined,
   scheduleDate: '',
   workType: ''
 })
@@ -1034,75 +994,20 @@ const filterUserList = computed(() => {
   }
 })
 
-// 根据部门筛选用户列表（用于用户下拉框）
-const filterUserListByDept = computed(() => {
-  let baseList = filterUserList.value
-  console.log('[排班页面] 基础用户列表:', baseList.length, '个用户')
-  console.log('[排班页面] 当前用户部门ID:', currentUserDeptId.value)
-  console.log('[排班页面] 当前用户角色:', { isAdmin: isAdmin.value, isManager: isManager.value, isEmployee: isEmployee.value })
-  
-  // 如果选择了部门，进一步按部门过滤
-  if (queryParams.deptId) {
-    baseList = baseList.filter((user: any) => {
-      const userDeptId = user.dept?.deptId || user.deptId
-      return userDeptId === queryParams.deptId
-    })
-    console.log('[排班页面] 按部门过滤后:', baseList.length, '个用户')
-  }
-  return baseList
-})
+// 根据部门筛选用户列表（用于用户下拉框）- 已移除部门筛选功能
+// 现在直接使用 filterUserList
 
-// 部门变化处理
-const handleDeptChange = () => {
-  // 清空已选用户（因为部门变了，之前选的用户可能不在新部门中）
-  queryParams.userIds = []
-  handleQuery()
-}
+// 部门变化处理 - 已移除
+// const handleDeptChange = () => {
+//   queryParams.userIds = []
+//   handleQuery()
+// }
 
-// 获取部门列表
-const getDeptList = async () => {
-  try {
-    const res = await DeptService.listDept({ status: '0' })
-    if (res.code === 200 && res.data) {
-      deptList.value = res.data
-      // 构建树形结构
-      deptTreeList.value = buildDeptTree(res.data)
-    }
-  } catch (error) {
-    console.error('获取部门列表失败:', error)
-  }
-}
+// 获取部门列表 - 已移除
+// const getDeptList = async () => { ... }
 
-// 构建部门树形结构
-const buildDeptTree = (data: any[]): any[] => {
-  const map = new Map<number, any>()
-  const tree: any[] = []
-  
-  // 先创建所有节点的映射
-  data.forEach((item: any) => {
-    map.set(item.deptId, {
-      id: item.deptId,
-      label: item.deptName,
-      parentId: item.parentId,
-      children: []
-    })
-  })
-  
-  // 构建树形结构
-  data.forEach((item: any) => {
-    const node = map.get(item.deptId)
-    if (item.parentId === 0 || !map.has(item.parentId)) {
-      tree.push(node)
-    } else {
-      const parent = map.get(item.parentId)
-      if (parent) {
-        parent.children.push(node)
-      }
-    }
-  })
-  
-  return tree
-}
+// 构建部门树形结构 - 已移除
+// const buildDeptTree = (data: any[]): any[] => { ... }
 
 /** 搜索按钮操作 */
 const handleQuery = () => {
@@ -1337,18 +1242,8 @@ const handleUserChange = () => {
   scheduleRef.value?.validateField('pastureId')
 }
 
-/** 获取温室列表 */
-const getPastureList = async () => {
-  try {
-    // 温室列表需要传分页参数，获取足够多的数据
-    const res = await AgriculturePastureService.listPasture({ pageNum: 1, pageSize: 1000 })
-    if (res.code === 200) {
-      pastureList.value = res.rows || []
-    }
-  } catch (error) {
-    console.error('获取温室列表失败:', error)
-  }
-}
+// 获取温室列表 - 已移除
+// const getPastureList = async () => { ... }
 
 /** 批量排班按钮操作 */
 const handleBatchAdd = () => {
@@ -1428,9 +1323,9 @@ const submitBatchForm = async () => {
   })
 }
 
-// 监听查询参数变化
+// 监听查询参数变化 - 移除了 deptId 和 pastureId 的监听
 watch(
-  () => [queryParams.deptId, queryParams.userIds, queryParams.pastureId],
+  () => queryParams.userIds,
   () => {
     loadGridData()
   },
@@ -1438,9 +1333,7 @@ watch(
 )
 
 onMounted(async () => {
-  await getDeptList()
   await getUserList()
-  await getPastureList()
   await getRuleList()
   loadGridData()
 })

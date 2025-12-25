@@ -33,8 +33,8 @@
         </el-form>
       </template>
       <template #bottom>
-        <el-button @click="showDialog('add')" v-ripple>新增</el-button>
-        <el-button @click="exportExcel" v-ripple>导出</el-button>
+        <el-button @click="showDialog('add')" v-hasPermi="['system:role:add']" v-ripple>新增</el-button>
+        <el-button @click="exportExcel" v-hasPermi="['system:role:export']" v-ripple>导出</el-button>
       </template>
     </table-bar>
 
@@ -57,6 +57,7 @@
               v-model="scope.row.status"
               :active-value="'0'"
               :inactive-value="'1'"
+              :disabled="!hasPermission(['system:role:edit'])"
               @change="handleStatusChange(scope.row)"
             />
           </template>
@@ -67,19 +68,17 @@
             <div v-if="scope.row.roleId !== 1">
               <button-table
                 type="edit"
-                v-hasPermi="['system:menu:edit']"
+                v-hasPermi="['system:role:edit']"
                 @click="showDialog('edit', scope.row)"
               />
               <button-table
                 type="delete"
-                v-hasPermi="['system:menu:remove']"
+                v-hasPermi="['system:role:remove']"
                 @click="deleteRole(scope.row)"
               />
               <button-more
-                :list="[
-                  { key: 'dataScope', label: '数据权限' },
-                  { key: 'allocation', label: '分配用户' }
-                ]"
+                v-if="getButtonMoreList().length > 0"
+                :list="getButtonMoreList()"
                 @click="buttonMoreClick($event, scope.row)"
               />
             </div>
@@ -231,6 +230,7 @@
   import type { RoleResult, RoleOptionType } from '@/types/system/role'
   import { resetForm } from '@/utils/utils'
   import type { MenuOptionType } from '@/types/system/menu'
+  import { useUserStore } from '@/store/modules/user'
 
   const dialogVisible = ref(false)
   const dialogType = ref('add')
@@ -484,6 +484,36 @@
   }
 
   // 更多按钮操作
+  // 根据权限动态生成"更多"按钮列表
+  const getButtonMoreList = () => {
+    const list: ButtonMoreItem[] = []
+    
+    // 检查是否有数据权限的权限
+    if (hasPermission(['system:role:edit'])) {
+      list.push({ key: 'dataScope', label: '数据权限' })
+    }
+    
+    // 检查是否有分配用户的权限
+    if (hasPermission(['system:role:edit'])) {
+      list.push({ key: 'allocation', label: '分配用户' })
+    }
+    
+    return list
+  }
+
+  // 检查权限
+  const hasPermission = (permissions: string[]) => {
+    const userStore = useUserStore()
+    const userPermissions = userStore.getUserInfo?.permissions || []
+    const allPermission = '*:*:*'
+    
+    if (userPermissions.includes(allPermission)) {
+      return true
+    }
+    
+    return permissions.some(permission => userPermissions.includes(permission))
+  }
+
   const buttonMoreClick = async (item: ButtonMoreItem, row: RoleResult) => {
     if (item.key === 'dataScope') {
       dialogVisible.value = true
