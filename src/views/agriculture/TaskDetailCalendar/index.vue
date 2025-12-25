@@ -265,19 +265,19 @@ const fetchUserList = async () => {
         const currentUserDeptId = currentUserInfo.deptId || currentUserInfo.dept?.deptId
         const currentUserRoles = currentUserInfo.roles || []
         
-        // 判断当前用户是否是超级管理员或总经理
+        // 判断当前用户是否是超级管理员或主管
         const isSuperAdmin = currentUserInfo.userName === 'admin' || 
             currentUserRoles.some(role => role.roleKey === 'admin')
-        const isGeneralManager = currentUserRoles.some(role => role.roleKey === 'ceo')
+        const isManager = currentUserRoles.some(role => role.roleKey === 'manager')
         
         // 判断当前用户是否是普通员工
         const isEmployee = currentUserRoles.some(role => 
-            role.roleKey && (role.roleKey.includes('employee') || role.roleKey.includes('common'))
+            role.roleKey === 'employee'
         )
         
         // 如果用户是普通员工或主管，使用部门ID过滤；否则获取所有用户
         const queryParams = {}
-        if (!isSuperAdmin && !isGeneralManager && currentUserDeptId) {
+        if (!isSuperAdmin && !isManager && currentUserDeptId) {
             queryParams.deptId = currentUserDeptId
         }
         
@@ -301,9 +301,9 @@ const fetchUserList = async () => {
                 })
             }
             
-            // 如果用户是普通员工或主管，进一步过滤：只显示同一部门的人员（包括主管和员工）
+            // 如果是普通员工或主管，进一步过滤：只显示同一部门的人员（包括主管和员工）
             let filteredUsers = allUsers
-            if (!isSuperAdmin && !isGeneralManager && currentUserDeptId) {
+            if (!isSuperAdmin && !isManager && currentUserDeptId) {
                 filteredUsers = allUsers.filter(user => {
                     // admin用户特殊处理，允许显示
                     if (user.userName === 'admin') return true

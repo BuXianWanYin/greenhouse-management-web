@@ -936,21 +936,21 @@ const batchPastureRules = computed(() => {
 const isEmployee = computed(() => {
   const userInfo = userStore.getUserInfo
   if (!userInfo || !userInfo.roles) return false
-  return userInfo.roles.some((role: string) => role.includes('employee'))
+  return userInfo.roles.some((role: string) => role === 'employee')
 })
 
 // 判断是否是超级管理员角色
 const isAdmin = computed(() => {
   const userInfo = userStore.getUserInfo
   if (!userInfo || !userInfo.roles) return false
-  return userInfo.roles.some((role: string) => role.includes('admin'))
+  return userInfo.roles.some((role: string) => role === 'admin')
 })
 
-// 判断是否是总经理角色
-const isGeneralManager = computed(() => {
+// 判断是否是主管角色
+const isManager = computed(() => {
   const userInfo = userStore.getUserInfo
   if (!userInfo || !userInfo.roles) return false
-  return userInfo.roles.some((role: string) => role.includes('ceo') || role.includes('总经理'))
+  return userInfo.roles.some((role: string) => role === 'manager')
 })
 
 // 获取当前用户ID
@@ -962,7 +962,23 @@ const currentUserId = computed(() => {
 // 获取当前用户的部门ID
 const currentUserDeptId = computed(() => {
   const userInfo: any = userStore.getUserInfo
-  return userInfo?.dept?.deptId ? Number(userInfo.dept.deptId) : null
+  // 首先尝试从userStore中获取
+  if (userInfo?.dept?.deptId) {
+    return Number(userInfo.dept.deptId)
+  }
+  
+  // 如果userStore中没有dept信息，从用户列表中查找当前用户
+  if (currentUserId.value && userList.value.length > 0) {
+    const currentUser = userList.value.find((u: any) => u.userId === currentUserId.value)
+    if (currentUser) {
+      const deptId = currentUser.dept?.deptId || currentUser.deptId
+      if (deptId) {
+        return Number(deptId)
+      }
+    }
+  }
+  
+  return null
 })
 
 // 筛选用户列表（根据角色过滤）
@@ -971,25 +987,47 @@ const filterUserList = computed(() => {
     // 员工只能看自己
     return userList.value.filter((u: any) => u.userId === currentUserId.value)
   } else if (isAdmin.value) {
-    // 超级管理员：过滤掉admin角色
+    // 超级管理员：显示所有非admin用户（即主管和员工）
     return userList.value.filter((user: any) => {
       if (user.admin === true) return false
+      // 注意：后端返回的roles可能是字符串数组或对象数组，需要兼容处理
       const roles = user.roles || []
-      return !roles.some((role: any) => role.roleKey === 'admin')
+      const hasAdminRole = roles.some((role: any) => {
+        if (typeof role === 'string') {
+          return role === 'admin'
+        }
+        return role.roleKey === 'admin'
+      })
+      return !hasAdminRole
     })
-  } else if (isGeneralManager.value) {
-    // CEO：过滤掉admin和ceo角色
+  } else if (isManager.value) {
+    // 主管：显示本部门的所有员工（不包括admin和其他主管）
     return userList.value.filter((user: any) => {
       if (user.admin === true) return false
       const roles = user.roles || []
-      return !roles.some((role: any) => role.roleKey === 'admin' || role.roleKey === 'ceo')
+      // 只显示employee角色的用户
+      const hasEmployeeRole = roles.some((role: any) => {
+        if (typeof role === 'string') {
+          return role === 'employee'
+        }
+        return role.roleKey === 'employee'
+      })
+      if (!hasEmployeeRole) return false
+      const userDeptId = user.dept?.deptId || user.deptId
+      return userDeptId === currentUserDeptId.value
     })
   } else {
-    // 主管只显示本部门的用户
+    // 默认：显示本部门的用户
     return userList.value.filter((user: any) => {
       if (user.admin === true) return false
       const roles = user.roles || []
-      if (roles.some((role: any) => role.roleKey === 'admin' || role.roleKey === 'ceo')) return false
+      const hasAdminRole = roles.some((role: any) => {
+        if (typeof role === 'string') {
+          return role === 'admin'
+        }
+        return role.roleKey === 'admin'
+      })
+      if (hasAdminRole) return false
       const userDeptId = user.dept?.deptId || user.deptId
       return userDeptId === currentUserDeptId.value
     })
@@ -999,12 +1037,17 @@ const filterUserList = computed(() => {
 // 根据部门筛选用户列表（用于用户下拉框）
 const filterUserListByDept = computed(() => {
   let baseList = filterUserList.value
+  console.log('[排班页面] 基础用户列表:', baseList.length, '个用户')
+  console.log('[排班页面] 当前用户部门ID:', currentUserDeptId.value)
+  console.log('[排班页面] 当前用户角色:', { isAdmin: isAdmin.value, isManager: isManager.value, isEmployee: isEmployee.value })
+  
   // 如果选择了部门，进一步按部门过滤
   if (queryParams.deptId) {
     baseList = baseList.filter((user: any) => {
       const userDeptId = user.dept?.deptId || user.deptId
       return userDeptId === queryParams.deptId
     })
+    console.log('[排班页面] 按部门过滤后:', baseList.length, '个用户')
   }
   return baseList
 })
