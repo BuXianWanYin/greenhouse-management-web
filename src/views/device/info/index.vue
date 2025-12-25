@@ -18,9 +18,9 @@
         </el-form>
       </template>
       <template #bottom>
-        <el-button @click="handleAdd" v-hasPermi="['server:device:add']" v-ripple>新增 </el-button>
-        <el-button @click="handleExport" v-hasPermi="['server:device:export']" v-ripple>导出</el-button>
-        <el-button @click="openBatchBindDialog = true" v-hasPermi="['server:device:edit']" v-ripple style="margin-left: 8px;">一键绑定温室</el-button>
+        <el-button @click="handleAdd" v-hasPermi="['agriculture:device:add']" v-ripple>新增 </el-button>
+        <el-button @click="handleExport" v-hasPermi="['agriculture:device:export']" v-ripple>导出</el-button>
+        <el-button @click="openBatchBindDialog = true" v-hasPermi="['agriculture:device:edit']" v-ripple style="margin-left: 8px;">一键绑定温室</el-button>
       </template>
     </table-bar>
 
@@ -96,25 +96,25 @@
 
         <div class="card-footer">
           <el-button-group>
-            <el-button :class="['card-action-btn', 'status', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-hasPermi="['server:device:status']"
+            <el-button :class="['card-action-btn', 'status', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-hasPermi="['agriculture:device:edit']"
               @click="handleStatus(device)">
               <el-icon>
                 <Operation />
               </el-icon>运行状态
             </el-button>
-            <el-button :class="['card-action-btn', 'threshold', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-hasPermi="['server:device:threshold']"
+            <el-button :class="['card-action-btn', 'threshold', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-hasPermi="['agriculture:config:list']"
               @click="handleThreshold(device)">
               <el-icon>
                 <Setting />
               </el-icon>设备配置
             </el-button>
-            <el-button :class="['card-action-btn', 'edit', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-hasPermi="['server:device:edit']"
+            <el-button :class="['card-action-btn', 'edit', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-hasPermi="['agriculture:device:edit']"
               @click="handleUpdate(device)">
               <el-icon>
                 <Edit />
               </el-icon>编辑
             </el-button>
-            <el-button :class="['card-action-btn', 'delete', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-hasPermi="['server:device:remove']"
+            <el-button :class="['card-action-btn', 'delete', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-hasPermi="['agriculture:device:remove']"
               @click="handleDelete(device)">
               <el-icon>
                 <Delete />

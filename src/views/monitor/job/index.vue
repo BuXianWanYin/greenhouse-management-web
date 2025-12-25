@@ -32,15 +32,15 @@
         </el-form>
       </template>
       <template #bottom>
-        <el-button @click="handleAdd" v-hasPermi="['system:job:add']" v-ripple>新增 </el-button>
+        <el-button @click="handleAdd" v-hasPermi="['monitor:job:add']" v-ripple>新增 </el-button>
         <el-button
           @click="handleDelete"
           :disabled="multiple"
-          v-hasPermi="['system:job:remove']"
+          v-hasPermi="['monitor:job:remove']"
           v-ripple
           >删除
         </el-button>
-        <el-button @click="handleExport" v-hasPermi="['system:job:export']" v-ripple>导出 </el-button>
+        <el-button @click="handleExport" v-hasPermi="['monitor:job:export']" v-ripple>导出 </el-button>
         <el-button @click="handleJobLog" v-hasPermi="['monitor:job:query']" v-ripple>日志</el-button>
       </template>
     </table-bar>
@@ -101,18 +101,18 @@
           <template #default="scope">
             <button-table
               type="edit"
-              v-hasPermi="['system:job:edit']"
+              v-hasPermi="['monitor:job:edit']"
               @click="handleUpdate(scope.row)"
             />
             <button-table
               type="delete"
-              v-hasPermi="['system:job:remove']"
+              v-hasPermi="['monitor:job:remove']"
               @click="handleDelete(scope.row)"
             />
             <button-more
               :list="[
-                { key: 'run', label: '执行一次', auth: ['system:job:changeStatus'] },
-                { key: 'view', label: '任务详细', auth: ['system:job:query'] },
+                { key: 'run', label: '执行一次', auth: ['monitor:job:changeStatus'] },
+                { key: 'view', label: '任务详细', auth: ['monitor:job:query'] },
                 { key: 'jobLog', label: '调度日志', auth: ['monitor:job:query'] }
               ]"
               @click="buttonMoreClick($event, scope.row)"

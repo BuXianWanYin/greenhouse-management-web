@@ -70,7 +70,7 @@
                                     plain 
                                     @click="handleTask(Number(task.taskId))" 
                                     v-if="!tableBorder"
-                                    v-hasPermi="['agriculture:batchtask:query']">
+                                    v-hasPermi="['agriculture:batchtask:list']">
                                     <el-icon>
                                         <Edit />
                                     </el-icon>任务处理

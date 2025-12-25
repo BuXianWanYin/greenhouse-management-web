@@ -117,7 +117,7 @@
         </el-table-column>
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="scope">
-            <el-button link type="primary" @click="handleDetail(scope.row)" v-hasPermi="['agriculture:batch:query']">
+            <el-button link type="primary" @click="handleDetail(scope.row)" v-hasPermi="['agriculture:batch:list']">
               <el-icon><View /></el-icon>详情
             </el-button>
             <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['agriculture:batch:edit']">

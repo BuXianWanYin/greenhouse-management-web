@@ -27,8 +27,8 @@
         </el-form>
       </template>
       <template #bottom>
-        <el-button @click="handleAdd" v-hasPermi="['agriculture:rotationdetail:add']" v-ripple>新增</el-button>
-        <el-button @click="handleExport" v-hasPermi="['agriculture:rotationdetail:export']" v-ripple>导出</el-button>
+        <el-button @click="handleAdd" v-hasPermi="['agriculture:plandetail:add']" v-ripple>新增</el-button>
+        <el-button @click="handleExport" v-hasPermi="['agriculture:plandetail:export']" v-ripple>导出</el-button>
       </template>
     </table-bar>
 
@@ -60,10 +60,10 @@
         <el-table-column label="创建时间" prop="createTime" width="180" align="center" v-if="columns[9].show" />
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="scope">
-            <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['agriculture:rotationdetail:edit']">
+            <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['agriculture:plandetail:edit']">
               <el-icon><EditPen /></el-icon>修改
             </el-button>
-            <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['agriculture:rotationdetail:remove']">
+            <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['agriculture:plandetail:remove']">
               <el-icon><Delete /></el-icon>删除
             </el-button>
           </template>

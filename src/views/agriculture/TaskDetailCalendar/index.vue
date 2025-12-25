@@ -257,10 +257,31 @@ const initSelectedDate = () => {
     }
 }
 
-// 获取用户列表（过滤：只显示超级管理员、总经理、种植管理部主管和员工）
+// 获取用户列表（根据当前登录用户的部门过滤）
 const fetchUserList = async () => {
     try {
-        const firstRes = await UserService.listUser({ pageNum: 1, pageSize: 100 })
+        // 获取当前登录用户信息
+        const currentUserInfo = userStore.info
+        const currentUserDeptId = currentUserInfo.deptId || currentUserInfo.dept?.deptId
+        const currentUserRoles = currentUserInfo.roles || []
+        
+        // 判断当前用户是否是超级管理员或总经理
+        const isSuperAdmin = currentUserInfo.userName === 'admin' || 
+            currentUserRoles.some(role => role.roleKey === 'admin')
+        const isGeneralManager = currentUserRoles.some(role => role.roleKey === 'ceo')
+        
+        // 判断当前用户是否是普通员工
+        const isEmployee = currentUserRoles.some(role => 
+            role.roleKey && (role.roleKey.includes('employee') || role.roleKey.includes('common'))
+        )
+        
+        // 如果用户是普通员工或主管，使用部门ID过滤；否则获取所有用户
+        const queryParams = {}
+        if (!isSuperAdmin && !isGeneralManager && currentUserDeptId) {
+            queryParams.deptId = currentUserDeptId
+        }
+        
+        const firstRes = await UserService.listUser({ pageNum: 1, pageSize: 100, ...queryParams })
         if (firstRes.code === 200) {
             const total = firstRes.total || 0
             const firstPageRows = firstRes.rows || []
@@ -270,7 +291,7 @@ const fetchUserList = async () => {
                 const totalPages = Math.ceil(total / 100)
                 const promises = []
                 for (let page = 2; page <= totalPages; page++) {
-                    promises.push(UserService.listUser({ pageNum: page, pageSize: 100 }))
+                    promises.push(UserService.listUser({ pageNum: page, pageSize: 100, ...queryParams }))
                 }
                 const results = await Promise.all(promises)
                 results.forEach((res) => {
@@ -280,20 +301,17 @@ const fetchUserList = async () => {
                 })
             }
             
-            // 过滤：只保留超级管理员、总经理、种植管理部主管和员工
-            // 允许的角色ID: 1-超级管理员, 2-总经理, 3-种植管理部主管, 4-种植管理部员工
-            const allowedRoleIds = [1, 2, 3, 4]
-            const filteredUsers = allUsers.filter(user => {
-                // admin用户特殊处理
-                if (user.userName === 'admin') return true
-                // 检查用户角色
-                if (user.roles && user.roles.length > 0) {
-                    return user.roles.some(role => allowedRoleIds.includes(Number(role.roleId)))
-                }
-                // 如果没有roles信息，根据部门ID过滤（种植管理部 dept_id=101）
-                if (user.deptId === 101 || user.deptId === 100) return true
-                return false
-            })
+            // 如果用户是普通员工或主管，进一步过滤：只显示同一部门的人员（包括主管和员工）
+            let filteredUsers = allUsers
+            if (!isSuperAdmin && !isGeneralManager && currentUserDeptId) {
+                filteredUsers = allUsers.filter(user => {
+                    // admin用户特殊处理，允许显示
+                    if (user.userName === 'admin') return true
+                    // 过滤出同一部门的用户
+                    const userDeptId = user.deptId || user.dept?.deptId
+                    return userDeptId === currentUserDeptId
+                })
+            }
             
             userList.value = filteredUsers.map(item => ({
                 ...item,

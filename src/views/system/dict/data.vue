@@ -33,15 +33,15 @@
         </el-form>
       </template>
       <template #bottom>
-        <el-button @click="handleAdd" v-hasPermi="['system:data:add']" v-ripple>新增</el-button>
+        <el-button @click="handleAdd" v-hasPermi="['system:dict:add']" v-ripple>新增</el-button>
         <el-button
           @click="handleDelete"
           :disabled="multiple"
-          v-hasPermi="['system:data:remove']"
+          v-hasPermi="['system:dict:remove']"
           v-ripple
           >删除
         </el-button>
-        <el-button @click="handleExport" v-hasPermi="['system:data:export']" v-ripple>导出</el-button>
+        <el-button @click="handleExport" v-hasPermi="['system:dict:export']" v-ripple>导出</el-button>
         <el-button @click="handleClose" v-ripple>关闭</el-button>
       </template>
     </table-bar>
@@ -80,12 +80,12 @@
           <template #default="scope">
             <button-table
               type="edit"
-              v-hasPermi="['system:data:edit']"
+              v-hasPermi="['system:dict:edit']"
               @click="handleUpdate(scope.row)"
             />
             <button-table
               type="delete"
-              v-hasPermi="['system:data:remove']"
+              v-hasPermi="['system:dict:remove']"
               @click="handleDelete(scope.row)"
             />
           </template>

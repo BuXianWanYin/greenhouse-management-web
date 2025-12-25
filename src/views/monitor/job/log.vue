@@ -29,12 +29,12 @@
         <el-button
           @click="handleDelete"
           :disabled="multiple"
-          v-hasPermi="['system:log:remove']"
+          v-hasPermi="['monitor:job:query']"
           v-ripple
           >删除
         </el-button>
-        <el-button @click="handleClean" v-hasPermi="['system:log:remove']" v-ripple>清空 </el-button>
-        <el-button @click="handleExport" v-hasPermi="['system:log:export']" v-ripple>导出 </el-button>
+        <el-button @click="handleClean" v-hasPermi="['monitor:job:query']" v-ripple>清空 </el-button>
+        <el-button @click="handleExport" v-hasPermi="['monitor:job:query']" v-ripple>导出 </el-button>
         <el-button @click="handleClose" v-ripple>关闭 </el-button>
       </template>
     </table-bar>
@@ -84,7 +84,7 @@
           <template #default="scope">
             <button-table
               type="delete"
-              v-hasPermi="['system:log:remove']"
+              v-hasPermi="['monitor:job:remove']"
               @click="handleDelete(scope.row)"
             />
           </template>

@@ -45,8 +45,8 @@
             </el-form>
           </template>
           <template #bottom>
-            <el-button @click="handleAdd" v-hasPermi="['agriculture:rotationplan:add']" v-ripple>新增</el-button>
-            <el-button @click="handleExport" v-hasPermi="['agriculture:rotationplan:export']" v-ripple>导出</el-button>
+            <el-button @click="handleAdd" v-hasPermi="['agriculture:plantingplan:add']" v-ripple>新增</el-button>
+            <el-button @click="handleExport" v-hasPermi="['agriculture:plantingplan:export']" v-ripple>导出</el-button>
           </template>
         </table-bar>
 
@@ -99,13 +99,13 @@
             <el-table-column label="创建时间" prop="createTime" width="180" align="center" v-if="columns[11].show" />
             <el-table-column label="操作" width="250" align="center" fixed="right">
               <template #default="scope">
-                <el-button link type="primary" @click="handleDetail(scope.row)" v-hasPermi="['agriculture:rotationplan:query']">
+                <el-button link type="primary" @click="handleDetail(scope.row)" v-hasPermi="['agriculture:plantingplan:list']">
                   <el-icon><View /></el-icon>详情
                 </el-button>
-                <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['agriculture:rotationplan:edit']">
+                <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['agriculture:plantingplan:edit']">
                   <el-icon><EditPen /></el-icon>修改
                 </el-button>
-                <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['agriculture:rotationplan:remove']">
+                <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['agriculture:plantingplan:remove']">
                   <el-icon><Delete /></el-icon>删除
                 </el-button>
               </template>
@@ -344,7 +344,7 @@
             </el-form>
           </template>
           <template #bottom>
-            <el-button @click="handleAddDetailInDialog" v-hasPermi="['agriculture:rotationdetail:add']" v-ripple>新增</el-button>
+            <el-button @click="handleAddDetailInDialog" v-hasPermi="['agriculture:plandetail:add']" v-ripple>新增</el-button>
           </template>
         </table-bar>
 
@@ -391,10 +391,10 @@
             </el-table-column>
             <el-table-column label="操作" min-width="150" align="center">
               <template #default="scope">
-                <el-button link type="primary" @click="handleUpdateDetailInDialog(scope.row)" v-hasPermi="['agriculture:rotationdetail:edit']">
+                <el-button link type="primary" @click="handleUpdateDetailInDialog(scope.row)" v-hasPermi="['agriculture:plandetail:edit']">
                   <el-icon><EditPen /></el-icon>修改
                 </el-button>
-                <el-button link type="danger" @click="handleDeleteDetailInDialog(scope.row)" v-hasPermi="['agriculture:rotationdetail:remove']">
+                <el-button link type="danger" @click="handleDeleteDetailInDialog(scope.row)" v-hasPermi="['agriculture:plandetail:remove']">
                   <el-icon><Delete /></el-icon>删除
                 </el-button>
               </template>
@@ -487,6 +487,16 @@
                   <el-tag v-else-if="scope.row.planStatus === '1'" type="success">执行中</el-tag>
                   <el-tag v-else-if="scope.row.planStatus === '2'" type="primary">已完成</el-tag>
                   <el-tag v-else>{{ scope.row.planStatus || '--' }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="关联批次" prop="batchNames" min-width="150" align="center" v-if="columnsSeasonalPlan[12].show" show-overflow-tooltip>
+                <template #default="scope">
+                  <template v-if="scope.row.batchNames && scope.row.batchNames.length > 0">
+                    <el-tag v-for="(name, index) in scope.row.batchNames" :key="index" size="small" style="margin: 2px;" type="success">
+                      {{ name }}
+                    </el-tag>
+                  </template>
+                  <span v-else>--</span>
                 </template>
               </el-table-column>
               <el-table-column label="操作" min-width="150" align="center">
@@ -1605,7 +1615,8 @@ const columnsSeasonalPlan = reactive([
   { name: '预期结束', show: true },
   { name: '实际开始', show: true },
   { name: '实际结束', show: true },
-  { name: '计划状态', show: true }
+  { name: '计划状态', show: true },
+  { name: '关联批次', show: true }
 ])
 
 const changeColumnSeasonalPlan = (list: any) => {
@@ -1819,6 +1830,8 @@ const loadSeasonalPlanList = async () => {
       })
       seasonalPlanListData.value = filteredRows
       seasonalPlanTotal.value = filteredRows.length
+      // 加载关联批次
+      await loadBatchNamesForSeasonalPlans()
     } else {
       seasonalPlanListData.value = []
       seasonalPlanTotal.value = 0
@@ -2040,6 +2053,59 @@ const loadBatchNamesForDetails = async () => {
     }
   } catch (error) {
     console.error('加载批次名称失败:', error)
+  }
+}
+
+/** 为季度计划加载批次名称 */
+const loadBatchNamesForSeasonalPlans = async () => {
+  if (!seasonalPlanListData.value || seasonalPlanListData.value.length === 0) return
+  
+  try {
+    const batchRes = await AgricultureCropBatchService.listBatch({
+      pageNum: 1,
+      pageSize: 1000
+    })
+    
+    if (batchRes.code === 200 && batchRes.rows) {
+      seasonalPlanListData.value.forEach((plan: any) => {
+        // 查找与季度计划关联的批次
+        const matchedBatches = batchRes.rows.filter((batch: any) => {
+          // 通过planId匹配
+          if (batch.planId && String(batch.planId) === String(plan.planId)) {
+            return true
+          }
+          // 通过季节类型、年份、温室匹配
+          if (plan.seasonType && plan.planYear && plan.pastureId) {
+            const seasonMap: { [key: string]: string } = {
+              '1': 'spring',
+              '2': 'summer',
+              '3': 'autumn',
+              '4': 'winter'
+            }
+            const planSeasonType = seasonMap[String(plan.seasonType)] || String(plan.seasonType)
+            const batchSeasonType = String(batch.seasonType)
+            const matchesSeason = batchSeasonType === planSeasonType ||
+                                 batchSeasonType === String(plan.seasonType) ||
+                                 (seasonMap[batchSeasonType] && seasonMap[batchSeasonType] === planSeasonType)
+            
+            if (matchesSeason && 
+                String(batch.planYear) === String(plan.planYear) &&
+                batch.pastureId == plan.pastureId) {
+              return true
+            }
+          }
+          return false
+        })
+        
+        if (matchedBatches && matchedBatches.length > 0) {
+          plan.batchNames = matchedBatches.map((batch: any) => batch.batchName).filter((name: string) => name)
+        } else {
+          plan.batchNames = []
+        }
+      })
+    }
+  } catch (error) {
+    console.error('加载季度计划批次名称失败:', error)
   }
 }
 
@@ -2389,9 +2455,9 @@ const getSeasonTypeTagType = (seasonType: string | undefined | null): 'success' 
   if (seasonTypeStr === '2' || seasonTypeStr === 'summer' || seasonTypeStr === '夏季') {
     return 'warning'
   }
-  // 秋季：蓝色（info）
+  // 秋季：橙红色（danger）
   if (seasonTypeStr === '3' || seasonTypeStr === 'autumn' || seasonTypeStr === 'fall' || seasonTypeStr === '秋季') {
-    return 'info'
+    return 'danger'
   }
   // 冬季：深蓝色（primary）
   if (seasonTypeStr === '4' || seasonTypeStr === 'winter' || seasonTypeStr === '冬季') {
