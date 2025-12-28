@@ -138,16 +138,45 @@
               @click.stop="handleCellClick(user.userId, date, $event)"
             >
               <div class="cell-content">
-                <div
+                <el-tooltip
                   v-for="schedule in getSchedulesForUserAndDate(user.userId, date)"
                   :key="schedule.scheduleId"
-                  class="schedule-badge"
-                  :class="schedule.workType || 'normal'"
-                  @click.stop="handleDelete(schedule)"
-                  :title="getScheduleTooltip(schedule)"
+                  placement="top"
+                  effect="light"
+                  popper-class="schedule-tooltip"
                 >
-                  {{ getScheduleDisplayText(schedule) }}
-                </div>
+                  <template #content>
+                    <div class="tooltip-content">
+                      <div v-if="schedule.ruleName" class="tooltip-line">
+                        <span class="tooltip-label">班次：</span>
+                        <span class="tooltip-value">{{ schedule.ruleName }}</span>
+                      </div>
+                      <div v-if="schedule.pastureName" class="tooltip-line">
+                        <span class="tooltip-label">温室：</span>
+                        <span class="tooltip-value">{{ schedule.pastureName }}</span>
+                      </div>
+                      <div v-if="schedule.batchName" class="tooltip-line">
+                        <span class="tooltip-label">批次：</span>
+                        <span class="tooltip-value">{{ schedule.batchName }}</span>
+                      </div>
+                      <div v-if="schedule.workStartTime && schedule.workEndTime" class="tooltip-line">
+                        <span class="tooltip-label">时间：</span>
+                        <span class="tooltip-value">{{ schedule.workStartTime?.substring(11, 16) }}-{{ schedule.workEndTime?.substring(11, 16) }}</span>
+                      </div>
+                      <div v-if="schedule.workType" class="tooltip-line">
+                        <span class="tooltip-label">类型：</span>
+                        <span class="tooltip-value">{{ {'normal': '正常班', 'leave': '请假', 'rest': '休息'}[schedule.workType] }}</span>
+                      </div>
+                    </div>
+                  </template>
+                  <div
+                    class="schedule-badge"
+                    :class="schedule.workType || 'normal'"
+                    @click.stop="handleDelete(schedule)"
+                  >
+                    {{ getScheduleDisplayText(schedule) }}
+                  </div>
+                </el-tooltip>
                 <div v-if="getSchedulesForUserAndDate(user.userId, date).length === 0" class="cell-empty">
                   <span class="empty-hint">点击排班</span>
                 </div>
@@ -572,15 +601,41 @@ const getScheduleDisplayText = (schedule: AgricultureEmployeeScheduleResult) => 
 
 // 获取排班提示文本
 const getScheduleTooltip = (schedule: AgricultureEmployeeScheduleResult) => {
+  const lines: string[] = []
+  
+  // 班次信息
+  if (schedule.ruleName) {
+    lines.push(`班次：${schedule.ruleName}`)
+  }
+  
+  // 温室信息
+  if (schedule.pastureName) {
+    lines.push(`温室：${schedule.pastureName}`)
+  }
+  
+  // 批次信息
+  if (schedule.batchName) {
+    lines.push(`批次：${schedule.batchName}`)
+  }
+  
+  // 时间信息
   const startTime = schedule.workStartTime?.substring(11, 16) || ''
   const endTime = schedule.workEndTime?.substring(11, 16) || ''
-  const ruleName = schedule.ruleName || ''
-  if (ruleName && startTime && endTime) {
-    return `${ruleName} (${startTime}-${endTime})`
-  } else if (startTime && endTime) {
-    return `${startTime}-${endTime}`
+  if (startTime && endTime) {
+    lines.push(`时间：${startTime}-${endTime}`)
   }
-  return ruleName || ''
+  
+  // 工作类型
+  const workTypeMap: Record<string, string> = {
+    'normal': '正常班',
+    'leave': '请假',
+    'rest': '休息'
+  }
+  if (schedule.workType) {
+    lines.push(`类型：${workTypeMap[schedule.workType] || schedule.workType}`)
+  }
+  
+  return lines.join('\n')
 }
 
 // 加载网格视图数据
@@ -1199,33 +1254,66 @@ const getRuleList = async () => {
 /** 获取温室列表 */
 const getPastureList = async () => {
   try {
+    console.log('🌱 开始获取温室列表...')
     const res = await AgriculturePastureService.listPasture({ pageNum: 1, pageSize: 1000 })
+    console.log('🌱 温室列表API响应:', res)
     if (res.code === 200) {
       pastureList.value = res.rows || []
+      console.log('✅ 温室列表加载成功，共', pastureList.value.length, '个温室')
     }
   } catch (error) {
-    console.error('获取温室列表失败:', error)
+    console.error('❌ 获取温室列表失败:', error)
   }
 }
 
 /** 构建温室批次级联选择器选项 */
 const buildPastureBatchCascaderOptions = async () => {
+  console.log('🏗️ 开始构建级联选择器选项，温室数量:', pastureList.value.length)
   const options: any[] = []
   for (const pasture of pastureList.value) {
-    const batches = await AgricultureCropBatchService.listBatchByPasture(pasture.id || pasture.pastureId)
-    const children = (batches.rows || []).map((batch: any) => ({
-      label: batch.batchName,
-      value: Number(batch.batchId),
-      isLeaf: true
-    }))
-    options.push({
-      label: pasture.name || pasture.pastureName,
-      value: Number(pasture.id || pasture.pastureId),
-      children: children.length > 0 ? children : undefined,
-      isLeaf: children.length === 0
-    })
+    try {
+      console.log('📦 正在获取温室批次:', pasture.name || pasture.pastureName, 'ID:', pasture.id || pasture.pastureId)
+      const batches: any = await AgricultureCropBatchService.listBatchByPasture(pasture.id || pasture.pastureId)
+      console.log('📦 批次API响应:', batches)
+      
+      // 兼容两种返回格式：{data: []} 或 {rows: []}
+      const batchList = batches.data || batches.rows || []
+      const children = batchList.map((batch: any) => ({
+        label: batch.batchName,
+        value: Number(batch.batchId),
+        isLeaf: true
+      }))
+      
+      console.log('📦 温室', pasture.name || pasture.pastureName, '的批次数量:', children.length)
+      console.log('📦 批次详情:', children)
+      
+      // 显示所有温室，如果没有批次则显示"暂无批次"的禁用选项
+      if (children.length > 0) {
+        options.push({
+          label: pasture.name || pasture.pastureName,
+          value: Number(pasture.id || pasture.pastureId),
+          children: children
+        })
+      } else {
+        // 没有批次时，添加一个禁用的提示选项
+        options.push({
+          label: pasture.name || pasture.pastureName,
+          value: Number(pasture.id || pasture.pastureId),
+          children: [{
+            label: '暂无批次',
+            value: -1,
+            disabled: true,
+            isLeaf: true
+          }]
+        })
+      }
+    } catch (error) {
+      console.error(`❌ 获取温室 ${pasture.id || pasture.pastureId} 的批次失败:`, error)
+    }
   }
   pastureBatchCascaderOptions.value = options
+  console.log('✅ 级联选择器选项构建完成，共', options.length, '个温室')
+  console.log('📋 最终选项:', JSON.stringify(options, null, 2))
 }
 
 /** 处理单个排班温室批次级联选择器变化 */
@@ -1919,6 +2007,35 @@ watch(() => open.value, (newVal) => {
   .selection-actions {
     display: flex;
     gap: 10px;
+  }
+}
+
+// Tooltip样式
+:deep(.schedule-tooltip) {
+  max-width: 300px;
+}
+
+.tooltip-content {
+  padding: 4px 0;
+  
+  .tooltip-line {
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 13px;
+    line-height: 1.5;
+    
+    .tooltip-label {
+      font-weight: 600;
+      color: #606266;
+      min-width: 50px;
+      flex-shrink: 0;
+    }
+    
+    .tooltip-value {
+      color: #303133;
+      word-break: break-all;
+    }
   }
 }
 </style>
