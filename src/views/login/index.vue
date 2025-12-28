@@ -40,7 +40,7 @@
             <el-form-item prop="username">
               <el-input :placeholder="$t('login.placeholder[0]')" size="large" v-model.trim="formData.username" />
             </el-form-item>
-            <el-form-item prop="password">
+            <el-form-item prop="password">image.png
               <el-input :placeholder="$t('login.placeholder[1]')" size="large" v-model.trim="formData.password"
                 type="password" radius="8px" autocomplete="off" />
             </el-form-item>

@@ -23,46 +23,6 @@
         <QuickActions />
       </div>
     </div>
-    
-    <!-- 底部系统介绍 -->
-    <div class="bottom-wrap art-custom-card" style="margin-bottom: 60px;">
-      <div class="intro-content">
-        <h2 class="box-title">关于温室种植计划管理与人员分工系统</h2>
-        <p class="intro-text">{{ systemName }} 是一款专业的温室种植计划管理与人员分工系统</p>
-        <p class="intro-text">系统集成了种植计划管理、批次任务管理、人员分工、作物管理、环境监测等核心功能，助力温室农业智能化管理</p>
-        
-        <div class="feature-list">
-          <div class="feature-item">
-            <el-icon class="feature-icon"><Document /></el-icon>
-            <div class="feature-content">
-              <h3>种植计划管理</h3>
-              <p>支持年度计划、季度计划、轮作计划等多种计划类型，实现全周期种植规划</p>
-            </div>
-          </div>
-          <div class="feature-item">
-            <el-icon class="feature-icon"><UserFilled /></el-icon>
-            <div class="feature-content">
-              <h3>人员分工管理</h3>
-              <p>灵活的人员分配机制，确保每个任务都有明确的责任人</p>
-            </div>
-          </div>
-          <div class="feature-item">
-            <el-icon class="feature-icon"><Crop /></el-icon>
-            <div class="feature-content">
-              <h3>作物信息管理</h3>
-              <p>完善的作物作物库管理，支持作业流程配置和智能分析</p>
-            </div>
-          </div>
-          <div class="feature-item">
-            <el-icon class="feature-icon"><Monitor /></el-icon>
-            <div class="feature-content">
-              <h3>环境监测</h3>
-              <p>实时监测温室环境数据，为种植决策提供科学依据</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -165,6 +125,9 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .console {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 140px); // 减去header、padding等高度
   padding-bottom: 15px;
 
   // 主标题
@@ -189,6 +152,7 @@ onMounted(() => {
     gap: 16px;
     margin-top: 16px;
     align-items: stretch;
+    flex-shrink: 0;
 
     :deep(.today-sales) {
       flex-shrink: 0;
@@ -205,18 +169,29 @@ onMounted(() => {
     display: flex;
     gap: 16px;
     margin-top: 16px;
-    min-height: 320px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 
     .col-activities {
       flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
 
     .col-schedule {
       flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
 
     .col-actions {
       width: 280px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
   }
 

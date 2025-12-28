@@ -1,9 +1,3 @@
-/*
- * Aurora Customized live2d Widget
- *
- * @author Benny Guo <code.tridiamond@gmail.com>
- * @live2d by StevenJoeZhang <https://github.com/stevenjoezhang/live2d-widget>
- */
 
 interface AWFConfig {
   resourcePath: string
@@ -187,8 +181,6 @@ class AuroraBotSoftware {
   }
 
   registerEventListener() {
-    // TODO: adding console opened function
-
     document.addEventListener('copy', () => {
       this.showMessage(this.botTips.copy, 6000, 9)
     })

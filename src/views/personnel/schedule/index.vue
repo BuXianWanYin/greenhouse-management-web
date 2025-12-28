@@ -606,7 +606,7 @@ const loadGridData = async () => {
       gridScheduleMap.value = scheduleMap
       
       // 获取用户列表（根据角色和部门过滤，再根据选择的用户筛选）
-      let baseUserList = filterUserListByDept.value
+      let baseUserList = filterUserList.value
       
       // 如果选择了特定用户，只显示这些用户
       if (queryParams.userIds && queryParams.userIds.length > 0) {

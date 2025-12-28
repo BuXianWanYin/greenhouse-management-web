@@ -134,7 +134,7 @@
 
     <!-- 添加或修改设备信息对话框 -->
     <el-dialog :title="title" v-model="open" width="600px" append-to-body>
-      <el-form v-if="step === 1" ref="deviceRef" :model="form" :rules="rules" label-width="120px">
+      <el-form ref="deviceRef" :model="form" :rules="rules" label-width="120px">
         <el-form-item label="温室" prop="pastureId">
           <el-select v-model="form.pastureId" placeholder="请选择温室" clearable
             style="width: 100%" :loading="cascaderLoading">
