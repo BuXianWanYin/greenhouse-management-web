@@ -255,7 +255,12 @@
 
         p {
           margin: 0 10px 0 15px;
-          font-size: 18px;
+          font-size: 16px;
+          font-weight: 500;
+          max-width: 300px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
       }
 

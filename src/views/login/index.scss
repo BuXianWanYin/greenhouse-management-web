@@ -37,12 +37,16 @@
       z-index: 100;
       display: flex;
       align-items: center;
+      max-width: 600px;
 
       .title {
         margin: 3px 0 0 10px;
-        font-size: 20px;
-        font-weight: 400;
+        font-size: 18px;
+        font-weight: 500;
         color: var(--art-text-gray-100);
+        line-height: 1.4;
+        // 支持换行显示长系统名称
+        word-break: break-all;
       }
     }
 
