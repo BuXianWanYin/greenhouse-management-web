@@ -7,6 +7,8 @@ export interface AgricultureEmployeeScheduleResult {
   nickName?: string
   pastureId?: number | string
   pastureName?: string
+  batchId?: number | string
+  batchName?: string
   scheduleDate: string
   workStartTime: string
   workEndTime: string

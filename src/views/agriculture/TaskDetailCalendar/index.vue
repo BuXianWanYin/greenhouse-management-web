@@ -95,6 +95,7 @@ import { AgricultureTaskLogService } from '@/api/agriculture/logApi'
 import { AgricultureCostEmployeeService } from '@/api/agriculture/costEmployeeApi'
 import { AgricultureResourceUsageService } from '@/api/agriculture/resourceUsageApi'
 import { AgricultureTaskAttachmentService } from '@/api/agriculture/taskAttachmentApi'
+import { AgricultureScheduleService } from '@/api/agriculture/scheduleApi'
 import { UserService } from '@/api/system/userApi'
 import { useUserStore } from '@/store/modules/user'
 
@@ -209,9 +210,39 @@ const recordedDays = computed(() => {
     }).length
 })
 
-const selectedEmployeeObjects = computed(() =>
-    userList.value.filter(user => selectEmployeeList.value.includes(user.userId))
-)
+// 排班映射数据 (日期 -> 排班列表)
+const scheduleMap = ref(new Map())
+
+const selectedEmployeeObjects = computed(() => {
+    // 如果没有选中日期，返回全部任务人员
+    if (!selectedDate.value) {
+        return userList.value.filter(user => selectEmployeeList.value.includes(user.userId))
+    }
+    
+    // 如果有选中日期且有批次ID，返回当天有在此批次排班的任务人员
+    if (form.batchId) {
+        const daySchedules = scheduleMap.value.get(selectedDate.value) || []
+        
+        // 获取当天在此批次有正常排班的用户ID列表
+        const scheduledUserIds = daySchedules
+            .filter(schedule => 
+                schedule.batchId && 
+                Number(schedule.batchId) === Number(form.batchId) &&
+                schedule.workType === 'normal' &&
+                schedule.status === '0'
+            )
+            .map(schedule => Number(schedule.userId))
+        
+        // 只返回既是任务人员又有排班的用户
+        return userList.value.filter(user => 
+            selectEmployeeList.value.includes(user.userId) && 
+            scheduledUserIds.includes(Number(user.userId))
+        )
+    }
+    
+    // 没有批次ID，返回全部任务人员
+    return userList.value.filter(user => selectEmployeeList.value.includes(user.userId))
+})
 
 // 获取任务详情
 const fetchTaskDetail = async () => {
@@ -329,6 +360,35 @@ const fetchUserList = async () => {
 const fetchLogList = async () => {
     const response = await AgricultureTaskLogService.listByTaskId(props.taskId)
     logList.value = response?.rows || []
+}
+
+// 获取排班数据（用于过滤当天有排班的员工）
+const fetchScheduleData = async () => {
+    if (!form.batchId) return
+    
+    try {
+        const res = await AgricultureScheduleService.listSchedule({
+            batchId: form.batchId,
+            status: '0',
+            workType: 'normal',
+            pageNum: 1,
+            pageSize: 1000
+        })
+        
+        if (res.code === 200 && res.rows) {
+            const map = new Map()
+            res.rows.forEach(schedule => {
+                const date = schedule.scheduleDate.substring(0, 10)
+                if (!map.has(date)) {
+                    map.set(date, [])
+                }
+                map.get(date).push(schedule)
+            })
+            scheduleMap.value = map
+        }
+    } catch (error) {
+        console.error('获取排班数据失败:', error)
+    }
 }
 
 // 获取任务员工
@@ -501,6 +561,7 @@ const initData = async () => {
         fetchLogList()
     ])
     await fetchTaskDetail()
+    await fetchScheduleData()
     await fetchTaskEmployee()
     await fetchDailySummary()
 }

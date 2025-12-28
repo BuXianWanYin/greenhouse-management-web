@@ -8,7 +8,7 @@
       <div class="schedule-table" v-if="scheduleList.length > 0">
         <div class="table-header">
           <span class="col-name">姓名</span>
-          <span class="col-pasture">温室</span>
+          <span class="col-pasture">温室/批次</span>
           <span class="col-time">时间</span>
         </div>
         <div class="table-body">
@@ -23,7 +23,17 @@
               </el-avatar>
               {{ item.userName }}
             </span>
-            <span class="col-pasture">{{ item.pastureName || '-' }}</span>
+            <span class="col-pasture">
+              <template v-if="item.pastureName && item.batchName">
+                {{ item.pastureName }}/{{ item.batchName }}
+              </template>
+              <template v-else-if="item.pastureName">
+                {{ item.pastureName }}
+              </template>
+              <template v-else>
+                -
+              </template>
+            </span>
             <span class="col-time">{{ item.startTime }}-{{ item.endTime }}</span>
           </div>
         </div>
@@ -40,6 +50,7 @@ interface ScheduleItem {
   scheduleId: number
   userName: string
   pastureName: string
+  batchName?: string
   ruleName: string
   workType: string
   startTime: string

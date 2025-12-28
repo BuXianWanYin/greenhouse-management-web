@@ -26,12 +26,6 @@
           </template>
         </el-dropdown>
       </div>
-      <div class="header">
-        <svg class="icon" aria-hidden="true">
-          <use xlink:href="#iconsys-zhaopian-copy"></use>
-        </svg>
-        <h1>{{ systemName }}</h1>
-      </div>
       <div class="login-wrap">
         <div class="form">
           <h3 class="title">{{ $t('login.title') }}</h3>
@@ -40,7 +34,7 @@
             <el-form-item prop="username">
               <el-input :placeholder="$t('login.placeholder[0]')" size="large" v-model.trim="formData.username" />
             </el-form-item>
-            <el-form-item prop="password">image.png
+            <el-form-item prop="password">
               <el-input :placeholder="$t('login.placeholder[1]')" size="large" v-model.trim="formData.password"
                 type="password" radius="8px" autocomplete="off" />
             </el-form-item>

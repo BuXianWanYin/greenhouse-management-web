@@ -169,9 +169,14 @@
       <!-- 选择提示 -->
       <div v-if="selectedDateRange" class="selection-info">
         <span>已选择日期范围：{{ selectedDateRange.start }} 至 {{ selectedDateRange.end }}</span>
-        <el-button type="primary" size="small" @click="openGridBatchDialog" style="margin-left: 20px">
-          批量排班
-        </el-button>
+        <div class="selection-actions">
+          <el-button type="primary" size="small" @click="openGridBatchDialog">
+            批量排班
+          </el-button>
+          <el-button type="danger" size="small" @click="handleBatchDelete" v-hasPermi="['agriculture:schedule:remove']">
+            批量删除
+          </el-button>
+        </div>
       </div>
     </el-card>
 
@@ -201,19 +206,17 @@
             <el-option label="休息" value="rest" />
           </el-select>
         </el-form-item>
-        <el-form-item label="温室" prop="pastureId" :rules="pastureRules" v-if="form.workType === 'normal' && isPastureRequired">
-          <el-select
-            v-model="form.pastureId"
-            placeholder="请选择温室"
+        <el-form-item label="温室/批次" prop="pastureBatchCascaderValue" v-if="form.workType === 'normal'">
+          <el-cascader
+            v-model="pastureBatchCascaderValue"
+            :options="pastureBatchCascaderOptions"
+            :props="pastureBatchCascaderProps"
+            placeholder="请选择温室和批次"
+            clearable
+            filterable
             style="width: 100%"
-          >
-            <el-option
-              v-for="pasture in pastureList"
-              :key="pasture.id || pasture.pastureId"
-              :label="pasture.name || pasture.pastureName"
-              :value="pasture.id || pasture.pastureId"
-            />
-          </el-select>
+            @change="handlePastureBatchCascaderChange"
+          />
         </el-form-item>
         <el-form-item label="排班日期" prop="scheduleDate">
           <el-date-picker
@@ -265,19 +268,17 @@
             <el-option label="休息" value="rest" />
           </el-select>
         </el-form-item>
-        <el-form-item label="温室" prop="pastureId" :rules="batchPastureRules" v-if="batchForm.workType === 'normal' && isBatchPastureRequired">
-          <el-select 
-            v-model="batchForm.pastureId" 
-            placeholder="请选择温室"
+        <el-form-item label="温室/批次" prop="pastureBatch" v-if="batchForm.workType === 'normal'">
+          <el-cascader
+            v-model="batchPastureBatchCascaderValue"
+            :options="pastureBatchCascaderOptions"
+            :props="pastureBatchCascaderProps"
+            placeholder="请选择温室和批次"
+            clearable
+            filterable
             style="width: 100%"
-          >
-            <el-option
-              v-for="pasture in pastureList"
-              :key="pasture.id || pasture.pastureId"
-              :label="pasture.name || pasture.pastureName"
-              :value="pasture.id || pasture.pastureId"
-            />
-          </el-select>
+            @change="handleBatchPastureBatchCascaderChange"
+          />
         </el-form-item>
         <el-form-item label="日期范围" prop="dateRange">
           <el-date-picker
@@ -324,6 +325,8 @@ import { AgricultureScheduleService } from '@/api/agriculture/scheduleApi'
 import { AgricultureEmployeeScheduleResult } from '@/types/agriculture/schedule'
 import { UserService } from '@/api/system/userApi'
 import { AgricultureScheduleRuleService, AgricultureScheduleRuleResult } from '@/api/agriculture/scheduleRuleApi'
+import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
+import { AgricultureCropBatchService } from '@/api/agriculture/cropBatchApi'
 import { downloadExcel, resetForm } from '@/utils/utils'
 import { useUserStore } from '@/store/modules/user'
 import dayjs from 'dayjs'
@@ -343,9 +346,23 @@ const batchFormRef = ref<FormInstance>()
 const queryFormRef = ref<FormInstance>()
 const userList = ref<any[]>([])
 const ruleList = ref<AgricultureScheduleRuleResult[]>([])
+const pastureList = ref<any[]>([])
 const gridMonth = ref(dayjs().format('YYYY-MM'))
 const gridStartDate = ref(dayjs().startOf('month').format('YYYY-MM-DD'))
 const gridEndDate = ref(dayjs().endOf('month').format('YYYY-MM-DD'))
+
+// 级联选择器相关数据
+const pastureBatchCascaderValue = ref<(string | number)[]>([])
+const pastureBatchCascaderOptions = ref<any[]>([])
+const pastureBatchCascaderProps = {
+  expandTrigger: 'hover' as const,
+  value: 'value',
+  label: 'label',
+  children: 'children',
+  emitPath: true
+}
+
+const batchPastureBatchCascaderValue = ref<(string | number)[]>([])
 
 // 月份变化处理
 const handleMonthChange = (month: string) => {
@@ -361,6 +378,7 @@ const form = reactive({
   scheduleId: undefined as number | undefined,
   userId: undefined as number | undefined,
   pastureId: undefined as number | undefined,
+  batchId: undefined as number | undefined,
   scheduleDate: '',
   workStartTime: '',
   workEndTime: '',
@@ -384,6 +402,7 @@ const userStore = useUserStore()
 const batchForm = reactive({
   userId: undefined as number | undefined,
   pastureId: undefined as number | undefined,
+  batchId: undefined as number | undefined,
   dateRange: [] as string[],
   ruleId: undefined as number | undefined,
   workStartTime: '08:00',
@@ -784,6 +803,8 @@ const openGridBatchDialog = () => {
   // 自动填充选中的用户ID（如果已选择）
   batchForm.userId = selectedUserId.value || undefined
   batchForm.pastureId = undefined
+  batchForm.batchId = undefined
+  batchPastureBatchCascaderValue.value = []
   // 自动填充选中的日期范围
   batchForm.dateRange = [selectedDateRange.value.start, selectedDateRange.value.end]
   batchForm.ruleId = undefined
@@ -1110,6 +1131,7 @@ const reset = () => {
     scheduleId: undefined,
     userId: undefined,
     pastureId: undefined,
+    batchId: undefined,
     scheduleDate: '',
     workStartTime: '',
     workEndTime: '',
@@ -1119,6 +1141,7 @@ const reset = () => {
     status: '0',
     remark: ''
   })
+  pastureBatchCascaderValue.value = []
   scheduleRef.value?.resetFields()
 }
 
@@ -1170,6 +1193,116 @@ const getRuleList = async () => {
     }
   } catch (error) {
     console.error('获取排班规则列表失败:', error)
+  }
+}
+
+/** 获取温室列表 */
+const getPastureList = async () => {
+  try {
+    const res = await AgriculturePastureService.listPasture({ pageNum: 1, pageSize: 1000 })
+    if (res.code === 200) {
+      pastureList.value = res.rows || []
+    }
+  } catch (error) {
+    console.error('获取温室列表失败:', error)
+  }
+}
+
+/** 构建温室批次级联选择器选项 */
+const buildPastureBatchCascaderOptions = async () => {
+  const options: any[] = []
+  for (const pasture of pastureList.value) {
+    const batches = await AgricultureCropBatchService.listBatchByPasture(pasture.id || pasture.pastureId)
+    const children = (batches.rows || []).map((batch: any) => ({
+      label: batch.batchName,
+      value: Number(batch.batchId),
+      isLeaf: true
+    }))
+    options.push({
+      label: pasture.name || pasture.pastureName,
+      value: Number(pasture.id || pasture.pastureId),
+      children: children.length > 0 ? children : undefined,
+      isLeaf: children.length === 0
+    })
+  }
+  pastureBatchCascaderOptions.value = options
+}
+
+/** 处理单个排班温室批次级联选择器变化 */
+const handlePastureBatchCascaderChange = (value: any) => {
+  if (value && Array.isArray(value) && value.length === 2) {
+    form.pastureId = Number(value[0])
+    form.batchId = Number(value[1])
+  } else if (value && Array.isArray(value) && value.length === 1) {
+    form.pastureId = Number(value[0])
+    form.batchId = undefined
+  } else {
+    form.pastureId = undefined
+    form.batchId = undefined
+  }
+}
+
+/** 处理批量排班温室批次级联选择器变化 */
+const handleBatchPastureBatchCascaderChange = (value: any) => {
+  if (value && Array.isArray(value) && value.length === 2) {
+    batchForm.pastureId = Number(value[0])
+    batchForm.batchId = Number(value[1])
+  } else if (value && Array.isArray(value) && value.length === 1) {
+    batchForm.pastureId = Number(value[0])
+    batchForm.batchId = undefined
+  } else {
+    batchForm.pastureId = undefined
+    batchForm.batchId = undefined
+  }
+}
+
+/** 批量删除排班 */
+const handleBatchDelete = async () => {
+  if (!selectedDateRange.value || !selectedUserId.value) {
+    ElMessage.warning('请先选择要删除的日期范围和员工')
+    return
+  }
+
+  const startDate = selectedDateRange.value.start
+  const endDate = selectedDateRange.value.end
+  const userId = selectedUserId.value
+
+  // 获取选中日期范围内的所有排班ID
+  const schedulesToDelete: number[] = []
+  let current = dayjs(startDate)
+  const end = dayjs(endDate)
+
+  while (current.isBefore(end) || current.isSame(end)) {
+    const date = current.format('YYYY-MM-DD')
+    const schedules = getSchedulesForUserAndDate(userId, date)
+    schedules.forEach(s => {
+      if (s.scheduleId) {
+        schedulesToDelete.push(Number(s.scheduleId))
+      }
+    })
+    current = current.add(1, 'day')
+  }
+
+  if (schedulesToDelete.length === 0) {
+    ElMessage.info('选中日期范围内没有可删除的排班记录')
+    return
+  }
+
+  await ElMessageBox.confirm(
+    `是否确认删除员工 ${userList.value.find(u => u.userId === userId)?.nickName || userId} 在 ${startDate} 至 ${endDate} 期间的 ${schedulesToDelete.length} 条排班数据？`,
+    '提示',
+    { type: 'warning' }
+  )
+  try {
+    const res = await AgricultureScheduleService.deleteSchedule(schedulesToDelete.join(','))
+    if (res.code === 200) {
+      ElMessage.success(`成功删除 ${schedulesToDelete.length} 条排班记录`)
+      loadGridData()
+      clearSelection()
+    }
+  } catch (error) {
+    console.error('批量删除排班失败:', error)
+    ElMessage.error('批量删除排班失败')
   }
 }
 
@@ -1283,6 +1416,7 @@ const submitBatchForm = async () => {
         const schedule: any = {
           userId: batchForm.userId,
           pastureId: batchForm.pastureId,
+          batchId: batchForm.batchId,
           scheduleDate: current.format('YYYY-MM-DD'),
           workType: batchForm.workType,
           status: '0'
@@ -1335,6 +1469,8 @@ watch(
 onMounted(async () => {
   await getUserList()
   await getRuleList()
+  await getPastureList()
+  await buildPastureBatchCascaderOptions()
   loadGridData()
 })
 
@@ -1415,7 +1551,7 @@ watch(() => open.value, (newVal) => {
         }
         
         &.selected {
-          background-color: #409eff; /* 已选择 - 蓝色 */
+          background-color: #e1f3d8; /* 已选择 - 浅绿色，与单元格选中颜色一致 */
         }
       }
     }
@@ -1778,6 +1914,11 @@ watch(() => open.value, (newVal) => {
   span {
     color: #409eff;
     font-weight: 500;
+  }
+  
+  .selection-actions {
+    display: flex;
+    gap: 10px;
   }
 }
 </style>
