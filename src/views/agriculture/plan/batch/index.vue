@@ -20,9 +20,33 @@
             <form-select
               label="批次状态"
               prop="status"
-              v-model="queryParams.status"找一下路由的组件在哪里
+              v-model="queryParams.status"
               :options="statusOptions"
             />
+            <el-col :xs="24" :sm="12" :lg="6">
+              <el-form-item label="所属温室" prop="pastureId">
+                <el-select v-model="queryParams.pastureId" filterable clearable placeholder="全部" style="width: 100%" @change="handleQuery">
+                  <el-option
+                    v-for="p in pastureOptions"
+                    :key="p.id"
+                    :label="p.name"
+                    :value="p.id"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :lg="6">
+              <el-form-item label="作物类型" prop="classId">
+                <el-select v-model="queryParams.classId" filterable clearable placeholder="全部" style="width: 100%" @change="handleQuery">
+                  <el-option
+                    v-for="c in classOptions"
+                    :key="c.classId"
+                    :label="c.className"
+                    :value="c.classId"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
           </el-row>
         </el-form>
       </template>
@@ -437,7 +461,9 @@ const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
   batchName: '',
-  status: ''
+  status: '',
+  pastureId: undefined as number | undefined,  // 新增：温室筛选
+  classId: undefined as number | undefined      // 新增：作物筛选
 })
 
 /** 开始时间验证规则 */

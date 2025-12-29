@@ -26,8 +26,8 @@
       </el-row>
     </el-form>
 
-    <el-row :gutter="20">
-      <el-col :xs="24" :sm="12" :md="6" v-for="item in classList" :key="item.classId" style="margin-bottom: 20px">
+    <el-row :gutter="20" class="crop-card-grid">
+      <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="6" v-for="item in classList" :key="item.classId" style="margin-bottom: 20px">
         <class-card :class-name="item.className" :class-type-name="item.category" :class-image="item.classImage"
           :class-type="item.category" :class-des="item.classDes">
           <template #button>
@@ -338,6 +338,89 @@ onMounted(() => {
 })
 </script>
 <style lang="scss" scoped>
+/* 搜索表单响应式样式 */
+.el-form {
+  .el-row {
+    margin-bottom: 10px;
+  }
+}
+
+/* 卡片网格响应式布局 */
+.crop-card-grid {
+  margin-bottom: 0 !important;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+/* 确保所有卡片列高度一致 */
+.crop-card-grid > .el-col {
+  display: flex;
+  margin-bottom: 20px;
+
+  > * {
+    width: 100%;
+  }
+}
+
+/* Element Plus 断点说明:
+   xs: <768px (手机)
+   sm: ≥768px (平板)
+   md: ≥992px (小桌面)
+   lg: ≥1200px (桌面)
+   xl: ≥1920px (大屏)
+   
+   配置: :xs="24" :sm="12" :md="8" :lg="6" :xl="6"
+   意味着:
+   - 手机: 1列 (24/24 = 100%)
+   - 平板: 2列 (12/24 = 50%)
+   - 小桌面: 3列 (8/24 = 33.33%)
+   - 桌面及以上: 4列 (6/24 = 25%)
+*/
+
+/* 按钮组响应式 */
+@media (max-width: 768px) {
+  .el-form {
+    .el-col {
+      margin-bottom: 10px;
+    }
+
+    .el-button {
+      width: 100%;
+      margin-bottom: 8px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .el-form {
+    label-width: 70px !important;
+
+    .el-form-item__label {
+      font-size: 13px;
+    }
+
+    .el-button {
+      font-size: 13px;
+      padding: 8px 12px;
+    }
+  }
+
+  .action-button {
+    font-size: 12px;
+    padding: 0 8px;
+    min-width: 32px;
+    min-height: 26px;
+
+    .el-icon {
+      font-size: 14px;
+    }
+  }
+}
+
 .upload-container {
   .cover-uploader {
     position: relative;

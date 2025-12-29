@@ -24,11 +24,13 @@
               :options="qualityLevelOptions"
             />
             <el-col :xs="24" :sm="12" :lg="6">
-              <el-form-item label="采收日期" prop="harvestDate">
+              <el-form-item label="采收日期" prop="dateRange">
                 <el-date-picker
-                  v-model="queryParams.harvestDate"
-                  type="date"
-                  placeholder="选择日期"
+                  v-model="queryParams.dateRange"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
                   style="width: 100%"
                   value-format="YYYY-MM-DD"
                 />
@@ -286,7 +288,7 @@ const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
   batchName: '',
-  harvestDate: '',
+  dateRange: [] as string[],  // 改为日期范围
   qualityLevel: ''
 })
 
@@ -315,7 +317,20 @@ const rules = reactive({
 const getList = async () => {
   loading.value = true
   try {
-    const res = await AgricultureHarvestService.listHarvest(queryParams)
+    let params: any = {
+      pageNum: queryParams.pageNum,
+      pageSize: queryParams.pageSize,
+      batchName: queryParams.batchName,
+      qualityLevel: queryParams.qualityLevel
+    }
+    
+    // 处理日期范围
+    if (queryParams.dateRange && queryParams.dateRange.length === 2) {
+      params.beginHarvestDate = queryParams.dateRange[0]
+      params.endHarvestDate = queryParams.dateRange[1]
+    }
+    
+    const res = await AgricultureHarvestService.listHarvest(params)
     if (res.code === 200) {
       harvestList.value = res.rows
       total.value = res.total

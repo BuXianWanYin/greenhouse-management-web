@@ -220,13 +220,21 @@
 
 .value {
   color: #303133;
-  flex-grow: 1;
-  word-break: break-all;
-  white-space: pre-line;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.6;
 }
 
 .slogan-value {
   color: #303133;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.6;
 }
 
 .card-footer {
@@ -247,9 +255,289 @@
   overflow: hidden;
 }
 
-/* 响应式布局 */
-@media (max-width: 768px) {
+/* 响应式布局 - 全部保持左右布局 */
+
+/* 中等屏幕适配 (992px - 1199px) */
+@media (min-width: 992px) and (max-width: 1199px) {
+  .card-header {
+    padding: 18px 20px;
+  }
+
+  .card-body {
+    padding: 16px 18px;
+  }
+
   .card-body-content {
+    gap: 16px;
+  }
+
+  .crop-image-container {
+    width: 120px;
+    height: 120px;
+  }
+
+  .info-row {
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+
+  .label {
+    min-width: 85px;
+    font-size: 12px;
+  }
+
+  .value {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .slogan-value {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-footer {
+    padding: 16px 18px;
+    gap: 10px;
+  }
+}
+
+/* 平板适配 (768px - 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
+  .card-header {
+    padding: 16px 18px;
+  }
+
+  .crop-name {
+    font-size: 14px;
+  }
+
+  .card-body {
+    padding: 14px 16px;
+  }
+
+  .card-body-content {
+    gap: 14px;
+  }
+
+  .crop-image-container {
+    width: 100px;
+    height: 100px;
+  }
+
+  .info-row {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .label {
+    min-width: 70px;
+    font-size: 11px;
+  }
+
+  .value {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .slogan-value {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-footer {
+    padding: 14px 16px;
+    gap: 8px;
+  }
+
+  .el-button-group {
+    gap: 8px;
+  }
+}
+
+/* 手机横屏/小平板 (600px - 767px) */
+@media (min-width: 600px) and (max-width: 767px) {
+  .card-header {
+    padding: 14px 16px;
+  }
+
+  .crop-name {
+    font-size: 13px;
+  }
+
+  .card-body {
+    padding: 12px 14px;
+  }
+
+  .card-body-content {
+    gap: 12px;
+  }
+
+  .crop-image-container {
+    width: 85px;
+    height: 85px;
+  }
+
+  .info-row {
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+
+  .label {
+    min-width: 60px;
+    font-size: 10px;
+  }
+
+  .value {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  .slogan-value {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-footer {
+    padding: 12px 14px;
+    gap: 6px;
+  }
+
+  .el-button-group {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+}
+
+/* 手机竖屏 (480px - 599px) - 信息行改为垂直 */
+@media (min-width: 480px) and (max-width: 599px) {
+  .card-header {
+    padding: 12px 14px;
+  }
+
+  .crop-name {
+    font-size: 12px;
+  }
+
+  .card-body {
+    padding: 10px 12px;
+  }
+
+  .card-body-content {
+    gap: 10px;
+  }
+
+  .crop-image-container {
+    width: 75px;
+    height: 75px;
+  }
+
+  .info-row {
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+
+  .label {
+    min-width: auto;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .value {
+    font-size: 11px;
+    line-height: 1.3;
+    padding-left: 20px;
+  }
+
+  .slogan-value {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-footer {
+    padding: 10px 12px;
+    gap: 5px;
+  }
+
+  .el-button-group {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+}
+
+/* 小屏手机 (max-width: 479px) - 信息行改为垂直 */
+@media (max-width: 479px) {
+  .card-header {
+    padding: 10px 12px;
+  }
+
+  .crop-name {
+    font-size: 11px;
+  }
+
+  .card-body {
+    padding: 8px 10px;
+  }
+
+  .card-body-content {
+    gap: 8px;
+  }
+
+  .crop-image-container {
+    width: 65px;
+    height: 65px;
+  }
+
+  .info-row {
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 6px;
+  }
+
+  .label {
+    min-width: auto;
+    font-size: 9px;
+    font-weight: 600;
+  }
+
+  .value {
+    font-size: 10px;
+    line-height: 1.3;
+    padding-left: 18px;
+  }
+
+  .slogan-value {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-footer {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+
+  .el-button-group {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+}
+
+/* 旧的响应式代码保留 */
+@media (max-width: 768px) {
+  .card-body-content-old {
     flex-direction: column;
     gap: 16px;
   }

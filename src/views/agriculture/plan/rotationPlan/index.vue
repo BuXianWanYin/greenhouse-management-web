@@ -41,6 +41,13 @@
                   v-model="queryParams.planStatus"
                   :options="statusOptions"
                 />
+                <el-col :xs="24" :sm="12" :lg="6">
+                  <el-form-item label="种植作物" prop="classId">
+                    <el-select v-model="queryParams.classId" filterable clearable placeholder="全部" style="width: 100%" @change="search">
+                      <el-option v-for="crop in classOptions" :key="crop.classId" :label="crop.className" :value="crop.classId" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
               </el-row>
             </el-form>
           </template>
@@ -747,7 +754,8 @@ const queryParams = reactive({
   planName: '',
   planYear: '',
   planType: '',
-  planStatus: ''
+  planStatus: '',
+  classId: undefined as number | undefined // 新增作物筛选
 })
 
 const rules = reactive({

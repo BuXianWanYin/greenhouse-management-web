@@ -6,14 +6,6 @@
         <el-form :model="queryParams" ref="queryRef" label-width="90px">
           <el-row :gutter="20">
             <form-input label="设备名称" prop="deviceName" v-model="queryParams.deviceName" @keyup.enter="handleQuery" />
-            <el-form-item label="最后在线时间" prop="lastOnlineTime">
-              <el-date-picker clearable v-model="queryParams.lastOnlineTime" type="date" value-format="YYYY-MM-DD"
-                placeholder="请选择最后在线时间">
-              </el-date-picker>
-            </el-form-item>
-            <form-input label="温室id" prop="pastureId" v-model="queryParams.pastureId" @keyup.enter="handleQuery" />
-            <form-input label="传感器指令" prop="sensorCommand" v-model="queryParams.sensorCommand"
-              @keyup.enter="handleQuery" />
           </el-row>
         </el-form>
       </template>
@@ -24,8 +16,9 @@
       </template>
     </table-bar>
 
-    <div class="device-cards-container" v-loading="loading">
-      <div v-for="device in deviceList" :key="device.id" class="device-card">
+    <el-row :gutter="20" class="device-cards-container" v-loading="loading">
+      <el-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6" v-for="device in deviceList" :key="device.id" style="margin-bottom: 20px">
+        <div class="device-card">
         <div class="card-header">
           <div class="device-name">
             <span>{{ device.deviceName }}</span>
@@ -122,8 +115,9 @@
             </el-button>
           </el-button-group>
         </div>
-      </div>
-    </div>
+        </div>
+      </el-col>
+    </el-row>
 
     <!-- 分页 -->
     <el-pagination background layout="total, sizes, prev, pager, next, jumper" :total="total"
@@ -749,128 +743,197 @@ const fetchPastureOptions = async () => {
 
 <style scoped>
 .device-cards-container {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: 1fr;
-  gap: 20px;
   padding: 10px 5px;
+  margin-bottom: 0 !important;
 }
 
-@media (max-width: 1200px) {
-  .device-cards-container {
-    grid-template-columns: repeat(2, 1fr);
+.device-cards-container .el-col {
+  display: flex;
+}
+
+.device-card {
+  width: 100%;
+}
+
+/* Element Plus 响应式断点说明:
+   xs: <768px (手机) - 1列 (24/24 = 100%)
+   sm: ≥768px (平板) - 2列 (12/24 = 50%)
+   md: ≥992px (小桌面) - 2列 (12/24 = 50%)
+   lg: ≥1200px (桌面) - 4列 (6/24 = 25%)
+   xl: ≥1920px (大屏) - 4列 (6/24 = 25%)
+*/
+
+
+/* 平板和小桌面适配 (768px - 1199px) */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .card-header {
+    padding: 16px;
+  }
+
+  .device-name {
+    font-size: 14px;
+  }
+
+  .card-body {
+    padding: 14px;
+  }
+
+  .card-body-content {
+    gap: 14px;
+  }
+
+  .device-image-container {
+    width: 100px;
+    height: 100px;
+  }
+
+  .info-row {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .label {
+    min-width: 70px;
+    font-size: 11px;
+  }
+
+  .value {
+    font-size: 12px;
+  }
+
+  .card-footer {
+    padding: 14px 0px;
+    gap: 8px;
+  }
+
+  .el-button-group {
+    gap: 8px;
+    flex-wrap: wrap;
   }
 }
-@media (max-width: 700px) {
+
+
+/* 手机竖屏适配 (480px - 599px) - 信息行改为垂直 */
+@media (min-width: 480px) and (max-width: 599px) {
   .device-cards-container {
     grid-template-columns: 1fr;
     padding: 10px;
     gap: 12px;
   }
-  
-  .device-card {
-    height: 100%;
-  }
-  
-  .card-header {
-    padding: 16px;
-  }
-  
-  .device-name {
-    font-size: 16px;
-  }
-  
-  .card-body {
-    padding: 16px;
-  }
-  
-  .card-body-content {
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .device-image-container {
-    width: 100%;
-    height: 180px;
-    align-self: center;
-  }
-  
-  .info-row {
-    font-size: 14px;
-    margin-bottom: 12px;
-  }
-  
-  .label {
-    min-width: 100px;
-  }
-  
-  .card-footer {
-    padding: 12px 0px;
-    min-height: 20px;
-    gap: 4px;
-  }
-  
-  .el-button-group {
-    gap: 4px;
-    flex-wrap: nowrap;
-    justify-content: space-between;
-    width: 100%;
-  }
-  
 
-}
-
-@media (max-width: 480px) {
-  .device-cards-container {
-    padding: 8px;
-    gap: 8px;
-  }
-  
   .card-header {
     padding: 12px;
   }
-  
+
   .device-name {
-    font-size: 14px;
+    font-size: 12px;
   }
-  
+
   .card-body {
-    padding: 12px;
+    padding: 10px;
   }
-  
+
   .card-body-content {
-    flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
-  
+
   .device-image-container {
-    width: 100%;
-    height: 160px;
+    width: 75px;
+    height: 75px;
   }
-  
+
   .info-row {
-    font-size: 13px;
-    margin-bottom: 10px;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 8px;
   }
-  
+
   .label {
-    min-width: 90px;
+    min-width: auto;
+    font-size: 10px;
+    font-weight: 600;
   }
-  
+
+  .value {
+    font-size: 11px;
+    padding-left: 20px;
+  }
+
   .card-footer {
     padding: 10px 0px;
-    min-height: 20px;
-    gap: 3px;
+    gap: 5px;
   }
-  
+
   .el-button-group {
     width: 100%;
-    gap: 3px;
-    justify-content: space-between;
+    gap: 5px;
+    flex-wrap: wrap;
   }
-  
-
 }
+
+/* 小屏手机适配 (max-width: 479px) - 信息行改为垂直 */
+@media (max-width: 479px) {
+  .device-cards-container {
+    grid-template-columns: 1fr;
+    padding: 8px;
+    gap: 10px;
+  }
+
+  .card-header {
+    padding: 10px;
+  }
+
+  .device-name {
+    font-size: 11px;
+  }
+
+  .device-status {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .card-body {
+    padding: 8px;
+  }
+
+  .card-body-content {
+    gap: 8px;
+  }
+
+  .device-image-container {
+    width: 65px;
+    height: 65px;
+  }
+
+  .info-row {
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 6px;
+  }
+
+  .label {
+    min-width: auto;
+    font-size: 9px;
+    font-weight: 600;
+  }
+
+  .value {
+    font-size: 10px;
+    padding-left: 18px;
+  }
+
+  .card-footer {
+    padding: 8px 0px;
+    gap: 4px;
+  }
+
+  .el-button-group {
+    width: 100%;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+}
+
 
 .device-card {
   background: #fff;
@@ -1009,8 +1072,10 @@ const fetchPastureOptions = async () => {
 
 .value {
   color: #303133;
-  flex-grow: 1;
-  word-break: break-all;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
   white-space: pre-line;
 }
 

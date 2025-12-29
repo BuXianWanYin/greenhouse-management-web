@@ -37,7 +37,7 @@
       
       <div class="batch-card-grid" v-else>
         <el-row :gutter="24">
-          <el-col :span="8" v-for="item in batchList" :key="item.batchId">
+          <el-col :xs="24" :sm="24" :md="12" :lg="8" :xl="8" v-for="item in batchList" :key="item.batchId">
             <el-card class="batch-card" shadow="hover">
               <div class="batch-card-body">
                 <!-- 左侧图片区域 -->
@@ -159,7 +159,7 @@
       </div>
       <div class="harvest-card-grid">
         <el-row :gutter="20">
-          <el-col :span="24" v-for="item in processData" :key="item.id">
+          <el-col :xs="24" :sm="24" :md="24" :lg="24" v-for="item in processData" :key="item.id">
             <el-card class="harvest-card" shadow="hover">
               <div class="harvest-card-content">
                 <!-- 左侧ID显示 -->
@@ -1062,16 +1062,227 @@
     }
   }
 
-  // 响应式布局
-  @media screen and (max-width: 1400px) {
-    .el-col {
-      width: 50% !important;
+  // 响应式布局优化
+  /* 批次卡片响应式 - 使用 Element Plus 栅格系统
+     xs: <768px (手机) - 1列
+     sm: ≥768px (平板) - 1列
+     md: ≥992px (小桌面) - 2列
+     lg: ≥1200px (桌面) - 3列
+     xl: ≥1920px (大屏) - 3列
+  */
+  
+  // 平板适配 (768px - 991px) - 保持左右布局
+  @media screen and (min-width: 768px) and (max-width: 991px) {
+    .batch-card {
+      .batch-card-body {
+        gap: 14px;
+      }
+
+      .batch-image {
+        width: 220px;
+
+        :deep(.el-carousel) {
+          height: 100%;
+        }
+      }
+
+      .batch-content {
+        padding: 16px;
+      }
+
+      .batch-card-header {
+        .batch-name {
+          font-size: 14px;
+        }
+      }
+
+      .batch-card-info {
+        .info-item {
+          font-size: 12px;
+          margin-bottom: 10px;
+
+          .label {
+            min-width: 60px;
+            font-size: 11px;
+          }
+        }
+      }
     }
   }
 
-  @media screen and (max-width: 992px) {
-    .el-col {
-      width: 100% !important;
+  // 手机横屏适配 (600px - 767px) - 保持左右布局
+  @media screen and (min-width: 600px) and (max-width: 767px) {
+    .batch-card-grid {
+      .el-row {
+        margin: -10px;
+      }
+
+      .el-col {
+        padding: 10px;
+      }
+    }
+
+    .batch-card {
+      .batch-card-body {
+        gap: 12px;
+      }
+
+      .batch-image {
+        width: 180px;
+
+        :deep(.el-carousel) {
+          height: 100%;
+        }
+      }
+
+      .batch-content {
+        padding: 14px;
+      }
+
+      .batch-card-header {
+        .batch-name {
+          font-size: 13px;
+        }
+      }
+
+      .batch-card-info {
+        .info-item {
+          font-size: 11px;
+          margin-bottom: 8px;
+
+          .label {
+            min-width: 55px;
+            font-size: 10px;
+          }
+        }
+      }
+
+      .batch-card-actions {
+        .el-button {
+          font-size: 12px;
+        }
+      }
+    }
+  }
+
+  // 手机竖屏适配 (480px - 599px) - info-item改为垂直
+  @media screen and (min-width: 480px) and (max-width: 599px) {
+    .batch-card {
+      .batch-card-body {
+        gap: 10px;
+      }
+
+      .batch-image {
+        width: 150px;
+
+        :deep(.el-carousel) {
+          height: 100%;
+        }
+      }
+
+      .batch-content {
+        padding: 12px;
+      }
+
+      .batch-card-header {
+        .batch-name {
+          font-size: 12px;
+        }
+      }
+
+      .batch-card-info {
+        .info-item {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 2px;
+          margin-bottom: 8px;
+
+          .el-icon {
+            font-size: 12px;
+          }
+
+          .label {
+            font-size: 10px;
+            font-weight: 600;
+          }
+
+          > span:last-child {
+            font-size: 11px;
+            padding-left: 16px;
+            word-break: break-word;
+          }
+        }
+      }
+
+      .batch-card-actions {
+        .el-button {
+          font-size: 11px;
+          padding: 6px 12px;
+        }
+      }
+    }
+  }
+
+  // 小屏手机适配 (max-width: 479px) - info-item改为垂直
+  @media screen and (max-width: 479px) {
+    .batch-card {
+      .batch-card-body {
+        gap: 8px;
+      }
+
+      .batch-image {
+        width: 120px;
+
+        :deep(.el-carousel) {
+          height: 100%;
+        }
+      }
+
+      .batch-content {
+        padding: 10px;
+      }
+
+      .batch-card-header {
+        .batch-name {
+          font-size: 11px;
+        }
+
+        .el-tag {
+          font-size: 10px;
+          padding: 1px 6px;
+        }
+      }
+
+      .batch-card-info {
+        .info-item {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 2px;
+          margin-bottom: 6px;
+
+          .el-icon {
+            font-size: 11px;
+          }
+
+          .label {
+            font-size: 9px;
+            font-weight: 600;
+          }
+
+          > span:last-child {
+            font-size: 10px;
+            padding-left: 14px;
+            word-break: break-word;
+          }
+        }
+      }
+
+      .batch-card-actions {
+        .el-button {
+          font-size: 10px;
+          padding: 5px 10px;
+        }
+      }
     }
   }
 
@@ -1124,6 +1335,7 @@
       .info-section {
         flex: 1;
         padding: 10px;
+        min-width: 0;
 
         .header-title {
           display: flex;
@@ -1257,5 +1469,130 @@
     padding: 0 12px;
     height: 30px;
     font-size: 15px;
+  }
+
+  // 收获详情卡片响应式
+  @media screen and (max-width: 768px) {
+    .harvest-card {
+      .harvest-card-content {
+        flex-direction: column;
+        gap: 15px;
+
+        .qr-code-section {
+          flex: 0 0 auto;
+          border-right: none;
+          border-bottom: 1px solid #ebeef5;
+          padding-bottom: 15px;
+
+          .qr-code {
+            > div {
+              width: 120px !important;
+              height: 120px !important;
+
+              > div {
+                font-size: 20px !important;
+
+                .font-size-14 {
+                  font-size: 12px !important;
+                }
+              }
+            }
+          }
+        }
+
+        .info-section {
+          padding: 0 10px 10px;
+
+          .header-title {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 15px;
+
+            .food-name {
+              font-size: 16px;
+            }
+          }
+
+          .harvest-info {
+            gap: 12px;
+
+            .info-row {
+              flex-direction: column;
+              gap: 12px;
+
+              .info-item {
+                font-size: 13px;
+
+                .label {
+                  min-width: 70px;
+                }
+              }
+            }
+          }
+        }
+
+        .action-section {
+          padding: 10px;
+          border-top: 1px solid #ebeef5;
+
+          .el-button {
+            width: 100%;
+            margin-bottom: 8px;
+
+            &:last-child {
+              margin-bottom: 0;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  @media screen and (max-width: 480px) {
+    .harvest-card {
+      .harvest-card-content {
+        .qr-code-section {
+          .qr-code {
+            > div {
+              width: 100px !important;
+              height: 100px !important;
+
+              > div {
+                font-size: 18px !important;
+              }
+            }
+          }
+
+          .id-code {
+            font-size: 11px;
+          }
+        }
+
+        .info-section {
+          .header-title {
+            .food-name {
+              font-size: 15px;
+            }
+          }
+
+          .harvest-info {
+            .info-row {
+              .info-item {
+                font-size: 12px;
+
+                i {
+                  font-size: 14px;
+                }
+
+                .label {
+                  min-width: 60px;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 </style>

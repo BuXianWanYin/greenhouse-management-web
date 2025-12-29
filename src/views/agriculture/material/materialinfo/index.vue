@@ -425,62 +425,283 @@ onMounted(() => {
   padding: 10px 5px;
 }
 
-@media (max-width: 1600px) {
+/* 超大屏适配 (1920px+) - 5列 */
+@media (min-width: 1920px) {
+  .material-cards-container {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* 大屏适配 (1600px - 1919px) - 4列 */
+@media (min-width: 1600px) and (max-width: 1919px) {
+  .material-cards-container {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* 中等屏幕适配 (1200px - 1599px) - 3列 */
+@media (min-width: 1200px) and (max-width: 1599px) {
   .material-cards-container {
     grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
   }
 }
 
-@media (max-width: 1200px) {
+/* 平板横屏适配 (900px - 1199px) - 2列 */
+@media (min-width: 900px) and (max-width: 1199px) {
   .material-cards-container {
     grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  .card-header {
+    padding: 18px 20px;
+  }
+
+  .card-body {
+    padding: 18px 20px;
+  }
+
+  .material-image-container {
+    width: 120px;
+    height: 120px;
+  }
+
+  .info-row {
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+
+  .label {
+    min-width: 90px;
+  }
+
+  .card-footer {
+    padding: 14px 20px;
   }
 }
 
-@media (max-width: 768px) {
+/* 平板竖屏适配 (768px - 899px) - 2列，保持左右布局 */
+@media (min-width: 768px) and (max-width: 899px) {
+  .material-cards-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .card-header {
+    padding: 16px 18px;
+  }
+
+  .material-name {
+    font-size: 14px;
+  }
+
+  .card-body {
+    padding: 14px 16px;
+  }
+
+  .card-body-content {
+    gap: 14px;
+  }
+
+  .material-image-container {
+    width: 100px;
+    height: 100px;
+  }
+
+  .info-row {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .label {
+    min-width: 70px;
+    font-size: 11px;
+  }
+
+  .value {
+    font-size: 12px;
+  }
+
+  .card-footer {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .el-button-group {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+
+/* 手机横屏适配 (600px - 767px) - 1列，保持左右布局 */
+@media (min-width: 600px) and (max-width: 767px) {
   .material-cards-container {
     grid-template-columns: 1fr;
     padding: 10px;
     gap: 12px;
   }
-  .material-card {
-    height: 100%;
-  }
-  
+
   .card-header {
-    padding: 16px;
+    padding: 14px;
   }
   
   .material-name {
-    font-size: 16px;
+    font-size: 13px;
   }
   
   .card-body {
-    padding: 16px;
+    padding: 12px;
   }
   
   .card-body-content {
-    flex-direction: column;
-    gap: 16px;
+    gap: 12px;
   }
   
   .material-image-container {
-    width: 100%;
-    height: 180px;
-    align-self: center;
+    width: 85px;
+    height: 85px;
   }
   
   .info-row {
-    font-size: 14px;
-    margin-bottom: 12px;
+    font-size: 11px;
+    margin-bottom: 8px;
   }
   
   .label {
-    min-width: 100px;
+    min-width: 60px;
+    font-size: 10px;
+  }
+
+  .value {
+    font-size: 11px;
   }
   
   .card-footer {
-    padding: 12px 16px;
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .el-button-group {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+}
+
+/* 手机竖屏适配 (480px - 599px) - 信息行改为垂直 */
+@media (min-width: 480px) and (max-width: 599px) {
+  .material-cards-container {
+    grid-template-columns: 1fr;
+    padding: 10px;
+    gap: 12px;
+  }
+
+  .card-header {
+    padding: 12px;
+  }
+  
+  .material-name {
+    font-size: 12px;
+  }
+  
+  .card-body {
+    padding: 10px;
+  }
+  
+  .card-body-content {
+    gap: 10px;
+  }
+  
+  .material-image-container {
+    width: 75px;
+    height: 75px;
+  }
+  
+  .info-row {
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+  
+  .label {
+    min-width: auto;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .value {
+    font-size: 11px;
+    padding-left: 20px;
+  }
+  
+  .card-footer {
+    padding: 10px;
+    gap: 6px;
+  }
+
+  .el-button-group {
+    width: 100%;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+}
+
+/* 小屏手机适配 (max-width: 479px) - 信息行改为垂直 */
+@media (max-width: 479px) {
+  .material-cards-container {
+    grid-template-columns: 1fr;
+    padding: 8px;
+    gap: 10px;
+  }
+
+  .card-header {
+    padding: 10px;
+  }
+  
+  .material-name {
+    font-size: 11px;
+  }
+  
+  .card-body {
+    padding: 8px;
+  }
+  
+  .card-body-content {
+    gap: 8px;
+  }
+  
+  .material-image-container {
+    width: 65px;
+    height: 65px;
+  }
+  
+  .info-row {
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 6px;
+  }
+  
+  .label {
+    min-width: auto;
+    font-size: 9px;
+    font-weight: 600;
+  }
+
+  .value {
+    font-size: 10px;
+    padding-left: 18px;
+  }
+  
+  .card-footer {
+    padding: 8px;
+    gap: 5px;
+  }
+
+  .el-button-group {
+    width: 100%;
+    gap: 4px;
+    flex-wrap: wrap;
   }
 }
 
@@ -611,8 +832,10 @@ onMounted(() => {
 
 .value {
   color: #303133;
-  flex-grow: 1;
-  word-break: break-all;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .card-footer {
@@ -629,6 +852,46 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   flex-wrap: nowrap;
+}
+
+/* 搜索表单响应式样式 */
+.el-form {
+  .el-row {
+    margin-bottom: 10px;
+  }
+}
+
+/* 按钮组响应式 */
+@media (max-width: 768px) {
+  .el-form {
+    .el-col {
+      margin-bottom: 10px;
+    }
+
+    .el-button {
+      width: 100%;
+      margin-bottom: 8px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .el-form {
+    label-width: 70px !important;
+
+    .el-form-item__label {
+      font-size: 13px;
+    }
+
+    .el-button {
+      font-size: 13px;
+      padding: 8px 12px;
+    }
+  }
 }
 
 .card-action-btn {
