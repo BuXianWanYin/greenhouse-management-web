@@ -3,7 +3,7 @@
     <table-bar
         :showTop="false"
         @search="handleQuery"
-        @reset="resetForm(queryRef)"
+        @reset="handleReset"
         @changeColumn="changeColumn"
         :columns="columns"
     >
@@ -12,15 +12,6 @@
           <el-row :gutter="20">
             <form-input label="名称" prop="name"
                         v-model="queryParams.name"
-                        @keyup.enter="handleQuery"/>
-            <form-input label="温室位置" prop="address"
-                        v-model="queryParams.address"
-                        @keyup.enter="handleQuery"/>
-            <form-input label="备注" prop="description"
-                        v-model="queryParams.description"
-                        @keyup.enter="handleQuery"/>
-            <form-input label="温室面积" prop="area"
-                        v-model="queryParams.area"
                         @keyup.enter="handleQuery"/>
           </el-row>
         </el-form>
@@ -235,6 +226,22 @@
   const handleQuery = () => {
     queryParams.pageNum = 1;
     getList();
+  }
+
+  /** 重置按钮操作 */
+  const handleReset = () => {
+    // 重置查询参数
+    queryParams.name = ''
+    queryParams.address = ''
+    queryParams.description = ''
+    queryParams.area = ''
+    queryParams.pageNum = 1
+    // 重置表单
+    if (queryRef.value) {
+      queryRef.value.resetFields()
+    }
+    // 重新查询
+    getList()
   }
 
   /** 每页条数改变 */

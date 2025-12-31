@@ -4,12 +4,12 @@
     <table-bar
           :showTop="false"
           @search="search"
-          @reset="resetForm(searchFormRef)"
+          @reset="handleReset"
           @changeColumn="changeColumn"
           :columns="columns"
         >
           <template #top>
-            <el-form :model="queryParams" ref="searchFormRef" label-width="82px">
+            <el-form :model="queryParams" ref="searchFormRef" label-width="82px" style="padding-bottom: 50px;">
               <el-row :gutter="20">
                 <form-input
                   label="计划名称"
@@ -1058,6 +1058,23 @@ const getList = async () => {
 /** 搜索按钮操作 */
 const search = () => {
   queryParams.pageNum = 1
+  getList()
+}
+
+/** 重置按钮操作 */
+const handleReset = () => {
+  // 先重置查询参数
+  queryParams.planName = ''
+  queryParams.planYear = ''
+  queryParams.planType = ''
+  queryParams.planStatus = ''
+  queryParams.classId = undefined
+  queryParams.pageNum = 1
+  // 再重置表单
+  if (searchFormRef.value) {
+    searchFormRef.value.resetFields()
+  }
+  // 重新查询所有数据
   getList()
 }
 

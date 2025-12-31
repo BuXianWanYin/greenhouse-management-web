@@ -12,16 +12,8 @@
                     </el-date-picker>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" size="small" @click="handleQuery">
-                        <el-icon>
-                            <Search />
-                        </el-icon>搜索
-                    </el-button>
-                    <el-button size="small" @click="resetQuery">
-                        <el-icon>
-                            <Refresh />
-                        </el-icon>重置
-                    </el-button>
+                    <el-button type="primary" @click="handleQuery" v-ripple>搜索</el-button>
+                    <el-button @click="resetQuery" v-ripple>重置</el-button>
                 </el-form-item>
                 <el-form-item class="fr">
                     <el-button class="width-90" v-if="tableBorder && !readonly" type="primary" size="small" plain @click="handleAdd">
@@ -351,9 +343,18 @@ const handleQuery = () => {
 
 // 重置按钮操作
 const resetQuery = () => {
+    // 重置查询参数
     queryParams.taskName = null
+    queryParams.planStart = null
+    queryParams.planFinish = null
     queryParams.psr = []
-    handleQuery()
+    queryParams.pageNum = 1
+    // 重置表单
+    if (queryFormRef.value) {
+        queryFormRef.value.resetFields()
+    }
+    // 重新查询
+    getList()
 }
 
 // 每页条数改变
@@ -629,14 +630,6 @@ const onTaskUpdated = () => {
 .search :deep(.el-input__inner),
 .search :deep(.el-range-input) {
   font-size: 13px;
-}
-
-.search :deep(.el-button) {
-  height: 30px;
-  line-height: 30px;
-  font-size: 13px;
-  padding: 0 20px;
-  box-sizing: border-box;
 }
 
 .pagination-wrapper {

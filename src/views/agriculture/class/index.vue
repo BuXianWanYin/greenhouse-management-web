@@ -9,7 +9,7 @@
         </el-col>
         <el-col :xs="24" :sm="12" :lg="6">
           <el-form-item :label="`类别`" :prop="`category`">
-            <el-select v-model="queryParams.category" clearable placeholder="请选择类别" style="width: 100%">
+            <el-select v-model="queryParams.category" clearable placeholder="请选择类别" style="width: 100%" @change="handleQuery">
               <el-option label="瓜果" value="fruit" />
               <el-option label="蔬菜" value="vegetable" />
               <el-option label="其他" value="other" />
@@ -19,7 +19,7 @@
         <div style="width: 12px"></div>
         <el-col :xs="24" :sm="12" :lg="6">
           <el-button @click="handleQuery" v-ripple>搜索 </el-button>
-          <el-button @click="resetForm(queryRef)" v-ripple>重置 </el-button>
+          <el-button @click="handleReset" v-ripple>重置 </el-button>
           <el-button @click="handleAdd" v-ripple>新增 </el-button>
           <el-button @click="handleExport" v-ripple>导出 </el-button>
         </el-col>
@@ -258,6 +258,20 @@ const reset = () => {
 /** 搜索按钮操作 */
 const handleQuery = () => {
   queryParams.pageNum = 1
+  getList()
+}
+
+/** 重置按钮操作 */
+const handleReset = () => {
+  // 重置查询参数
+  queryParams.className = ''
+  queryParams.category = ''
+  queryParams.pageNum = 1
+  // 重置表单
+  if (queryRef.value) {
+    queryRef.value.resetFields()
+  }
+  // 重新查询
   getList()
 }
 
