@@ -4,7 +4,7 @@
       <left-view></left-view>
     </div>
     <div class="right-wrap">
-      <div class="top-right-wrap">
+      <!-- <div class="top-right-wrap">
         <div class="btn theme-btn" @click="toggleTheme">
           <i class="iconfont-sys">
             {{ isDark ? '&#xe6b5;' : '&#xe725;' }}
@@ -25,7 +25,7 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-      </div>
+      </div> -->
       <div class="login-wrap">
         <div class="form">
           <h3 class="title">{{ $t('login.title') }}</h3>

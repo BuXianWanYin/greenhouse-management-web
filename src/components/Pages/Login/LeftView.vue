@@ -1,9 +1,9 @@
 <template>
   <div class="left-view">
     <div class="logo">
-      <svg class="icon" aria-hidden="true">
+      <!-- <svg class="icon" aria-hidden="true">
         <use xlink:href="#iconsys-zhaopian-copy"></use>
-      </svg>
+      </svg> -->
       <h1 class="title">{{ AppConfig.systemInfo.name }}</h1>
     </div>
     <img class="left-bg" src="@imgs/login/lf_bg.png" />

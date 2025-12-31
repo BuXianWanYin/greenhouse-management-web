@@ -425,10 +425,10 @@ onMounted(() => {
   padding: 10px 5px;
 }
 
-/* 超大屏适配 (1920px+) - 5列 */
+/* 超大屏适配 (1920px+) - 保持4列 */
 @media (min-width: 1920px) {
   .material-cards-container {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
