@@ -1,5 +1,6 @@
 <template>
     <div class="calendar-nav">
+        <!-- 日历导航组件 -->
         <!-- 日历图例 -->
         <div class="calendar-legend">
             <span class="legend-item">

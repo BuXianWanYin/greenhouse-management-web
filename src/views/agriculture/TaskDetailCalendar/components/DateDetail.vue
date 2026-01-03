@@ -1,5 +1,6 @@
 <template>
     <div class="date-detail">
+        <!-- 日期详情 -->
         <!-- 日期标题 -->
         <div class="date-header">
             <span class="date-title">{{ formattedDate }}</span>

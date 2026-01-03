@@ -1,5 +1,6 @@
 <template>
     <div class="task-footer">
+        <!-- 任务底部信息（详情与日志） -->
         <el-collapse v-model="activeNames">
             <el-collapse-item title="任务详情与日志" name="detail">
                 <div class="footer-content">

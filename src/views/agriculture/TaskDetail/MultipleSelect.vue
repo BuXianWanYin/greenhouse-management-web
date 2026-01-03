@@ -1,4 +1,5 @@
 <template>
+  <!-- 多选选择器组件 -->
   <div class="multipleSelect">
     <div style="display:flex;align-items:center;">
       <ul class="selected">

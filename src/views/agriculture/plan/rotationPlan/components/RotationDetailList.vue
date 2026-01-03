@@ -1,5 +1,6 @@
 ﻿<template>
   <div class="rotation-detail-list">
+    <!-- 轮作计划明细列表 -->
     <div class="toolbar">
       <el-button type="primary" @click="handleAdd" v-hasPermi="['agriculture:plandetail:add']">
         <el-icon><Plus /></el-icon>新增

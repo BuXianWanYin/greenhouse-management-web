@@ -1,5 +1,6 @@
 <template>
   <div class="padding-bottom-10">
+    <!-- 人工工时登记 -->
     <el-alert
       title="登记人工工时"
       type="info"

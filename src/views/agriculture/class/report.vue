@@ -1,5 +1,6 @@
 <template>
   <div class="report-content">
+    <!-- 作物报表 -->
     <template v-if="report">
       <el-row :gutter="20">
         <!-- 左侧内容 -->

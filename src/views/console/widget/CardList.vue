@@ -1,5 +1,6 @@
 <template>
   <ul class="card-list" :style="{ marginTop: showWorkTab ? '0' : '10px' }">
+    <!-- 控制台卡片列表 -->
     <li class="art-custom-card" v-for="(item, index) in processedDataList" :key="index">
       <span class="des subtitle">{{ item.label }}</span>
       <span class="number box-title">

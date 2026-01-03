@@ -195,16 +195,19 @@
             v-model="form.planStatus" 
             placeholder="请选择状态" 
             style="width: 100%"
-            :disabled="form.planType === 'annual' && hasSeasonalPlans || form.planType === 'rotation' || form.planType === 'seasonal'"
+            :disabled="!form.planId || (form.planType === 'annual' && hasSeasonalPlans) || form.planType === 'rotation' || form.planType === 'seasonal'"
           >
             <el-option label="未开始" value="0" />
             <el-option label="执行中" value="1" />
             <el-option label="已完成" value="2" />
           </el-select>
-          <div v-if="form.planType === 'annual' && hasSeasonalPlans" style="color: #909399; font-size: 12px; margin-top: 4px;">
+          <div v-if="!form.planId" style="color: #909399; font-size: 12px; margin-top: 4px;">
+            新建计划时状态默认为"未开始"，不可修改
+          </div>
+          <div v-else-if="form.planType === 'annual' && hasSeasonalPlans" style="color: #909399; font-size: 12px; margin-top: 4px;">
             年度计划状态由季度计划状态自动计算，不可手动修改
           </div>
-          <div v-if="form.planType === 'rotation' || form.planType === 'seasonal'" style="color: #909399; font-size: 12px; margin-top: 4px;">
+          <div v-else-if="form.planType === 'rotation' || form.planType === 'seasonal'" style="color: #909399; font-size: 12px; margin-top: 4px;">
             计划状态由系统根据执行情况自动更新，不可手动修改
           </div>
         </el-form-item>

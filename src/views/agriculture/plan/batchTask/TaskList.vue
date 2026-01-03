@@ -1,5 +1,6 @@
 <template>
     <div class="gantt-container">
+        <!-- 批次任务列表（甘特图） -->
         <div class="search">
             <el-form :model="queryParams" ref="queryFormRef" :inline="true" v-show="showSearch" label-width="100px">
                 <el-form-item label="任务名称" prop="taskName">

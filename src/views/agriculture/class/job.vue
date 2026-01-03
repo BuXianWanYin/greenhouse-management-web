@@ -1,5 +1,6 @@
 <template>
   <div>
+    <!-- 作物作业管理 -->
     <el-card> 
       <el-form :model="queryParams" ref="queryRef" :inline="true">
         <el-form-item label="名称" prop="jobName">

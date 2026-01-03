@@ -1,5 +1,6 @@
 <template>
   <div class="page-content">
+    <!-- 作物管理 -->
     <el-form :model="queryParams" ref="queryRef" label-width="82px">
       <el-row :gutter="20">
         <el-col :xs="24" :sm="12" :lg="6">

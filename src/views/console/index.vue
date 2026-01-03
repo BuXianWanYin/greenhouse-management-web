@@ -1,5 +1,6 @@
 <template>
   <div class="console">
+    <!-- 控制台首页 -->
     <!-- 顶部4个卡片 -->
     <CardList :data-list="cardList"></CardList>
     
@@ -27,12 +28,14 @@
 </template>
 
 <script setup lang="ts">
-import CardList from './widget/CardList.vue'
-import TodaySales from './widget/TodaySales.vue'
-import BatchTrendChart from './widget/BatchTrendChart.vue'
-import RecentActivities from './widget/RecentActivities.vue'
-import TodaySchedule from './widget/TodaySchedule.vue'
-import QuickActions from './widget/QuickActions.vue'
+
+import CardList from './widget/CardList.vue'             // 顶部统计卡片列表
+import TodaySales from './widget/TodaySales.vue'         // 任务统计组件
+import BatchTrendChart from './widget/BatchTrendChart.vue' // 批次趋势图表
+import RecentActivities from './widget/RecentActivities.vue' // 最近动态列表
+import TodaySchedule from './widget/TodaySchedule.vue'   // 今日排班列表
+import QuickActions from './widget/QuickActions.vue'     // 快捷操作组件
+
 import { useSettingStore } from '@/store/modules/setting'
 import { useCommon } from '@/composables/useCommon'
 import { useSystemInfo } from '@/composables/useSystemInfo'
@@ -46,6 +49,7 @@ import type {
 } from '@/types/agriculture/console'
 import event from '@/utils/event'
 
+
 const settingStore = useSettingStore()
 const router = useRouter()
 const { getSystemName } = useSystemInfo()
@@ -53,100 +57,130 @@ const { getSystemName } = useSystemInfo()
 // 系统名称
 const systemName = computed(() => getSystemName())
 
+// 当前全局主题
 const currentGlopTheme = computed(() => settingStore.systemThemeType)
 
-// 系统主题风格变化时，刷新页面重写渲染 Echarts
+// 系统主题风格变化时，刷新页面重新渲染 Echarts
 watch(currentGlopTheme, () => {
   settingStore.reload()
 })
 
+// 滚动到顶部
 useCommon().scrollToTop()
 
-// 卡片数据（农业统计）
+// 卡片数据（农业统计：温室数、作物数、批次数、收获数量等）
 const cardList = ref<ConsoleTotalInfo[]>([])
-// 批量任务统计数据
+
+// 批次任务统计数据（待处理、进行中、已完成）
 const countList = ref<ConsoleTotalInfo[]>([])
-// 批次趋势数据
+
+// 批次创建趋势数据（用于图表展示）
 const batchTrendData = ref<any[]>([])
-// 最近动态数据
+
+// 最近动态数据（用户操作记录）
 const recentActivities = ref<any[]>([])
-// 今日排班数据
+
+// 今日排班数据（今日工作安排）
 const todayScheduleList = ref<any[]>([])
 
-// 获取农业统计卡片数据
+
+/**
+ * 获取农业统计卡片数据
+ * 包含：温室数量、作物数量、批次数量、收获数量等
+ */
 const getCardList = async () => {
   const res = await AgricultureConsoleService.listAgriculture()
   cardList.value = res.data
 }
 
-// 获取批量任务统计数据
+/**
+ * 获取批次任务统计数据
+ * 包含：待处理、进行中、已完成的任务数量
+ */
 const getCountList = async () => {
   const res = await AgricultureConsoleService.listBatchTask()
   countList.value = res.data
 }
 
-// 获取批次创建趋势数据
+/**
+ * 获取批次创建趋势数据
+ * 用于展示近期批次创建趋势图表
+ */
 const getBatchTrend = async () => {
   const res = await AgricultureConsoleService.getBatchTrend()
   batchTrendData.value = res.data
 }
 
-// 获取今日排班列表
+/**
+ * 获取今日排班列表
+ * 展示今日的工作安排和人员分配
+ */
 const getTodaySchedule = async () => {
   const res = await AgricultureConsoleService.getTodaySchedule()
   todayScheduleList.value = res.data
 }
 
-// 获取最近动态
+/**
+ * 获取最近动态
+ * 展示用户的最近操作记录，包括创建、修改、删除等操作
+ */
 const getRecentActivities = async () => {
   const res = await AgricultureConsoleService.getRecentActivities()
-  // 处理头像URL拼接
+  // 处理头像URL：如果不是完整URL，则拼接API基础路径
   recentActivities.value = (res.data || []).map((item: any) => ({
     ...item,
     avatar: item.avatar ? (item.avatar.startsWith('http') ? item.avatar : import.meta.env.VITE_API_URL + item.avatar) : ''
   }))
 }
 
-// 监听全局 event 总线，实时更新统计数据
+/**
+ * 监听全局 event 总线，实时更新统计数据
+ * 当其他页面触发数据更新事件时，自动刷新控制台数据
+ */
 event.on('message', (data: ConsoleToTalData) => {
   cardList.value = data.agriculture
   countList.value = data.batchTask
 })
 
-// 页面挂载时获取所有统计数据
+/**
+ * 页面挂载时获取所有统计数据
+ */
 onMounted(() => {
-  getCardList()
-  getCountList()
-  getBatchTrend()
-  getTodaySchedule()
-  getRecentActivities()
+  getCardList()        // 获取农业统计卡片
+  getCountList()       // 获取批次任务统计
+  getBatchTrend()      // 获取批次趋势
+  getTodaySchedule()   // 获取今日排班
+  getRecentActivities() // 获取最近动态
 })
 </script>
 
 <style lang="scss" scoped>
+/* ============ 控制台首页样式 ============ */
 .console {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 140px); // 减去header、padding等高度
   padding-bottom: 15px;
 
-  // 主标题
+  /* ---------- 全局文字样式 ---------- */
+  // 主标题样式
   :deep(.box-title) {
     color: var(--art-gray-900) !important;
   }
 
-  // 副标题
+  // 副标题样式
   :deep(.subtitle) {
     color: var(--art-gray-600) !important;
   }
 
+  /* ---------- 卡片背景样式 ---------- */
   :deep(.card-list li),
   .bottom-wrap {
     background: var(--art-main-bg-color);
     border-radius: calc(var(--custom-radius) + 4px) !important;
   }
 
-  // 第二行布局：任务统计 + 批次趋势
+  /* ---------- 第二行布局：任务统计 + 批次趋势 ---------- */
   .row-2 {
     display: flex;
     gap: 16px;
@@ -154,17 +188,19 @@ onMounted(() => {
     align-items: stretch;
     flex-shrink: 0;
 
+    // 任务统计组件：固定大小不收缩
     :deep(.today-sales) {
       flex-shrink: 0;
     }
 
+    // 批次趋势图表：占据剩余空间
     .row-2-right {
       flex: 1;
       min-width: 0;
     }
   }
 
-  // 第三行布局：最近动态 + 今日排班 + 快捷操作
+  /* ---------- 第三行布局：最近动态 + 今日排班 + 快捷操作 ---------- */
   .row-3 {
     display: flex;
     gap: 16px;
@@ -173,6 +209,7 @@ onMounted(() => {
     min-height: 0;
     overflow: hidden;
 
+    // 最近动态列：弹性布局，占据剩余空间
     .col-activities {
       flex: 1;
       display: flex;
@@ -180,6 +217,7 @@ onMounted(() => {
       min-height: 0;
     }
 
+    // 今日排班列：弹性布局，占据剩余空间
     .col-schedule {
       flex: 1;
       display: flex;
@@ -187,6 +225,7 @@ onMounted(() => {
       min-height: 0;
     }
 
+    // 快捷操作列：固定宽度
     .col-actions {
       width: 280px;
       display: flex;
@@ -195,6 +234,7 @@ onMounted(() => {
     }
   }
 
+  /* ---------- 底部介绍区域 ---------- */
   .bottom-wrap {
     box-sizing: border-box;
     padding: 30px;
@@ -206,6 +246,7 @@ onMounted(() => {
       max-width: 1200px;
       margin: 0 auto;
 
+      // 标题样式
       h2 {
         margin-top: 0;
         margin-bottom: 20px;
@@ -214,6 +255,7 @@ onMounted(() => {
         color: var(--art-gray-900);
       }
 
+      // 介绍文本样式
       .intro-text {
         margin-top: 10px;
         margin-bottom: 10px;
@@ -222,12 +264,14 @@ onMounted(() => {
         color: var(--art-gray-700);
       }
 
+      // 功能特性列表
       .feature-list {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 20px;
         margin-top: 30px;
 
+        // 单个功能项
         .feature-item {
           display: flex;
           align-items: flex-start;
@@ -237,11 +281,13 @@ onMounted(() => {
           transition: all 0.3s;
           border: 1px solid var(--art-border-color);
 
+          // 悬停效果
           &:hover {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             transform: translateY(-2px);
           }
 
+          // 功能图标
           .feature-icon {
             flex-shrink: 0;
             width: 48px;
@@ -254,6 +300,7 @@ onMounted(() => {
             border-radius: 12px;
           }
 
+          // 功能内容
           .feature-content {
             flex: 1;
 
@@ -278,10 +325,11 @@ onMounted(() => {
 }
 </style>
 
-<!-- 移动端处理 -->
 <style lang="scss" scoped>
 .console {
+  /* ---------- iPad Pro 尺寸适配 ---------- */
   @media screen and (max-width: $device-ipad-pro) {
+    // 第二行：任务统计和批次趋势改为垂直排列
     .row-2 {
       flex-wrap: wrap;
 
@@ -295,6 +343,7 @@ onMounted(() => {
       }
     }
 
+    // 第三行：三列改为两列加一行
     .row-3 {
       flex-wrap: wrap;
 
@@ -310,6 +359,7 @@ onMounted(() => {
       }
     }
 
+    // 底部介绍区域高度自适应
     .bottom-wrap {
       height: auto;
       margin-top: 15px;
@@ -324,7 +374,9 @@ onMounted(() => {
     }
   }
 
+  /* ---------- iPad 竖屏尺寸适配 ---------- */
   @media screen and (max-width: $device-ipad-vertical) {
+    // 卡片列表：两列布局
     :deep(.card-list) {
       width: calc(100% + 15px);
       margin-left: -15px;
@@ -335,6 +387,7 @@ onMounted(() => {
       }
     }
 
+    // 第二行：垂直排列
     .row-2 {
       flex-direction: column;
 
@@ -347,6 +400,7 @@ onMounted(() => {
       }
     }
 
+    // 第三行：垂直排列
     .row-3 {
       flex-direction: column;
 
@@ -381,7 +435,9 @@ onMounted(() => {
     }
   }
 
+  /* ---------- 手机尺寸适配 ---------- */
   @media screen and (max-width: $device-phone) {
+    // 卡片列表：单列布局
     :deep(.card-list) {
       width: 100%;
       margin: 0;
@@ -392,11 +448,13 @@ onMounted(() => {
       }
     }
 
+    // 减小行间距
     .row-2,
     .row-3 {
       gap: 12px;
     }
 
+    // 底部介绍区域：紧凑布局
     .bottom-wrap {
       padding: 15px;
 
@@ -421,6 +479,8 @@ onMounted(() => {
   }
 }
 </style>
+
+/* ============ 分析面板样式 ============ */
 <style lang="scss" scoped>
 .analysis-dashboard {
   :deep(.custom-card) {
@@ -428,7 +488,7 @@ onMounted(() => {
     border-radius: calc(var(--custom-radius) + 4px) !important;
   }
 
-  // 卡片头部
+  /* ---------- 卡片头部样式 ---------- */
   :deep(.custom-card-header) {
     position: relative;
     box-sizing: border-box;
@@ -462,6 +522,7 @@ onMounted(() => {
   }
 }
 
+/* ---------- 暗黑主题适配 ---------- */
 .dark {
   .analysis-dashboard {
     :deep(.custom-card) {
@@ -470,6 +531,7 @@ onMounted(() => {
   }
 }
 
+/* ---------- 响应式布局调整 ---------- */
 @media (width <=1200px) {
   .analysis-dashboard {
     .mt-20 {
@@ -482,6 +544,8 @@ onMounted(() => {
   }
 }
 
+/* ============ 环境监测样式 ============ */
+// 环境监测表格容器
 .env-monitor-table {
   margin-top: 24px;
   background: #fff;
@@ -496,6 +560,7 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
+// 环境监测主容器
 .env-monitor {
   width: 100%;
   background: #fff;

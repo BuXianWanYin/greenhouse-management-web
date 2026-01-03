@@ -1,4 +1,5 @@
 <template>
+    <!-- 单选选择器组件 -->
     <div class="radio-select">
         <el-dropdown
             :disabled="disabled"

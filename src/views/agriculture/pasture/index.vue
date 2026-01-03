@@ -1,5 +1,6 @@
 ﻿<template>
   <div class="page-content">
+    <!-- 温室管理 -->
     <table-bar
         :showTop="false"
         @search="handleQuery"

@@ -1,4 +1,5 @@
 <template>
+    <!-- 状态选择器组件 -->
     <el-popover
         placement="bottom-start"
         width="150"
