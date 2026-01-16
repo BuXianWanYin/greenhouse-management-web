@@ -1727,12 +1727,6 @@ watch(() => open.value, (newVal) => {
       min-width: 100px;
       max-width: 100px;
       flex-shrink: 0; /* 用户列固定宽度，不缩放 */
-      
-      @media (min-width: 1920px) {
-        width: 120px;
-        min-width: 120px;
-        max-width: 120px;
-      }
       background-color: #f5f7fa;
       font-weight: 500;
       text-align: center;
@@ -1741,6 +1735,12 @@ watch(() => open.value, (newVal) => {
       z-index: 5;
       border: 1px solid #dcdfe6;
       box-sizing: border-box;
+      
+      @media (min-width: 1920px) {
+        width: 120px;
+        min-width: 120px;
+        max-width: 120px;
+      }
     }
     
     &.grid-user-cell {
@@ -1751,18 +1751,18 @@ watch(() => open.value, (newVal) => {
       display: flex;
       align-items: center;
       justify-content: center;
-      
-      @media (min-width: 1920px) {
-        width: 120px;
-        min-width: 120px;
-        max-width: 120px;
-      }
       background-color: #fafafa;
       position: sticky;
       left: 0;
       z-index: 4;
       border: 1px solid #dcdfe6;
       box-sizing: border-box;
+      
+      @media (min-width: 1920px) {
+        width: 120px;
+        min-width: 120px;
+        max-width: 120px;
+      }
       
       .user-name {
         font-weight: 500;

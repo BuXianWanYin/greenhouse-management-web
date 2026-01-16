@@ -18,7 +18,14 @@
         </el-form-item>
         <el-form-item style="float: right">
           <el-button type="primary" @click="handleAdd" plain>新增</el-button>
-          <el-button type="success" @click="handleAiAdd" plain>AI</el-button>
+          <el-button 
+            v-if="settingStore.openAiSuggestion"
+            type="success" 
+            @click="handleAiAdd" 
+            plain
+          >
+            AI
+          </el-button>
           <el-button type="warning" @click="handleExport" plain>导出</el-button>
         </el-form-item>
       </el-form>
@@ -105,6 +112,9 @@
   import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
   import { FormInstance } from 'element-plus'
   import { AgricultureJobResult } from '@/types/agriculture/job'
+  import { useSettingStore } from '@/store/modules/setting'
+
+  const settingStore = useSettingStore()
   const jobList = ref<AgricultureJobResult[]>([])
   const open = ref(false)
   const loading = ref(true)

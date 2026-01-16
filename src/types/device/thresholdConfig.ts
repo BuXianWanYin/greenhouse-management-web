@@ -12,7 +12,9 @@ export interface AgricultureThresholdConfigResult {
                 createTime: string,
                 updateBy: string,
                 updateTime: string,
-                remark: string
+                remark: string,
+                debounceSeconds?: number,  // 防抖时长（秒）
+                debounceCount?: number     // 防抖采样次数
 }
 
 export type AgricultureThresholdConfigListPageResult = BasePageResult<AgricultureThresholdConfigResult>

@@ -137,6 +137,10 @@
             <el-switch v-model="openAiBot" @change="setOpenAiBot" />
           </div>
           <div class="item">
+            <span> {{ $t('setting.basics.list[15]') }} </span>
+            <el-switch v-model="openAiSuggestion" @change="setOpenAiSuggestion" />
+          </div>
+          <div class="item">
             <span>{{ $t('setting.basics.list[4]') }}</span>
             <el-switch v-model="showWorkTab" @change="showWorkTabFunc" />
           </div>
@@ -316,6 +320,7 @@
   const showCrumbs = ref(true)
   let showWorkTab = ref(true)
   const openAiBot = ref(true)
+  const openAiSuggestion = ref(true)
   const showLanguage = ref(true)
   const showNprogress = ref(true)
   const colorWeak = ref(false)
@@ -429,6 +434,7 @@
 
   const initUserSetting = () => {
     openAiBot.value = store.openAiBot
+    openAiSuggestion.value = store.openAiSuggestion
     uniqueOpened.value = store.uniqueOpened
     showMenuButton.value = store.showMenuButton
     autoClose.value = store.autoClose
@@ -534,6 +540,8 @@
   }
 
   const setOpenAiBot = () => autoCloseHandler(store.setOpenAiBot)
+
+  const setOpenAiSuggestion = () => autoCloseHandler(store.setOpenAiSuggestion)
 
   const showWorkTabFunc = () => autoCloseHandler(store.setWorkTab, false, !store.showWorkTab)
 

@@ -44,13 +44,24 @@
               </el-icon>
               删除
             </el-button>
-            <el-button size="small" @click="handleJob(item)" class="action-button el-button--job" v-ripple>
+            <el-button 
+              size="small" 
+              @click="handleJob(item)" 
+              class="action-button el-button--job" 
+              v-ripple
+            >
               <el-icon>
                 <Connection />
               </el-icon>
               流程
             </el-button>
-            <el-button size="small" @click="handleReport(item)" class="action-button el-button--ai" v-ripple>
+            <el-button 
+              v-if="settingStore.openAiSuggestion"
+              size="small" 
+              @click="handleReport(item)" 
+              class="action-button el-button--ai" 
+              v-ripple
+            >
               <el-icon>
                 <Cpu />
               </el-icon>
@@ -127,6 +138,9 @@ import EmojiText from '@/utils/emojo'
 import ClassCard from './card.vue'
 import ClassJob from './job.vue'
 import ClassReport from './report.vue'
+import { useSettingStore } from '@/store/modules/setting'
+
+const settingStore = useSettingStore()
 const classList = ref<AgricultureClassResult[]>([])
 const open = ref(false)
 const loading = ref(true)

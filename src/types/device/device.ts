@@ -13,7 +13,11 @@ export interface AgricultureDeviceResult {
                 sensorCommand: string,
                 collectInterval?: number | string,
                 userControlSwitch?: string,
-                onlineStatus?: number | string
+                onlineStatus?: number | string,
+                commandOn?: string,        // 开启指令
+                commandOff?: string,      // 关闭指令
+                isControllable?: string,   // 是否可控
+                controlStatus?: string     // 控制状态
 }
 
 export type AgricultureDeviceListPageResult = BasePageResult<AgricultureDeviceResult>

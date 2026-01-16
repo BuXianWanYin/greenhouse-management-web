@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page-content">
     <!-- 农资库存管理 -->
     <table-bar
@@ -29,7 +29,13 @@
       <template #bottom>
         <el-button @click="handleAdd" v-hasPermi="['agriculture:resourceinventory:add']" v-ripple>新增</el-button>
         <el-button @click="handleExport" v-hasPermi="['agriculture:resourceinventory:export']" v-ripple>导出</el-button>
-        <el-button type="success" @click="showAISuggestionDialog = true" v-hasPermi="['agriculture:decision:resource']" v-ripple>
+        <el-button 
+          v-if="settingStore.openAiSuggestion"
+          type="success" 
+          @click="showAISuggestionDialog = true" 
+          v-hasPermi="['agriculture:decision:resource']" 
+          v-ripple
+        >
           <el-icon><MagicStick /></el-icon>AI采购建议
         </el-button>
       </template>
@@ -281,6 +287,9 @@ import { AgricultureResourceUsageService } from '@/api/agriculture/resourceUsage
 import { AgricultureResourceService } from '@/api/agriculture/resourceApi'
 import { AgricultureResourceResult } from '@/types/agriculture/resource'
 import { useUserStore } from '@/store/modules/user'
+import { useSettingStore } from '@/store/modules/setting'
+
+const settingStore = useSettingStore()
 
 const inventoryList = ref<AgricultureResourceInventoryResult[]>([])
 const resourceList = ref<AgricultureResourceResult[]>([])

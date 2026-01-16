@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page-content">
     <table-bar :showTop="false" @search="handleQuery" @reset="resetForm(queryRef)" @changeColumn="changeColumn"
       :columns="columns">
@@ -24,7 +24,19 @@
             <span>{{ device.deviceName }}</span>
           </div>
           <div class="device-status">
+            <!-- 可控设备：显示运行状态 -->
             <el-tag 
+              v-if="device.isControllable === '1'"
+              :type="device.controlStatus === '1' ? 'success' : 'info'"
+              style="margin-right: 8px; display: flex; align-items: center; gap: 6px;">
+              <span 
+                :class="['online-indicator', { 'breathing': device.controlStatus === '1' }]"
+              ></span>
+              {{ device.controlStatus === '1' ? '运行中' : '未运行' }}
+            </el-tag>
+            <!-- 非可控设备：显示在线状态 -->
+            <el-tag 
+              v-else
               :type="getDeviceOnlineStatus(device) === 'online' ? 'success' : 'info'"
               :class="{ 'tag-offline': getDeviceOnlineStatus(device) === 'offline' }"
               style="margin-right: 8px; display: flex; align-items: center; gap: 6px;">
@@ -33,7 +45,10 @@
               ></span>
               {{ getDeviceOnlineStatus(device) === 'online' ? '在线' : '离线' }}
             </el-tag>
-            <el-tag v-if="device.alarmStatus !== '0' && device.alarmStatus !== null" :type="device.alarmStatus === '1' ? 'warning' : 'danger'">
+            <!-- 告警状态：只对传感器设备显示 -->
+            <el-tag 
+              v-if="device.isControllable !== '1' && device.alarmStatus !== '0' && device.alarmStatus !== null" 
+              :type="device.alarmStatus === '1' ? 'warning' : 'danger'">
               {{ formatStatus(device.alarmStatus, 'alarmStatus') }}
             </el-tag>
           </div>
@@ -65,42 +80,114 @@
                   </el-icon> 温室：</span>
                 <span class="value">{{ device.pastureName || device.pastureId || '未绑定' }}</span>
               </div>
-              <div class="info-row sensor-command">
-                <span class="label"><el-icon>
-                    <Operation />
-                  </el-icon> 传感器指令：</span>
-                <span class="value">{{ device.sensorCommand || '无' }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label"><el-icon>
-                    <Cpu />
-                    </el-icon> 设备类型：</span>
-                <span class="value">{{ device.deviceTypeName || device.deviceTypeId || '未知' }}</span>
-              </div>
-              <div class="info-row" v-if="device.lastOnlineTime !== null && device.lastOnlineTime !== undefined">
-                <span class="label"><el-icon>
+              
+              <!-- 可控设备：显示开启/关闭指令 -->
+              <template v-if="device.isControllable === '1'">
+                <div class="info-row">
+                  <span class="label"><el-icon>
+                      <Operation />
+                    </el-icon> 开启指令：</span>
+                  <span class="value">{{ device.commandOn || '无' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label"><el-icon>
                       <Clock />
-                    </el-icon> 最后在线：</span>
-                <span class="value">{{ formatDate(device.lastOnlineTime) }}</span>
-              </div>
+                    </el-icon> 关闭指令：</span>
+                  <span class="value">{{ device.commandOff || '无' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label"><el-icon>
+                      <Cpu />
+                    </el-icon> 设备类型：</span>
+                  <span class="value">{{ device.deviceTypeName || device.deviceTypeId || '未知' }}</span>
+                </div>
+              </template>
+              
+              <!-- 非可控设备：显示传感器指令和最后在线时间 -->
+              <template v-else>
+                <div class="info-row sensor-command">
+                  <span class="label"><el-icon>
+                      <Operation />
+                    </el-icon> 传感器指令：</span>
+                  <span class="value">{{ device.sensorCommand || '无' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label"><el-icon>
+                      <Cpu />
+                    </el-icon> 设备类型：</span>
+                  <span class="value">{{ device.deviceTypeName || device.deviceTypeId || '未知' }}</span>
+                </div>
+                <div class="info-row" v-if="device.lastOnlineTime !== null && device.lastOnlineTime !== undefined">
+                  <span class="label"><el-icon>
+                        <Clock />
+                      </el-icon> 最后在线：</span>
+                  <span class="value">{{ formatDate(device.lastOnlineTime) }}</span>
+                </div>
+              </template>
             </div>
           </div>
         </div>
 
         <div class="card-footer">
           <el-button-group>
-            <el-button :class="['card-action-btn', 'status', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-hasPermi="['agriculture:device:edit']"
-              @click="handleStatus(device)">
-              <el-icon>
-                <Operation />
-              </el-icon>运行状态
-            </el-button>
-            <el-button :class="['card-action-btn', 'threshold', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-hasPermi="['agriculture:config:list']"
-              @click="handleThreshold(device)">
-              <el-icon>
-                <Setting />
-              </el-icon>设备配置
-            </el-button>
+            <!-- 可控设备：同时显示开启和关闭按钮 -->
+            <template v-if="device.isControllable === '1'">
+              <el-tooltip 
+                :content="device.controlStatus === '1' ? '设备已开启' : ''" 
+                :disabled="device.controlStatus !== '1'"
+                placement="top">
+                <el-button 
+                  :class="['card-action-btn', 'open', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile, 'is-disabled-state': device.controlStatus === '1' }]" 
+                  size="small" 
+                  type="success"
+                  :loading="deviceOperationStatus.get(device.id)?.isOperating && deviceOperationStatus.get(device.id)?.lastOperation === 'open'"
+                  :disabled="deviceOperationStatus.get(device.id)?.isOperating || device.controlStatus === '1'"
+                  @click="handleControlDevice(device, 'on')">
+                  <el-icon>
+                    <CaretRight />
+                  </el-icon>
+                  开启
+                </el-button>
+              </el-tooltip>
+              <el-tooltip 
+                :content="device.controlStatus === '0' ? '设备已关闭' : ''" 
+                :disabled="device.controlStatus !== '0'"
+                placement="top">
+                <el-button 
+                  :class="['card-action-btn', 'close', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile, 'is-disabled-state': device.controlStatus === '0' }]" 
+                  size="small" 
+                  type="warning"
+                  :loading="deviceOperationStatus.get(device.id)?.isOperating && deviceOperationStatus.get(device.id)?.lastOperation === 'close'"
+                  :disabled="deviceOperationStatus.get(device.id)?.isOperating || device.controlStatus === '0'"
+                  @click="handleControlDevice(device, 'off')">
+                  <el-icon>
+                    <CircleClose />
+                  </el-icon>
+                  关闭
+                </el-button>
+              </el-tooltip>
+            </template>
+            <!-- 非可控设备：显示运行状态按钮 -->
+            <template v-else>
+              <el-button :class="['card-action-btn', 'status', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-hasPermi="['agriculture:device:edit']"
+                @click="handleStatus(device)">
+                <el-icon>
+                  <Operation />
+                </el-icon>运行状态
+              </el-button>
+              <!-- 设备配置：只对传感器设备显示 -->
+              <el-button 
+                v-if="device.deviceTypeName && device.deviceTypeName.includes('传感器')"
+                :class="['card-action-btn', 'threshold', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" 
+                size="small" 
+                v-hasPermi="['agriculture:config:list']"
+                @click="handleThreshold(device)">
+                <el-icon>
+                  <Setting />
+                </el-icon>设备配置
+              </el-button>
+            </template>
+            <!-- 编辑和删除按钮：所有设备都显示 -->
             <el-button :class="['card-action-btn', 'edit', { 'mobile-btn': isMobile, 'small-mobile-btn': isSmallMobile }]" size="small" v-hasPermi="['agriculture:device:edit']"
               @click="handleUpdate(device)">
               <el-icon>
@@ -158,9 +245,23 @@
           </div>
         </el-form-item>
         <el-form-item label="设备类型" prop="deviceTypeId">
-          <el-select v-model="form.deviceTypeId" placeholder="请选择设备类型" style="width: 100%">
+          <el-select v-model="form.deviceTypeId" placeholder="请选择设备类型" style="width: 100%" @change="onDeviceTypeChange">
             <el-option v-for="item in deviceTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
+        </el-form-item>
+        <el-form-item 
+          v-if="isControllableType" 
+          label="开启指令" 
+          prop="commandOn"
+          :rules="isControllableType ? [{ required: true, message: '开启指令不能为空', trigger: ['blur', 'change'] }] : []">
+          <el-input v-model="form.commandOn" placeholder="请输入开启指令（十六进制字符串，如：01 03 00 00 00 01）" />
+        </el-form-item>
+        <el-form-item 
+          v-if="isControllableType" 
+          label="关闭指令" 
+          prop="commandOff"
+          :rules="isControllableType ? [{ required: true, message: '关闭指令不能为空', trigger: ['blur', 'change'] }] : []">
+          <el-input v-model="form.commandOff" placeholder="请输入关闭指令（十六进制字符串，如：01 03 00 01 00 01）" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -236,6 +337,7 @@ import { AgricultureDeviceService } from '@/api/device/deviceApi'
 import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
 import { AgricultureDeviceTypeService } from '@/api/device/devicetypeApi'
 import { AgricultureDeviceHeartbeatService } from '@/api/device/deviceheartbeatApi'
+import { DeviceOperationService } from '@/api/device/deviceoperation'
 import { ref, reactive, nextTick, onMounted, computed, provide, onUnmounted, watch } from 'vue'
 import { resetForm, downloadExcel } from '@/utils/utils'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -251,7 +353,9 @@ import {
   Operation,
   Clock,
   Plus,
-  Setting
+  Setting,
+  CaretRight,
+  CircleClose
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useMqttStore } from '@/store/modules/mqttStore'
@@ -290,9 +394,105 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  // 清理所有防抖定时器
+  debounceTimers.value.forEach((timer) => {
+    clearTimeout(timer)
+  })
+  debounceTimers.value.clear()
 })
 // 设备操作状态管理
 const deviceOperationStatus = ref<Map<string, { isOperating: boolean; lastOperation: 'open' | 'close' | null }>>(new Map())
+
+// 防抖定时器Map
+const debounceTimers = ref<Map<string, NodeJS.Timeout>>(new Map())
+
+/**
+ * 防抖处理函数
+ */
+const debouncedControlDevice = (device: AgricultureDeviceResult, action: 'on' | 'off') => {
+  const deviceId = device.id
+  const timerKey = `${deviceId}_${action}`
+  
+  // 清除之前的定时器
+  const existingTimer = debounceTimers.value.get(timerKey)
+  if (existingTimer) {
+    clearTimeout(existingTimer)
+  }
+  
+  // 设置新的定时器
+  const timer = setTimeout(async () => {
+    await executeControlDevice(device, action)
+    debounceTimers.value.delete(timerKey)
+  }, 300) // 300ms防抖
+  
+  debounceTimers.value.set(timerKey, timer)
+}
+
+/**
+ * 执行设备控制
+ */
+const executeControlDevice = async (device: AgricultureDeviceResult, action: 'on' | 'off') => {
+  const deviceId = device.id
+  
+  // 检查是否正在操作
+  const status = deviceOperationStatus.value.get(deviceId)
+  if (status?.isOperating) {
+    ElMessage.warning('设备正在操作中，请稍候...')
+    return
+  }
+  
+  // 检查设备是否可控
+  if (device.isControllable !== '1') {
+    ElMessage.warning('该设备不可控')
+    return
+  }
+  
+  // 检查设备是否已经处于目标状态（参考项目逻辑：只提示不阻止操作）
+  if (action === 'on' && device.controlStatus === '1') {
+    ElMessage.warning('设备已开启，无需重复操作')
+    return
+  }
+  if (action === 'off' && device.controlStatus === '0') {
+    ElMessage.warning('设备已关闭，无需重复操作')
+    return
+  }
+  
+  // 设置操作状态
+  deviceOperationStatus.value.set(deviceId, {
+    isOperating: true,
+    lastOperation: action === 'on' ? 'open' : 'close'
+  })
+  
+  try {
+    const res = await DeviceOperationService.controlDevice({
+      deviceId: deviceId,
+      action: action
+    })
+    
+    if (res.code === 200) {
+      ElMessage.success(action === 'on' ? '设备已开启' : '设备已关闭')
+      // 刷新设备列表
+      await getList()
+    } else {
+      ElMessage.error(res.msg || '操作失败')
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || '操作失败')
+  } finally {
+    // 重置操作状态
+    deviceOperationStatus.value.set(deviceId, {
+      isOperating: false,
+      lastOperation: action === 'on' ? 'open' : 'close'
+    })
+  }
+}
+
+/**
+ * 处理设备控制按钮点击
+ */
+const handleControlDevice = (device: AgricultureDeviceResult, action: 'on' | 'off') => {
+  debouncedControlDevice(device, action)
+}
 let { accessToken } = userStore
 // 传递 token
 const uploadHeaders = { Authorization: accessToken }
@@ -307,8 +507,17 @@ const initialFormState = {
   lastOnlineTime: '',
   pastureId: undefined,
   sensorCommand: null,
-  deviceImage: null
+  deviceImage: null,
+  isControllable: '0',
+  commandOn: null,
+  commandOff: null
 }
+// 保存初始类型和指令（用于编辑时恢复）
+const initialTypeAndCommand = ref({
+  deviceTypeId: '',
+  commandOn: '',
+  commandOff: ''
+})
 // 修改表单类型
 const form = reactive<{
   id: string | null;
@@ -319,6 +528,9 @@ const form = reactive<{
   pastureId: string | undefined;
   sensorCommand: string | null;
   deviceImage: string | null;
+  isControllable: string;
+  commandOn: string | null;
+  commandOff: string | null;
 }>({
   ...initialFormState
 })
@@ -357,8 +569,14 @@ const rules = reactive({
 })
 
 const cascaderLoading = ref(false)
-const deviceTypeOptions = ref<{ value: string, label: string }[]>([])
+const deviceTypeOptions = ref<{ value: string, label: string, isControllable: boolean }[]>([])
 const pastureOptions = ref<{ value: string, label: string }[]>([])
+
+// 计算属性：判断当前选择的设备类型是否可控
+const isControllableType = computed(() => {
+  const type = deviceTypeOptions.value.find(t => t.value === form.deviceTypeId)
+  return type && type.isControllable
+})
 
 /** 查询设备所有类型 */
 const fetchDeviceTypeOptions = async () => {
@@ -369,8 +587,28 @@ const fetchDeviceTypeOptions = async () => {
   if (res.code === 200 && Array.isArray(res.rows)) {
     deviceTypeOptions.value = res.rows.map((item: any) => ({
       value: String(item.id),
-      label: item.typeName
+      label: item.typeName,
+      isControllable: item.isControllable === "1" || item.isControllable === 1
     }))
+  }
+}
+
+/**
+ * 设备类型变化时的处理
+ */
+const onDeviceTypeChange = () => {
+  const type = deviceTypeOptions.value.find(t => t.value === form.deviceTypeId)
+  // 根据设备类型自动设置是否可控
+  form.isControllable = type && type.isControllable ? '1' : '0'
+  // 如果切换设备类型，清空指令（除非是编辑且类型未变）
+  if (form.deviceTypeId === initialTypeAndCommand.value.deviceTypeId) {
+    // 恢复之前的指令
+    form.commandOn = initialTypeAndCommand.value.commandOn
+    form.commandOff = initialTypeAndCommand.value.commandOff
+  } else {
+    // 清空指令
+    form.commandOn = ''
+    form.commandOff = ''
   }
 }
 
@@ -452,6 +690,12 @@ const reset = () => {
   Object.assign(form, {
     ...initialFormState
   })
+  // 重置初始类型和指令
+  initialTypeAndCommand.value = {
+    deviceTypeId: '',
+    commandOn: '',
+    commandOff: ''
+  }
   nextTick(() => {
     if (deviceRef.value) {
       deviceRef.value.clearValidate()
@@ -503,9 +747,17 @@ const handleUpdate = async (row: any) => {
   const res = await AgricultureDeviceService.getDevice(_id);
   if (res.code === 200) {
     const data = res.data;
+    // 保存初始类型和指令（用于类型切换时恢复）
+    initialTypeAndCommand.value = {
+      deviceTypeId: String(data.deviceTypeId || ''),
+      commandOn: data.commandOn || '',
+      commandOff: data.commandOff || ''
+    }
     Object.assign(form, {
       ...data,
-      pastureId: data.pastureId ? String(data.pastureId) : undefined
+      pastureId: data.pastureId ? String(data.pastureId) : undefined,
+      // 根据设备类型自动设置 isControllable（如果后端没有返回，则从设备类型选项获取）
+      isControllable: data.isControllable || (deviceTypeOptions.value.find(t => t.value === String(data.deviceTypeId))?.isControllable ? '1' : '0')
     });
     open.value = true;
     title.value = '修改设备信息';
@@ -604,6 +856,11 @@ const formatStatus = (status: string | null, type: 'status' | 'alarmStatus'): st
 
 /** 设备运行状态按钮操作 */
 const handleStatus = (row: any) => {
+  // 可控设备不应该显示运行状态对话框
+  if (row.isControllable === '1') {
+    ElMessage.warning('可控设备不支持运行状态查看')
+    return
+  }
   currentDevice.value = { ...row }
   showStatusDialog.value = true
 }
@@ -1689,5 +1946,61 @@ const fetchPastureOptions = async () => {
 /* 防止设备信息对话框标签换行 */
 :deep(.el-dialog .el-form-item__label) {
   white-space: nowrap;
+}
+
+/* 禁用状态的按钮样式 - 保持原色但稍微变灰，禁用所有动画和 hover 效果 */
+.card-action-btn.is-disabled-state {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transition: none !important;
+  transform: none !important;
+  pointer-events: none !important;
+  filter: grayscale(30%) !important; /* 添加灰度滤镜，保持原色但稍微变灰 */
+}
+
+.card-action-btn.is-disabled-state:hover,
+.card-action-btn.is-disabled-state:focus,
+.card-action-btn.is-disabled-state:active {
+  opacity: 0.5 !important;
+  transform: none !important;
+  transition: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  filter: grayscale(30%) !important; /* 保持灰度滤镜 */
+}
+
+/* 禁用按钮的 ::before 伪元素动画 - 完全隐藏 */
+.card-action-btn.is-disabled-state::before {
+  display: none !important;
+  transform: none !important;
+  transition: none !important;
+  opacity: 0 !important;
+}
+
+.card-action-btn.is-disabled-state:hover::before,
+.card-action-btn.is-disabled-state:focus::before,
+.card-action-btn.is-disabled-state:active::before {
+  display: none !important;
+  transform: none !important;
+  transition: none !important;
+  opacity: 0 !important;
+}
+
+/* 禁用按钮保持原色，但通过 opacity 和 filter 变灰 */
+.card-action-btn.is-disabled-state.el-button--info,
+.card-action-btn.is-disabled-state.el-button--success,
+.card-action-btn.is-disabled-state.el-button--warning {
+  /* 不覆盖原色，只通过 opacity 和 filter 变灰 */
+}
+
+.card-action-btn.is-disabled-state.el-button--info:hover,
+.card-action-btn.is-disabled-state.el-button--success:hover,
+.card-action-btn.is-disabled-state.el-button--warning:hover,
+.card-action-btn.is-disabled-state.el-button--info:focus,
+.card-action-btn.is-disabled-state.el-button--success:focus,
+.card-action-btn.is-disabled-state.el-button--warning:focus {
+  transform: none !important;
+  transition: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  filter: grayscale(30%) !important; /* 保持灰度滤镜 */
 }
 </style>

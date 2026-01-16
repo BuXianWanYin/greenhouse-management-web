@@ -201,7 +201,7 @@ export default ({ mode }) => {
         // sass variable and mixin
         scss: {
           api: 'modern-compiler',
-          silenceDeprecations: ['legacy-js-api'],
+          silenceDeprecations: ['legacy-js-api', 'mixed-decls'],
           additionalData: `
             @use "@styles/variables.scss" as *; @use "@styles/mixin.scss" as *;
           `

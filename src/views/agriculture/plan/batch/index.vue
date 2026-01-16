@@ -53,7 +53,13 @@
       <template #bottom>
         <el-button @click="handleAdd" v-hasPermi="['agriculture:batch:add']" v-ripple>新增</el-button>
         <el-button @click="handleExport" v-hasPermi="['agriculture:batch:export']" v-ripple>导出</el-button>
-        <el-button type="success" @click="showAISuggestionDialog = true" v-hasPermi="['agriculture:decision:plan']" v-ripple>
+        <el-button 
+          v-if="settingStore.openAiSuggestion"
+          type="success" 
+          @click="showAISuggestionDialog = true" 
+          v-hasPermi="['agriculture:decision:plan']" 
+          v-ripple
+        >
           <el-icon><MagicStick /></el-icon>AI种植建议
         </el-button>
       </template>
@@ -161,12 +167,12 @@
         <el-form-item label="选择批次">
           <el-select
             v-model="selectedBatchIdForAI"
-            placeholder="请选择进行中的批次"
+            placeholder="请选择批次"
             filterable
             style="width: 300px"
           >
             <el-option
-              v-for="batch in inProgressBatchList"
+              v-for="batch in availableBatchListForAI"
               :key="batch.batchId"
               :label="batch.batchName"
               :value="batch.batchId"
@@ -337,8 +343,10 @@ import { downloadExcel } from '@/utils/utils'
 import { useRouter } from 'vue-router'
 import { parseTime } from '@/utils/utils'
 import AIBatchSuggestionPanel from '@/components/AIBatchSuggestionPanel/index.vue'
+import { useSettingStore } from '@/store/modules/setting'
 
 const router = useRouter()
+const settingStore = useSettingStore()
 const batchList = ref<AgricultureCropBatchResult[]>([])
 const open = ref(false)
 const loading = ref(true)
@@ -397,9 +405,12 @@ const showAISuggestionDialog = ref(false)
 const selectedBatchIdForAI = ref<number | string>()
 const aiBatchSuggestionPanelRef = ref<InstanceType<typeof AIBatchSuggestionPanel> | null>(null)
 
-// 只获取进行中的批次（状态=1）
-const inProgressBatchList = computed(() => {
-  return batchList.value.filter(batch => String(batch.status) === '1')
+// 获取未开始和进行中的批次（状态=0或1），已完成的批次不需要AI建议
+const availableBatchListForAI = computed(() => {
+  return batchList.value.filter(batch => {
+    const status = String(batch.status)
+    return status === '0' || status === '1'
+  })
 })
 
 const columns = reactive([
