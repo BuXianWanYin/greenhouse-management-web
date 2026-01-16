@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page-content">
     <!-- 温室管理 -->
     <table-bar
@@ -515,7 +515,8 @@
   inset: 0;
   background-color: #409eff;
   transform: translateX(-100%);
-  transition: transform 0.3s;
+  opacity: 0;
+  transition: transform 0.3s, opacity 0.3s;
   z-index: 0;
 }
 
@@ -549,6 +550,7 @@
 
 .card-action-btn:hover::before {
   transform: translateX(0);
+  opacity: 1;
 }
 
 .card-action-btn:hover .el-icon,

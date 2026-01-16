@@ -1432,7 +1432,8 @@ const fetchPastureOptions = async () => {
   inset: 0;
   background-color: #409eff;
   transform: translateX(-100%);
-  transition: transform 0.3s ease;
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
   z-index: 0;
 }
 
@@ -1459,6 +1460,7 @@ const fetchPastureOptions = async () => {
 
 .card-action-btn.edit:hover::before {
   transform: translateX(0);
+  opacity: 1;
 }
 
 .card-action-btn.delete {
@@ -1467,6 +1469,7 @@ const fetchPastureOptions = async () => {
 
 .card-action-btn.delete::before {
   background-color: #f56c6c;
+  opacity: 0;
 }
 
 .card-action-btn.delete:hover {
@@ -1475,6 +1478,7 @@ const fetchPastureOptions = async () => {
 
 .card-action-btn.delete:hover::before {
   transform: translateX(0);
+  opacity: 1;
 }
 
 .tag-offline {
@@ -1580,7 +1584,8 @@ const fetchPastureOptions = async () => {
   inset: 0;
   background-color: #67c23a;
   transform: translateX(-100%);
-  transition: transform 0.3s ease;
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
   z-index: 0;
 }
 
@@ -1590,6 +1595,7 @@ const fetchPastureOptions = async () => {
 
 .card-action-btn.status:hover::before {
   transform: translateX(0);
+  opacity: 1;
 }
 
 .card-action-btn.threshold {
@@ -1617,7 +1623,8 @@ const fetchPastureOptions = async () => {
   inset: 0;
   background-color: #e6a23c;
   transform: translateX(-100%);
-  transition: transform 0.3s ease;
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
   z-index: 0;
 }
 
@@ -1627,6 +1634,7 @@ const fetchPastureOptions = async () => {
 
 .card-action-btn.threshold:hover::before {
   transform: translateX(0);
+  opacity: 1;
 }
 
 .card-action-btn.status .el-icon,
@@ -1838,7 +1846,8 @@ const fetchPastureOptions = async () => {
   inset: 0;
   background-color: #67c23a;
   transform: translateX(-100%);
-  transition: transform 0.3s ease;
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
   z-index: 0;
 }
 
@@ -1848,6 +1857,7 @@ const fetchPastureOptions = async () => {
 
 .card-action-btn.open:hover::before {
   transform: translateX(0);
+  opacity: 1;
 }
 
 .card-action-btn.close {
@@ -1875,7 +1885,8 @@ const fetchPastureOptions = async () => {
   inset: 0;
   background-color: #f56c6c;
   transform: translateX(-100%);
-  transition: transform 0.3s ease;
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
   z-index: 0;
 }
 
@@ -1885,6 +1896,7 @@ const fetchPastureOptions = async () => {
 
 .card-action-btn.close:hover::before {
   transform: translateX(0);
+  opacity: 1;
 }
 
 /* 传感器指令内容字体缩小 */
