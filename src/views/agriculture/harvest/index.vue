@@ -115,8 +115,8 @@
           </el-col>
         </el-row>
       </div>
-      <div v-if="batchList.length > 9" class="custom-pagination">
-        <span style="margin-right: 16px; font-size: 14px"> 共 {{ batchList.length }} 条 </span>
+      <div v-if="total > pageSize" class="custom-pagination">
+        <span style="margin-right: 16px; font-size: 14px"> 共 {{ total }} 条 </span>
         <el-pagination
           background
           layout="sizes, prev, pager, next, jumper"
@@ -569,20 +569,22 @@
   const pageSize = ref(9)
 
   async function getList() {
-    // 1. 获取所有批次数据（分页参数传递给后端）
+    try {
+    // 1. 获取所有批次数据（不分页，获取全部批次用于客户端过滤）
     const res = await AgricultureCropBatchService.listBatch({
       batchName: queryParams.batchName,
       germplasmId: queryParams.germplasmId,
-      pageNum: pageNum.value, // 当前页码
-      pageSize: pageSize.value // 每页条数
+      pageNum: 1,
+      pageSize: 9999
     })
     const allBatches = (res as any).rows || []
-    total.value = (res as any).total || 0 // 赋值总条数
+    console.log('[采收调试] 步骤1 - 获取到批次数量:', allBatches.length, '批次列表:', allBatches)
 
     // 2. 并发获取每个批次下的任务列表
     const batchTasks = await Promise.all(
       allBatches.map(async (batch: any) => {
         const taskRes = await AgricultureCropBatchService.getBatchTasks(batch.batchId)
+        console.log(`[采收调试] 步骤2 - 批次${batch.batchId}(${batch.batchName}) 任务列表:`, (taskRes as any).data, '任务状态:', ((taskRes as any).data || []).map((t: any) => t.status))
         return { batch, tasks: (taskRes as any).data || [] }
       })
     )
@@ -591,6 +593,7 @@
     const filteredBatches: any[] = []
     for (const { batch, tasks } of batchTasks) {
       const allTasksDone = tasks.length > 0 && tasks.every((task: any) => String(task.status) === '3');
+      console.log(`[采收调试] 步骤3 - 批次${batch.batchId}(${batch.batchName}) 任务数:${tasks.length}, 全部完成:${allTasksDone}`)
 
       // 所有任务完成就显示
       if (allTasksDone) {
@@ -599,6 +602,7 @@
         filteredBatches.push(batch);
       }
     }
+    console.log('[采收调试] 步骤3结果 - 任务全部完成的批次数:', filteredBatches.length)
 
     // 4. 查询采收记录，只保留未采收的批次
     const unharvestedBatches: any[] = []
@@ -615,6 +619,7 @@
       
       const res = await AgricultureHarvestService.listHarvest({batchId: batch.batchId})
       batch.hasHarvestRecord = res.rows && res.rows.length > 0
+      console.log(`[采收调试] 步骤4 - 批次${batch.batchId}(${batch.batchName}) 已有采收记录:${batch.hasHarvestRecord}, 采收记录数:${(res.rows || []).length}`)
       
       // 只保留未采收的批次
       if (!batch.hasHarvestRecord) {
@@ -622,8 +627,15 @@
       }
     }
 
-    // 5. 更新页面显示的批次列表（只显示未采收的）
-    batchList.value = unharvestedBatches
+    // 5. 客户端分页：先更新总数，再截取当前页数据
+    total.value = unharvestedBatches.length
+    const start = (pageNum.value - 1) * pageSize.value
+    const end = start + pageSize.value
+    console.log('[采收调试] 步骤5 - 符合条件的批次总数:', unharvestedBatches.length, '当前页显示:', start, '-', end)
+    batchList.value = unharvestedBatches.slice(start, end)
+    } catch (e) {
+      console.error('[采收调试] getList执行出错:', e)
+    }
   }
 
   // 每页条数变化时触发

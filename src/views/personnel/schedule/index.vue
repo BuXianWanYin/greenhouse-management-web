@@ -239,10 +239,12 @@
           <el-cascader
             v-model="pastureBatchCascaderValue"
             :options="pastureBatchCascaderOptions"
-            :props="pastureBatchCascaderProps"
-            placeholder="请选择温室和批次"
+            :props="{ ...pastureBatchCascaderProps, multiple: true }"
+            placeholder="请选择温室和批次（可多选）"
             clearable
             filterable
+            collapse-tags
+            collapse-tags-tooltip
             style="width: 100%"
             @change="handlePastureBatchCascaderChange"
           />
@@ -301,10 +303,12 @@
           <el-cascader
             v-model="batchPastureBatchCascaderValue"
             :options="pastureBatchCascaderOptions"
-            :props="pastureBatchCascaderProps"
-            placeholder="请选择温室和批次"
+            :props="{ ...pastureBatchCascaderProps, multiple: true }"
+            placeholder="请选择温室和批次（可多选）"
             clearable
             filterable
+            collapse-tags
+            collapse-tags-tooltip
             style="width: 100%"
             @change="handleBatchPastureBatchCascaderChange"
           />
@@ -1121,35 +1125,86 @@ const submitForm = async () => {
   if (!scheduleRef.value) return
   await scheduleRef.value.validate(async (valid) => {
     if (valid) {
-      // 准备提交数据
-      const submitData: any = {
-        ...form,
-        status: '0'
-      }
-      
-      // 如果是正常班，使用排班规则的时间
-      if (form.workType === 'normal' && form.ruleId) {
-        const rule = ruleList.value.find(r => r.ruleId === form.ruleId)
-        if (rule && form.scheduleDate) {
-          submitData.workStartTime = `${form.scheduleDate} ${rule.workStartTime || '08:00:00'}`
-          submitData.workEndTime = `${form.scheduleDate} ${rule.workEndTime || '17:00:00'}`
-        }
-      }
-      
+      // 如果是修改模式，直接提交单条
       if (form.scheduleId !== undefined && form.scheduleId !== null) {
+        const submitData: any = { ...form, status: '0' }
+        if (form.workType === 'normal' && form.ruleId) {
+          const rule = ruleList.value.find(r => r.ruleId === form.ruleId)
+          if (rule && form.scheduleDate) {
+            submitData.workStartTime = `${form.scheduleDate} ${rule.workStartTime || '08:00:00'}`
+            submitData.workEndTime = `${form.scheduleDate} ${rule.workEndTime || '17:00:00'}`
+          }
+        }
         const res = await AgricultureScheduleService.updateSchedule(submitData)
         if (res.code === 200) {
           ElMessage.success(res.msg)
           open.value = false
           loadGridData()
         }
-      } else {
+        return
+      }
+
+      // 新增模式：根据选择的温室/批次数量创建排班记录
+      // 获取所有选中的温室/批次组合
+      const selectedPairs: Array<{ pastureId: number, batchId?: number }> = []
+      if (form.workType === 'normal' && pastureBatchCascaderValue.value && pastureBatchCascaderValue.value.length > 0) {
+        for (const item of pastureBatchCascaderValue.value) {
+          if (Array.isArray(item) && item.length >= 2) {
+            selectedPairs.push({ pastureId: Number(item[0]), batchId: Number(item[1]) })
+          } else if (Array.isArray(item) && item.length === 1) {
+            selectedPairs.push({ pastureId: Number(item[0]) })
+          }
+        }
+      }
+
+      // 如果没有选择温室（非正常班或未选温室），按原逻辑提交单条
+      if (selectedPairs.length <= 1) {
+        const submitData: any = { ...form, status: '0' }
+        if (form.workType === 'normal' && form.ruleId) {
+          const rule = ruleList.value.find(r => r.ruleId === form.ruleId)
+          if (rule && form.scheduleDate) {
+            submitData.workStartTime = `${form.scheduleDate} ${rule.workStartTime || '08:00:00'}`
+            submitData.workEndTime = `${form.scheduleDate} ${rule.workEndTime || '17:00:00'}`
+          }
+        }
         const res = await AgricultureScheduleService.addSchedule(submitData)
         if (res.code === 200) {
           ElMessage.success(res.msg)
           open.value = false
           loadGridData()
         }
+        return
+      }
+
+      // 多温室：为每个温室/批次创建一条排班记录，使用批量创建接口
+      const schedules: any[] = []
+      const rule = form.ruleId ? ruleList.value.find(r => r.ruleId === form.ruleId) : null
+      for (const pair of selectedPairs) {
+        const schedule: any = {
+          userId: form.userId,
+          pastureId: pair.pastureId,
+          batchId: pair.batchId,
+          scheduleDate: form.scheduleDate,
+          workType: form.workType,
+          ruleId: form.ruleId,
+          status: '0'
+        }
+        if (form.workType === 'normal' && rule && form.scheduleDate) {
+          schedule.workStartTime = `${form.scheduleDate} ${rule.workStartTime || '08:00:00'}`
+          schedule.workEndTime = `${form.scheduleDate} ${rule.workEndTime || '17:00:00'}`
+        }
+        schedules.push(schedule)
+      }
+      try {
+        const res = await AgricultureScheduleService.batchCreate(schedules)
+        if (res.code === 200) {
+          ElMessage.success(`成功创建 ${schedules.length} 条排班记录`)
+          open.value = false
+          loadGridData()
+        }
+      } catch (error) {
+        console.error('批量创建排班失败:', error)
+        ElMessage.error('创建排班失败')
       }
     }
   })
@@ -1316,28 +1371,37 @@ const buildPastureBatchCascaderOptions = async () => {
   console.log('📋 最终选项:', JSON.stringify(options, null, 2))
 }
 
-/** 处理单个排班温室批次级联选择器变化 */
+/** 处理单个排班温室批次级联选择器变化（多选模式，value 是二维数组） */
 const handlePastureBatchCascaderChange = (value: any) => {
-  if (value && Array.isArray(value) && value.length === 2) {
-    form.pastureId = Number(value[0])
-    form.batchId = Number(value[1])
-  } else if (value && Array.isArray(value) && value.length === 1) {
-    form.pastureId = Number(value[0])
-    form.batchId = undefined
+  // 多选模式下 value 格式: [[pastureId1, batchId1], [pastureId2, batchId2], ...]
+  if (value && Array.isArray(value) && value.length > 0) {
+    // 取第一个选项的值作为 form 的默认值（兼容原有逻辑）
+    const first = value[0]
+    if (Array.isArray(first) && first.length === 2) {
+      form.pastureId = Number(first[0])
+      form.batchId = Number(first[1])
+    } else if (Array.isArray(first) && first.length === 1) {
+      form.pastureId = Number(first[0])
+      form.batchId = undefined
+    }
   } else {
     form.pastureId = undefined
     form.batchId = undefined
   }
 }
 
-/** 处理批量排班温室批次级联选择器变化 */
+/** 处理批量排班温室批次级联选择器变化（多选模式，value 是二维数组） */
 const handleBatchPastureBatchCascaderChange = (value: any) => {
-  if (value && Array.isArray(value) && value.length === 2) {
-    batchForm.pastureId = Number(value[0])
-    batchForm.batchId = Number(value[1])
-  } else if (value && Array.isArray(value) && value.length === 1) {
-    batchForm.pastureId = Number(value[0])
-    batchForm.batchId = undefined
+  // 多选模式下 value 格式: [[pastureId1, batchId1], [pastureId2, batchId2], ...]
+  if (value && Array.isArray(value) && value.length > 0) {
+    const first = value[0]
+    if (Array.isArray(first) && first.length === 2) {
+      batchForm.pastureId = Number(first[0])
+      batchForm.batchId = Number(first[1])
+    } else if (Array.isArray(first) && first.length === 1) {
+      batchForm.pastureId = Number(first[0])
+      batchForm.batchId = undefined
+    }
   } else {
     batchForm.pastureId = undefined
     batchForm.batchId = undefined
@@ -1498,29 +1562,47 @@ const submitBatchForm = async () => {
       const schedules: any[] = []
       const start = dayjs(startDate)
       const end = dayjs(endDate)
+      
+      // 获取所有选中的温室/批次组合
+      const selectedPairs: Array<{ pastureId?: number, batchId?: number }> = []
+      if (batchForm.workType === 'normal' && batchPastureBatchCascaderValue.value && batchPastureBatchCascaderValue.value.length > 0) {
+        for (const item of batchPastureBatchCascaderValue.value) {
+          if (Array.isArray(item) && item.length >= 2) {
+            selectedPairs.push({ pastureId: Number(item[0]), batchId: Number(item[1]) })
+          } else if (Array.isArray(item) && item.length === 1) {
+            selectedPairs.push({ pastureId: Number(item[0]) })
+          }
+        }
+      }
+      // 如果没有选择温室，用 form 中的值（兼容非正常班场景）
+      if (selectedPairs.length === 0) {
+        selectedPairs.push({ pastureId: batchForm.pastureId, batchId: batchForm.batchId })
+      }
+
+      const rule = batchForm.ruleId ? ruleList.value.find(r => r.ruleId === batchForm.ruleId) : null
       let current = start
       
       while (current.isBefore(end) || current.isSame(end)) {
-        const schedule: any = {
-          userId: batchForm.userId,
-          pastureId: batchForm.pastureId,
-          batchId: batchForm.batchId,
-          scheduleDate: current.format('YYYY-MM-DD'),
-          workType: batchForm.workType,
-          status: '0'
-        }
-        
-        // 如果是正常班，使用排班规则的时间
-        if (batchForm.workType === 'normal' && batchForm.ruleId) {
-          const rule = ruleList.value.find(r => r.ruleId === batchForm.ruleId)
-          if (rule) {
-            schedule.ruleId = batchForm.ruleId
-            schedule.workStartTime = `${current.format('YYYY-MM-DD')} ${rule.workStartTime || '08:00:00'}`
-            schedule.workEndTime = `${current.format('YYYY-MM-DD')} ${rule.workEndTime || '17:00:00'}`
+        const dateStr = current.format('YYYY-MM-DD')
+        // 为每个温室/批次组合创建一条排班记录
+        for (const pair of selectedPairs) {
+          const schedule: any = {
+            userId: batchForm.userId,
+            pastureId: pair.pastureId,
+            batchId: pair.batchId,
+            scheduleDate: dateStr,
+            workType: batchForm.workType,
+            status: '0'
           }
+          
+          if (batchForm.workType === 'normal' && rule) {
+            schedule.ruleId = batchForm.ruleId
+            schedule.workStartTime = `${dateStr} ${rule.workStartTime || '08:00:00'}`
+            schedule.workEndTime = `${dateStr} ${rule.workEndTime || '17:00:00'}`
+          }
+          
+          schedules.push(schedule)
         }
-        
-        schedules.push(schedule)
         current = current.add(1, 'day')
       }
       
