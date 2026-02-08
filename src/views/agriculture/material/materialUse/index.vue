@@ -439,15 +439,19 @@ const submitForm = async () => {
   if (!usageRef.value) return
   await usageRef.value.validate(async (valid) => {
     if (valid) {
+      const submitData = {
+        ...form,
+        usageDate: form.usageDate && !form.usageDate.includes(' ') ? form.usageDate + ' 00:00:00' : form.usageDate
+      }
       if (form.usageId) {
-        const res = await AgricultureResourceUsageService.updateUsage(form)
+        const res = await AgricultureResourceUsageService.updateUsage(submitData)
         if (res.code === 200) {
           ElMessage.success(res.msg)
           open.value = false
           getList()
         }
       } else {
-        const res = await AgricultureResourceUsageService.addUsage(form)
+        const res = await AgricultureResourceUsageService.addUsage(submitData)
         if (res.code === 200) {
           ElMessage.success(res.msg)
           open.value = false

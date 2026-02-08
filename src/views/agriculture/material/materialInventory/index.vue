@@ -573,7 +573,7 @@ const submitForm = async () => {
         resourceId: form.resourceId,
         usageQuantity: form.usageQuantity,
         measureUnit: form.measureUnit,
-        usageDate: form.usageDate,
+        usageDate: form.usageDate ? form.usageDate + ' 00:00:00' : '',
         usageType: '2', // 2表示入库
         operator: form.operator,
         remark: form.remark
@@ -654,7 +654,11 @@ const submitStockIn = async () => {
   await stockInRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        const res = await AgricultureResourceUsageService.addUsage(stockInForm)
+        const submitData = {
+          ...stockInForm,
+          usageDate: stockInForm.usageDate ? stockInForm.usageDate + ' 00:00:00' : ''
+        }
+        const res = await AgricultureResourceUsageService.addUsage(submitData)
         if (res.code === 200) {
           ElMessage.success(res.msg || '入库成功')
           stockInOpen.value = false
