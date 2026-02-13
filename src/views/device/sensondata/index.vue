@@ -53,6 +53,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { Select, Sunny, Monitor, Clock } from '@element-plus/icons-vue'
 import { AgricultureDeviceService } from '@/api/device/deviceApi'
 // 动态导入页面组件
@@ -61,6 +62,7 @@ import WeatherIndex from '../weather/index.vue'
 import HistoryIndex from '../history/index.vue'
 import { AgriculturePastureService } from '@/api/agriculture/pastureApi'
 
+const route = useRoute()
 const activeMenu = ref('weather')
 
 const currentComponent = computed(() => {
@@ -122,6 +124,15 @@ const handlePastureChange = async (pastureId) => {
 onMounted(async () => {
   // 加载温室列表
   await loadPastureOptions()
+
+  // 如果URL带有pastureId参数（从报警弹窗跳转过来），优先使用
+  const queryPasture = route.query.pastureId ? String(route.query.pastureId) : ''
+  if (queryPasture) {
+    queryPastureId.value = queryPasture
+    await handlePastureChange(queryPasture)
+    return
+  }
+
   // 查询所有设备（不分页，pageSize设大一点）
   const res = await AgricultureDeviceService.listDevice({ })
   if (res.code === 200 && res.rows && res.rows.length > 0) {

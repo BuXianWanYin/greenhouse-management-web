@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import { getMqttClient } from '@/api/mqtt/mqttClient'
 import { AgricultureDeviceMqttConfigService } from '@/api/device/deviceConfigApi'
 import { ElNotification } from 'element-plus'
+import { createNotificationMessage } from '@/components/AlertNotification/message.vue'
+import { router } from '@/router'
 
 /**
  * MQTT 状态管理 Store
@@ -110,22 +112,48 @@ export const useMqttStore = defineStore('mqtt', () => {
    * 显示预警通知
    */
   function showAlertNotification(alert: any) {
-    // 统一使用警告类型（橙色），保证所有预警通知配色一致
     const levelMap: Record<number, { type: 'success' | 'warning' | 'info' | 'error', title: string }> = {
-      0: { type: 'warning', title: '警告' },  // 警告级别
-      1: { type: 'error', title: '严重' },    // 严重级别
-      2: { type: 'error', title: '紧急' },    // 紧急级别
+      0: { type: 'warning', title: '⚡ 警告' },
+      1: { type: 'error', title: '⚠️ 严重报警' },
+      2: { type: 'error', title: '🚨 紧急报警' },
     }
     
     const level = levelMap[alert.alertLevel] || levelMap[0]
+    const pastureName = alert.pastureName || '未知温室'
     
-    ElNotification({
+    const notification = ElNotification({
       type: level.type,
-      title: `${level.title} - ${alert.paramName || '设备预警'}`,
-      message: alert.alertMessage || '设备参数异常',
-      duration: 0, // 不自动关闭
-      position: 'top-right'
+      title: `${level.title} · ${pastureName}`,
+      dangerouslyUseHTMLString: true,
+      message: createNotificationMessage(alert),
+      duration: 0,
+      position: 'top-right',
+      onClick: () => {
+        notification.close()
+      }
     })
+
+    // 监听“查看设备数据”链接点击
+    setTimeout(() => {
+      document.querySelectorAll('.alert-goto-link').forEach(el => {
+        if (!el.getAttribute('data-bindedclick')) {
+          el.setAttribute('data-bindedclick', 'true')
+          el.addEventListener('click', (e) => {
+            e.stopPropagation()
+            const target = e.currentTarget as HTMLElement
+            const pastureId = target.getAttribute('data-pasture-id')
+            // 尝试跳转到传感器数据页，带上温室ID参数
+            try {
+              router.push({ path: '/agriculture/device/sensondata', query: pastureId ? { pastureId } : {} })
+            } catch {
+              // 如果路由不存在，尝试其他路径
+              console.warn('跳转设备数据页失败')
+            }
+            notification.close()
+          })
+        }
+      })
+    }, 100)
   }
 
   return {

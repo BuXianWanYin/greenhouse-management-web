@@ -6,7 +6,7 @@ import { SystemConfig } from '../types'
 export const createBaseConfig = (): SystemConfig => ({
   // 系统信息
   systemInfo: {
-    name: '温室作物种植计划与人员分工管理系统',
+    name: '温室作物智慧管理系统',
     login: {
       username: '',
       password: '',

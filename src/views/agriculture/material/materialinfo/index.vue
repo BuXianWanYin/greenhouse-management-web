@@ -149,6 +149,9 @@
         <el-form-item label="计量单位" prop="measureUnit">
           <el-input v-model="form.measureUnit" placeholder="请输入计量单位" />
         </el-form-item>
+        <el-form-item v-if="!form.resourceId" label="初始库存" prop="initialStock">
+          <el-input-number v-model="form.initialStock" :min="0" :precision="2" placeholder="请输入初始库存" style="width: 100%" />
+        </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" placeholder="请输入备注" />
         </el-form-item>
@@ -208,6 +211,7 @@ const initialFormState = {
   resourceType: '0', // 默认选择物料
   resourceImage: null,
   measureUnit: null,
+  initialStock: 0,
   orderNum: null,
   createBy: null,
   createTime: null,
